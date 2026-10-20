@@ -28,7 +28,7 @@ Build the server per `docs/setup.md`: Ubuntu 24.04, Nginx, PHP 8.3 FPM, MariaDB,
 - Linode backups or snapshots enabled.
 
 ### INF-2 Staging site on the Linode server · M · doing · needs INF-1
-Build script written (`scripts/setup-staging.sh`); DNS record for `staging.pellanazarene.org` is live. Waiting on: push to GitHub, add deploy key, run script, verify. Production-to-staging refresh script still to do.
+Done: `https://staging.pellanazarene.org` is live (basic auth, noindex, Let's Encrypt, own DB/Redis/cache, email blocked via `pn-site.php`, deploys from `main`). Verified: lint clean, 401 without auth, HTTP redirects, bare IP closed. Still to do: production-to-staging refresh script; test email-block and noindex end to end; reboot check; enable automatic deploy to staging in DEV-3.
 Separate staging environment on the same Linode, isolated from production.
 - Own vhost (e.g. `staging.pellanazarene.org`), own database and DB user, own `wp-config.php` and salts, own file root.
 - Protected by HTTP basic auth or Cloudflare Access; `noindex` header and robots disallow.

@@ -96,6 +96,8 @@ fi
 wp option update --path="$WP" blog_public 0
 wp option update --path="$WP" timezone_string America/Chicago
 wp theme install twentytwentyfive --path="$WP" 2>/dev/null || true
+# Default plugins we never use; unused plugins are attack surface.
+wp plugin delete akismet hello --path="$WP" 2>/dev/null || true
 
 echo "==> File ownership"
 # deploy owns code (so deploys and WP-CLI work); www-data can read it and write uploads only.
@@ -169,9 +171,9 @@ server {
 }
 
 server {
-	listen 443 ssl;
-	listen [::]:443 ssl;
-	http2 on;
+	# Ubuntu 24.04 ships Nginx 1.24, which needs http2 on the listen line.
+	listen 443 ssl http2;
+	listen [::]:443 ssl http2;
 	server_name $DOMAIN;
 
 	ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
