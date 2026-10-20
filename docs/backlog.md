@@ -45,7 +45,7 @@ Separate staging environment on the same Linode, isolated from production.
 - DNS TTL lowered ahead of cutover (see MIG-9).
 
 ### INF-4 Nginx, PHP-FPM, and page cache tuning · M · review · needs INF-1
-Branch `story/INF-4-nginx-php-tuning`. Config in `deploy/nginx/` and `deploy/php/`, installed by `scripts/apply-server-tuning.sh`. Verified on staging: _pending_. Brotli left to Cloudflare if we adopt it (INF-3); HSTS and CSP deferred (see `docs/setup.md`).
+Branch `story/INF-4-nginx-php-tuning`. Config in `deploy/nginx/` and `deploy/php/`, installed by `scripts/apply-server-tuning.sh`. Verified on staging 2026-10-20: services active, pool and OPcache settings loaded, page cache MISS then HIT, security headers present, Nginx version hidden, gzip on, site and wp-admin working. Brotli left to Cloudflare if we adopt it (INF-3); HSTS and CSP deferred (see `docs/setup.md`).
 Take `deploy/nginx.conf.example` to a tested config.
 - FastCGI cache bypasses logged-in users, POSTs, admin, REST, and cart-style cookies; cache hit/miss header for debugging.
 - Gzip/Brotli, long-lived `Cache-Control` on static assets, HTTP/2.
