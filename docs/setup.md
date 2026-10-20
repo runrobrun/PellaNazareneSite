@@ -63,6 +63,20 @@ define( 'PN_ANTHROPIC_API_KEY', '…' );   // only when companion posts are turn
 3. Add repo secrets: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH` (`/var/www/pellanazarene`).
 4. Create a `production` environment in the repo settings (optionally require approval).
 
+## Staging site
+
+Staging runs on the same Linode as production, fully separate: its own directory (`/var/www/staging`), database (`pellanazarene_staging`), `wp-config.php` and salts, Redis database and key prefix, Nginx cache zone, and a Let's Encrypt certificate for `staging.pellanazarene.org`. It sits behind HTTP basic auth, sends `X-Robots-Tag: noindex`, and `WP_ENVIRONMENT_TYPE=staging` makes `pn-site.php` block all outgoing email.
+
+```bash
+# as the deploy user, from a checkout of this repo
+scp scripts/setup-staging.sh deploy@SERVER:/tmp/
+ssh deploy@SERVER
+bash /tmp/setup-staging.sh ADMIN_USER ADMIN_EMAIL   # 1st run prints a GitHub deploy key and stops
+# add the key at GitHub > repo > Settings > Deploy keys (read-only), then run it again
+```
+
+Credentials are written to `/root/pella-secrets/` (root-only) and never printed: `staging-basic-auth.txt`, `staging-wp-admin.pw`, and the database password. Code is owned by `deploy` (so `deploy.sh` and WP-CLI can write it) and only `wp-content/uploads` is writable by `www-data`; update plugins and core with WP-CLI, not from the dashboard.
+
 ## 6. Site configuration
 
 - **Settings → Sermons:** confirm the channel ID, click **Check YouTube now**.

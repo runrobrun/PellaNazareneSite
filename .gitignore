@@ -1,0 +1,41 @@
+# OS and editor junk
+.DS_Store
+.idea/
+.vscode/
+
+# Secrets: never commit these (see README "Secrets")
+wp-config.php
+.env
+.env.*
+*.pem
+*.key
+*.pw
+id_*
+*_rsa
+*_ed25519
+htpasswd*
+/pella-secrets/
+
+# WordPress core, third-party code, and uploads are installed or restored by scripts
+/wp-admin/
+/wp-includes/
+/wp-*.php
+/index.php
+/xmlrpc.php
+wp-content/uploads/
+wp-content/upgrade/
+wp-content/cache/
+wp-content/backup*/
+wp-content/plugins/*
+!wp-content/plugins/pn-sermons/
+wp-content/themes/*
+!wp-content/themes/pella-nazarene/
+wp-content/mu-plugins/*
+!wp-content/mu-plugins/pn-site.php
+
+# Backups, logs, local tooling
+*.sql
+*.sql.gz
+*.log
+node_modules/
+.wp-env/

@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 # Runs on the server (called by GitHub Actions over SSH).
-# Usage: deploy/deploy.sh /var/www/pellanazarene
+# Usage: deploy/deploy.sh /var/www/pellanazarene [/var/cache/nginx/pellanazarene]
+#   Second argument is this site's Nginx FastCGI cache directory (defaults to
+#   the production one). Staging passes its own so it never clears production's.
 #
 # Expects:
 #   $DEPLOY_PATH/repo        a git clone of this repository
 #   $DEPLOY_PATH/public      the WordPress install (wp-config.php lives here)
 set -euo pipefail
 
-DEPLOY_PATH="${1:?Usage: $0 /deploy/path}"
+DEPLOY_PATH="${1:?Usage: $0 /deploy/path [/nginx/cache/dir]}"
+CACHE_DIR="${2:-/var/cache/nginx/pellanazarene}"
 REPO="$DEPLOY_PATH/repo"
 WP="$DEPLOY_PATH/public"
 
@@ -30,9 +33,10 @@ wp --path="$WP" core update-db --quiet
 wp --path="$WP" rewrite flush --quiet
 wp --path="$WP" cache flush --quiet
 
-# Clear the Nginx FastCGI page cache (path matches nginx.conf.example).
-if [[ -d /var/cache/nginx/pellanazarene ]]; then
-	find /var/cache/nginx/pellanazarene -type f -delete
+# Clear the Nginx FastCGI page cache (path matches the fastcgi_cache_path in Nginx).
+if [[ -d "$CACHE_DIR" ]]; then
+	# Cache files are owned by www-data; deploy has passwordless sudo.
+	sudo -n find "$CACHE_DIR" -type f -delete
 fi
 
 echo "Deploy complete."

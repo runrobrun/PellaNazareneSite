@@ -123,3 +123,26 @@ add_action( 'template_redirect', function () {
 		}
 	}
 } );
+
+/*
+ * ---------------------------------------------------------------------------
+ * Non-production safety (local and staging)
+ * ---------------------------------------------------------------------------
+ * Set WP_ENVIRONMENT_TYPE in wp-config.php ('local', 'staging'; production
+ * is the default). Outside production, never email real people and keep
+ * search engines out.
+ */
+if ( 'production' !== wp_get_environment_type() ) {
+	// Short-circuit wp_mail(): report failure, send nothing.
+	add_filter( 'pre_wp_mail', '__return_false' );
+	add_filter( 'wp_robots', 'wp_robots_no_robots' );
+	add_action( 'send_headers', function () {
+		header( 'X-Robots-Tag: noindex, nofollow, noarchive' );
+	} );
+	add_action( 'admin_notices', function () {
+		printf(
+			'<div class="notice notice-warning"><p><strong>%s environment.</strong> Email is disabled and the site is hidden from search engines.</p></div>',
+			esc_html( wp_get_environment_type() )
+		);
+	} );
+}

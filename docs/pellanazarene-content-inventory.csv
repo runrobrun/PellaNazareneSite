@@ -1,0 +1,40 @@
+url,type,status,action,notes
+https://pellanazarene.org/,page,real,migrate,Home. Hero slider repeats one slide 6x; welcome video mt-content/uploads/2021/04/welcome-video-1.mp4; featured sermon YouTube vTKuOza2c68
+https://pellanazarene.org/new-here/,page,real,migrate,~575 words. YouTube EK0MuwDegjI. Online Connect card says "Link to be added"; Plan a Visit + map links are #
+https://pellanazarene.org/about-us/,page,real,migrate,~1400 words. Mission/values/beliefs/history/4 staff bios. Rob bio truncated; Sinful Nature belief sentence cut off
+https://pellanazarene.org/kids/,page,real,migrate,~480 words. Pre-register button is # (no form)
+https://pellanazarene.org/giving/,page,real,migrate,~300 words. Links to https://pella-nazarene.churchcenter.com/giving (keep as-is)
+https://pellanazarene.org/contact/,page,real,migrate,~170 words. Native form (Name/Email/Message) must be rebuilt. Body says 8:30-5 ET; footer says 8:00-5:00 ET
+https://pellanazarene.org/resources/,page,real,migrate,~110 words. 11 outbound links to nazarene.org / usacanadaregion.org / ncm.org
+(not in sitemap) Calendar,page,unknown,review,Listed in admin Pages but not in sitemap; check in admin
+https://pellanazarene.org/sermons-t/pentecost-promised-proclaimed-and-practiced/,sermon,real,migrate,2026-05-26; Rob Hammann; Acts 1-3; topics Community/Holiness/Holy Spirit; YouTube Nll1UzWZHQA
+https://pellanazarene.org/sermons-t/gods-messenger-malachi-31-4/,sermon,partial,migrate title+video only,2023-05-21; Rob Hammann; YouTube 3JdIij39S2g; description is Lorem ipsum
+https://pellanazarene.org/sermons-t/vision-sunday-2-living-out-our-mission/,sermon,partial,migrate title+video only,2023-05-14; description shared/placeholder
+https://pellanazarene.org/sermons-t/vision-sunday-1-living-out-our-mission/,sermon,partial,migrate title+video only,2023-05-07; description shared/placeholder
+https://pellanazarene.org/events-2/,listing,real,rebuild,5 real recurring events shown as cards (Sunday School; Lighthouse Student Ministry; Midweek Prayer; Coffee Time @ Windmill Cafe; Connections SS Class). No detail pages; directions links are #. Has Google Calendar subscribe link
+https://pellanazarene.org/events-2/kids-event/,event,template filler,drop,Lorem ipsum
+https://pellanazarene.org/events-2/family-event/,event,template filler,drop,Lorem ipsum
+https://pellanazarene.org/events-2/youth-event/,event,template filler,drop,Lorem ipsum
+https://pellanazarene.org/events-2/worship-night/,event,template filler,drop,Lorem ipsum
+https://pellanazarene.org/events-2/baptism-sunday/,event,template filler,drop,Lorem ipsum
+https://pellanazarene.org/events-2/movie-night/,event,template filler,drop,Lorem ipsum (verified)
+https://pellanazarene.org/small-groups/,listing,empty,rebuild,Shows 0 groups; only filters
+https://pellanazarene.org/small-groups/mens-group/,group,template filler,drop,Lorem ipsum (verified)
+https://pellanazarene.org/small-groups/womens-group/,group,template filler,drop,Lorem ipsum
+https://pellanazarene.org/small-groups/young-adults-group/,group,template filler,drop,Lorem ipsum
+https://pellanazarene.org/small-groups/single-mens-group/,group,template filler,drop,Lorem ipsum
+https://pellanazarene.org/small-groups/single-womens-group/,group,template filler,drop,Lorem ipsum
+https://pellanazarene.org/small-groups/local-outreach-group/,group,template filler,drop,Lorem ipsum
+https://pellanazarene.org/news/,listing,template filler,drop,Blog index
+https://pellanazarene.org/news/our-year-in-review/,post,template filler,drop,Lorem ipsum; dated 2021-01-27
+https://pellanazarene.org/news/world-missions/,post,template filler,drop,Mentions "Omega Church"
+https://pellanazarene.org/news/faith-over-fear/,post,template filler,drop,Dated 2021-01-27
+https://pellanazarene.org/news/biblical-giving/,post,template filler,drop,Lorem ipsum (verified)
+https://pellanazarene.org/sermons-t/,listing,real,rebuild,Only 4 sermons; YouTube channel is the real archive
+/sermons-t/u_topic/* (72),taxonomy,empty archives,drop,Sermon topic archives
+/sermons-t/u_scripture/* (67),taxonomy,empty archives,drop,Every book of the Bible + acts-1-3
+/sermons-t/u_speaker/* (4),taxonomy,real,recreate as terms,Todd Olson; Cindy Olson; Rob Hammann; Floyd Ware
+/sermons-t/category/holiness-in-the-house-a-study-in-titus/,taxonomy,real,recreate as series,Current series; no sermons attached on site
+/events-2/category/* (8) + /events-2/tag/* (27),taxonomy,empty archives,drop,Template defaults
+/small-groups/tag/* (17) + /small-groups/category/* (6),taxonomy,empty archives,drop,Template defaults
+/small-groups/u_group-details/* (4),taxonomy,template filler,drop,"Includes demo names Paul & Olivia Brunson, Will & Gloria Jackson"
