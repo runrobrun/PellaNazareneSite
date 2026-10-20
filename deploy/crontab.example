@@ -1,0 +1,10 @@
+# crontab -u www-data -e
+# Run WP-Cron from the system so scheduled jobs (sermon import, companion
+# drafts) don't depend on site traffic. Pair with this in wp-config.php:
+#   define( 'DISABLE_WP_CRON', true );
+
+*/5 * * * * cd /var/www/pellanazarene/public && wp cron event run --due-now --quiet
+
+# Nightly database backup at 2:15 AM Central (server set to America/Chicago).
+# Upload to off-server storage is configured separately; see docs/runbook.md.
+15 2 * * * cd /var/www/pellanazarene/public && wp db export - --quiet | gzip > /var/backups/pellanazarene/db-$(date +\%F).sql.gz && find /var/backups/pellanazarene -name 'db-*.sql.gz' -mtime +14 -delete

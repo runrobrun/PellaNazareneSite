@@ -1,0 +1,14 @@
+/*
+Theme Name:   Pella Nazarene
+Description:  Child theme of Twenty Twenty-Five for pellanazarene.org.
+Template:     twentytwentyfive
+Version:      0.1.0
+Requires PHP: 8.1
+Text Domain:  pella-nazarene
+*/
+
+/* Most styling lives in theme.json. Keep this file small. */
+
+.pn-service-info {
+	font-size: var(--wp--preset--font-size--small);
+}

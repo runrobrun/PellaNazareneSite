@@ -1,0 +1,8 @@
+# Third-party plugins installed on the live site.
+# Format: slug [version]   — omit version to track latest stable.
+# Pin a version when an update breaks something, and note why.
+
+the-events-calendar
+fluentform
+wp-mail-smtp
+redis-cache

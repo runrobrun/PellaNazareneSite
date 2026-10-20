@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 3,
+  "settings": {
+    "appearanceTools": true,
+    "layout": {
+      "contentSize": "720px",
+      "wideSize": "1200px"
+    },
+    "color": {
+      "palette": [
+        { "slug": "base", "color": "#ffffff", "name": "Base" },
+        { "slug": "contrast", "color": "#1d2330", "name": "Contrast" },
+        { "slug": "accent-1", "color": "#2f5d8c", "name": "Accent" },
+        { "slug": "accent-2", "color": "#e8eef5", "name": "Accent light" }
+      ]
+    }
+  },
+  "styles": {
+    "elements": {
+      "link": {
+        "color": { "text": "var(--wp--preset--color--accent-1)" }
+      },
+      "button": {
+        "color": {
+          "background": "var(--wp--preset--color--accent-1)",
+          "text": "var(--wp--preset--color--base)"
+        }
+      }
+    }
+  },
+  "templateParts": [
+    { "name": "service-info", "title": "Service info", "area": "uncategorized" }
+  ]
+}
