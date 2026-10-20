@@ -63,6 +63,16 @@ define( 'PN_ANTHROPIC_API_KEY', '…' );   // only when companion posts are turn
 3. Add repo secrets: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH` (`/var/www/pellanazarene`).
 4. Create a `production` environment in the repo settings (optionally require approval).
 
+## Nginx and PHP-FPM tuning
+
+Config for both sites lives in `deploy/nginx/` and `deploy/php/`; `scripts/apply-server-tuning.sh` installs it on the server (run as `deploy` from a repo checkout). It backs up every file it replaces and rolls back if the Nginx or PHP-FPM config test fails. It installs:
+
+- `pn-performance.conf` (gzip types, hidden Nginx version, open-file cache), `pn-security-headers.conf`, and `pn-fastcgi-cache.conf` (page-cache rules with stale-while-revalidate).
+- A PHP-FPM pool sized for the 4 GB server (12 workers max) that replaces the packaged `www.conf`, and `99-pn.ini` (OPcache, upload limits, `expose_php` off). Shell-execution functions are disabled for web requests; if a plugin breaks, remove only the function it needs from `deploy/php/pn-pool.conf`.
+- A 2 GB swap file if the server has none.
+
+HSTS and a Content-Security-Policy are deliberately not set yet; they are added after HTTPS is verified on production and the YouTube/Church Center embeds are checked. Verify the cache with `curl -sI <url> | grep -i x-cache` twice: the first request should say `MISS`, the second `HIT`.
+
 ## Staging site
 
 Staging runs on the same Linode as production, fully separate: its own directory (`/var/www/staging`), database (`pellanazarene_staging`), `wp-config.php` and salts, Redis database and key prefix, Nginx cache zone, and a Let's Encrypt certificate for `staging.pellanazarene.org`. It sits behind HTTP basic auth, sends `X-Robots-Tag: noindex`, and `WP_ENVIRONMENT_TYPE=staging` makes `pn-site.php` block all outgoing email.
