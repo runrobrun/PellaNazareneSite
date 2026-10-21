@@ -5,9 +5,9 @@
 # The argument is the PUBLIC half of a key made just for CI. Its private half goes
 # into the GitHub `staging` environment secrets and nowhere else.
 #
-# Installs the wrapper (deploy/ci-deploy.sh) root-owned and appends the CI key to
-# ~deploy/.ssh/authorized_keys, locked to that wrapper. Append only: existing keys
-# are never changed, so this cannot lock you out.
+# Installs the wrapper and stable deploy runner root-owned, then appends the CI key
+# to ~deploy/.ssh/authorized_keys, locked to the wrapper. Append only: existing
+# keys are never changed, so this cannot lock you out.
 set -euo pipefail
 
 PUBKEY="${1:?Usage: $0 \"ssh-ed25519 AAAA... comment\"}"
@@ -30,6 +30,8 @@ BLOB="$(awk '{print $2}' "$tmp")"
 
 echo "==> Installing wrapper"
 sudo install -m 755 -o root -g root "$REPO/deploy/ci-deploy.sh" /usr/local/bin/pn-ci-deploy
+sudo install -d -o root -g root -m 755 /usr/local/libexec
+sudo install -m 755 -o root -g root "$REPO/deploy/deploy.sh" /usr/local/libexec/pn-staging-deploy
 sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 750 /var/backups/pn-staging-db
 
 echo "==> Authorizing the CI key (locked to the wrapper)"
@@ -39,7 +41,7 @@ if grep -qF "$BLOB" "$AUTH"; then
 	echo "Key already present; leaving authorized_keys unchanged."
 else
 	cp -a "$AUTH" "$AUTH.bak-$(date +%Y%m%d-%H%M%S)"
-	printf 'restrict,command="/usr/local/bin/pn-ci-deploy" %s\n' "$PUBKEY" >> "$AUTH"
+	printf '\nrestrict,command="/usr/local/bin/pn-ci-deploy" %s\n' "$PUBKEY" >> "$AUTH"
 fi
 
 echo

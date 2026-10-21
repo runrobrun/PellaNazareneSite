@@ -24,8 +24,8 @@ if [[ "$TARGET" != "staging" || ! "$SHA" =~ ^[0-9a-f]{40}$ || -n "$EXTRA" ]]; th
 	exit 2
 fi
 
-# One deploy at a time (CI and a manual run must never overlap).
-exec 9>/var/lock/pn-ci-deploy.lock
+# Share the lock with direct staging deploys, including setup-staging.sh.
+exec 9>"$ROOT/.deploy.lock"
 flock -n 9 || { echo "Another deploy is already running." >&2; exit 4; }
 
 # Only deploy commits that are on main (a PR branch can never be deployed this way).
@@ -46,11 +46,30 @@ BACKUP_FILE="$BACKUPS/pre-${SHA:0:12}-$(date +%Y%m%d-%H%M%S).sql.gz"
 # Keep the five most recent.
 find "$BACKUPS" -name 'pre-*.sql.gz' -type f -printf '%T@ %p\n' | sort -rn | tail -n +6 | cut -d' ' -f2- | xargs -r rm -f
 
-# Move the checkout first so deploy.sh runs from the new code and is not rewritten mid-run.
-git -C "$REPO" reset --hard --quiet "$SHA"
+rollback() {
+	local reason="$1" status="${2:-1}"
+	echo "!! $reason; rolling back to ${PREVIOUS:0:7}" >&2
+	if ! git -C "$REPO" reset --hard --quiet "$PREVIOUS"; then
+		echo "!! Could not reset the checkout to ${PREVIOUS:0:7}" >&2
+		exit 1
+	fi
+	if ! PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
+		/usr/local/libexec/pn-staging-deploy "$ROOT" "$CACHE_DIR" "$PREVIOUS"; then
+		echo "!! Rollback deployment failed; inspect staging before retrying." >&2
+		exit 1
+	fi
+	echo "Rolled back to ${PREVIOUS:0:7}. Pre-deploy database backup: $BACKUP_FILE (not restored automatically)." >&2
+	exit "$status"
+}
 
 echo "==> Deploy"
-"$REPO/deploy/deploy.sh" "$ROOT" "$CACHE_DIR" "$SHA"
+if PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
+	/usr/local/libexec/pn-staging-deploy "$ROOT" "$CACHE_DIR" "$SHA"; then
+	:
+else
+	deploy_status=$?
+	rollback "Deployment exited with status $deploy_status" "$deploy_status"
+fi
 
 health_check() {
 	local path body code password
@@ -83,8 +102,4 @@ for attempt in 1 2 3; do
 	sleep 4
 done
 
-echo "!! Health check failed; rolling back to ${PREVIOUS:0:7}" >&2
-git -C "$REPO" reset --hard --quiet "$PREVIOUS"
-"$REPO/deploy/deploy.sh" "$ROOT" "$CACHE_DIR" "$PREVIOUS"
-echo "Rolled back to ${PREVIOUS:0:7}. Pre-deploy database backup: $BACKUP_FILE (not restored automatically)." >&2
-exit 1
+rollback "Health check failed"

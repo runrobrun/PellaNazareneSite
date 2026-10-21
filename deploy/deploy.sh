@@ -21,6 +21,11 @@ fi
 REPO="$DEPLOY_PATH/repo"
 WP="$DEPLOY_PATH/public"
 
+if [[ "$DEPLOY_PATH" == "/var/www/staging" && "${PN_DEPLOY_LOCK_HELD:-0}" != "1" ]]; then
+	exec 9>"$DEPLOY_PATH/.deploy.lock"
+	flock -n 9 || { echo "Another staging deploy is already running." >&2; exit 4; }
+fi
+
 cd "$REPO"
 git fetch --quiet origin main
 git reset --hard --quiet "$REF"
@@ -33,7 +38,9 @@ rsync -a --delete "$REPO/wp-content/themes/pella-nazarene/"   "$WP/wp-content/th
 mkdir -p "$WP/wp-content/mu-plugins"
 rsync -a "$REPO/wp-content/mu-plugins/pn-site.php"            "$WP/wp-content/mu-plugins/pn-site.php"
 
-"$REPO/scripts/install-plugins.sh" "$WP"
+if [[ "${PN_SKIP_PLUGIN_INSTALL:-0}" != "1" ]]; then
+	"$REPO/scripts/install-plugins.sh" "$WP"
+fi
 
 wp --path="$WP" plugin activate pn-sermons >/dev/null
 wp --path="$WP" core update-db --quiet
