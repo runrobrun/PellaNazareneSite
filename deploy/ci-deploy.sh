@@ -16,6 +16,12 @@ CACHE_DIR="/var/cache/nginx/pellanazarene-staging"
 DOMAIN="staging.pellanazarene.org"
 BACKUPS="/var/backups/pn-staging-db"
 SECRETS_FILE="/root/pella-secrets/staging-basic-auth.txt"
+# Root-owned deploy scripts outside the repo. RUNNER is the last version that deployed
+# successfully and is what a rollback uses (so a broken new deploy.sh cannot break its own
+# rollback). CANDIDATE is the new commit's deploy.sh, promoted to RUNNER only once healthy,
+# so changes to deploy.sh take effect immediately and are never stale.
+RUNNER="/usr/local/libexec/pn-staging-deploy"
+CANDIDATE="/usr/local/libexec/pn-staging-deploy.candidate"
 
 TARGET="" SHA="" EXTRA=""
 read -r TARGET SHA EXTRA <<<"${SSH_ORIGINAL_COMMAND:-}" || true
@@ -38,6 +44,19 @@ fi
 PREVIOUS="$(git -C "$REPO" rev-parse HEAD)"
 echo "==> Deploying ${SHA:0:7} (currently ${PREVIOUS:0:7})"
 
+echo "==> Checking deploy runner"
+if ! git -C "$REPO" show "$SHA:deploy/deploy.sh" | sudo tee "$CANDIDATE" >/dev/null; then
+	echo "Could not read deploy/deploy.sh at $SHA." >&2
+	exit 1
+fi
+if ! grep -Fxq '# pn-ci-deploy-contract: 1' "$CANDIDATE"; then
+	sudo rm -f "$CANDIDATE"
+	echo "Refusing to deploy $SHA: deploy/deploy.sh does not support CI runner contract 1." >&2
+	exit 5
+fi
+sudo chown root:root "$CANDIDATE"
+sudo chmod 755 "$CANDIDATE"
+
 echo "==> Database backup"
 sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 750 "$BACKUPS"
 BACKUP_FILE="$BACKUPS/pre-${SHA:0:12}-$(date +%Y%m%d-%H%M%S).sql.gz"
@@ -53,8 +72,9 @@ rollback() {
 		echo "!! Could not reset the checkout to ${PREVIOUS:0:7}" >&2
 		exit 1
 	fi
+	sudo rm -f "$CANDIDATE"
 	if ! PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
-		/usr/local/libexec/pn-staging-deploy "$ROOT" "$CACHE_DIR" "$PREVIOUS"; then
+		"$RUNNER" "$ROOT" "$CACHE_DIR" "$PREVIOUS"; then
 		echo "!! Rollback deployment failed; inspect staging before retrying." >&2
 		exit 1
 	fi
@@ -63,8 +83,9 @@ rollback() {
 }
 
 echo "==> Deploy"
-if PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
-	/usr/local/libexec/pn-staging-deploy "$ROOT" "$CACHE_DIR" "$SHA"; then
+# CI deploys code only. Third-party plugins are installed and updated on purpose (see
+# docs/setup.md), so a code merge never changes plugin versions and a rollback never has to undo them.
+if PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 "$CANDIDATE" "$ROOT" "$CACHE_DIR" "$SHA"; then
 	:
 else
 	deploy_status=$?
@@ -95,6 +116,7 @@ health_check() {
 echo "==> Health check"
 for attempt in 1 2 3; do
 	if health_check; then
+		sudo mv -f "$CANDIDATE" "$RUNNER"
 		echo "Healthy. Deployed ${SHA:0:7}."
 		exit 0
 	fi

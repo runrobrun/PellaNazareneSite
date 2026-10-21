@@ -201,6 +201,7 @@ Verify the `pn-site.php` role setup: pastors as Author, office admin as Editor. 
 - Review and extend `pn-site.php`.
 
 ### SEC-2 Automated updates and vulnerability monitoring · S · todo
+CI deploys never touch third-party plugins (see `docs/setup.md` section 5), so this story also owns the plugin path: pin versions in `plugins.txt`, a documented manual or scheduled `install-plugins.sh` run, and a staging check before production.
 - Core minor/security auto-updates on; plugin update policy documented in `plugins.txt`.
 - Weekly check of installed plugin versions against a vulnerability database; alert goes to Rob.
 
