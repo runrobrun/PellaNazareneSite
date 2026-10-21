@@ -51,7 +51,7 @@ define( 'PN_ANTHROPIC_API_KEY', '…' );   // only when companion posts are turn
 
 ## 4. Nginx, cron, Cloudflare
 
-- Copy `deploy/nginx.conf.example` to `/etc/nginx/sites-available/`, adjust, enable, `nginx -t && systemctl reload nginx`.
+- Before enabling the production vhost, provision the `deploy` user with `scripts/bootstrap-server.sh deploy` (run as root), then verify `ssh deploy@SERVER` works and `sudo -n true` succeeds. From a repository checkout, run `scripts/apply-server-tuning.sh` as `deploy` first; it installs the snippets included by the vhost. Then copy `deploy/nginx.conf.example` to `/etc/nginx/sites-available/`, adjust, enable, and run `nginx -t && systemctl reload nginx`.
 - Create a Cloudflare origin certificate; set SSL mode to **Full (strict)**.
 - Install `deploy/crontab.example` for the `www-data` user.
 - `mkdir -p /var/backups/pellanazarene && chown www-data /var/backups/pellanazarene`

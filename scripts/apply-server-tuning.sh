@@ -25,24 +25,7 @@ FILES=(
 sudo install -d -m 700 "$BACKUP"
 echo "==> Backup directory: $BACKUP"
 
-rollback() {
-	echo "!! Rolling back" >&2
-	for pair in "${FILES[@]}"; do
-		dest="${pair#*:}"
-		if sudo test -f "$BACKUP$dest"; then
-			sudo cp -a "$BACKUP$dest" "$dest"
-		else
-			sudo rm -f "$dest"
-		fi
-	done
-	if sudo test -f "$BACKUP/www.conf.orig"; then
-		sudo mv "$BACKUP/www.conf.orig" "$POOL_DIR/www.conf"
-	fi
-	sudo systemctl restart php8.3-fpm || true
-	sudo systemctl reload nginx || true
-}
-
-echo "==> Installing config files"
+# Validate every source and back up all existing files before changing anything.
 for pair in "${FILES[@]}"; do
 	src="$REPO/${pair%%:*}"
 	dest="${pair#*:}"
@@ -51,12 +34,47 @@ for pair in "${FILES[@]}"; do
 		sudo install -d "$BACKUP$(dirname "$dest")"
 		sudo cp -a "$dest" "$BACKUP$dest"
 	fi
+done
+if sudo test -f "$POOL_DIR/www.conf"; then
+	sudo cp -a "$POOL_DIR/www.conf" "$BACKUP/www.conf.orig"
+fi
+
+rollback() {
+	echo "!! Rolling back" >&2
+	for pair in "${FILES[@]}"; do
+		dest="${pair#*:}"
+		if sudo test -f "$BACKUP$dest"; then
+			sudo cp -a "$BACKUP$dest" "$dest" || echo "Could not restore $dest" >&2
+		else
+			sudo rm -f "$dest" || echo "Could not remove $dest" >&2
+		fi
+	done
+	if sudo test -f "$BACKUP/www.conf.orig"; then
+		sudo cp -a "$BACKUP/www.conf.orig" "$POOL_DIR/www.conf" || echo "Could not restore $POOL_DIR/www.conf" >&2
+	fi
+	sudo systemctl restart php8.3-fpm || true
+	sudo systemctl reload nginx || true
+}
+
+on_error() {
+	local status=$?
+	trap - ERR
+	rollback
+	exit "$status"
+}
+
+trap on_error ERR
+
+echo "==> Installing config files"
+for pair in "${FILES[@]}"; do
+	src="$REPO/${pair%%:*}"
+	dest="${pair#*:}"
 	sudo install -m 644 "$src" "$dest"
 done
 
 # The packaged pool is also named [www]; two pools with one name is an error.
 if sudo test -f "$POOL_DIR/www.conf"; then
-	sudo mv "$POOL_DIR/www.conf" "$BACKUP/www.conf.orig"
+	sudo rm "$POOL_DIR/www.conf"
 fi
 
 echo "==> Testing config"
@@ -70,7 +88,11 @@ if ! sudo systemctl restart php8.3-fpm || ! sudo systemctl is-active --quiet php
 	rollback
 	exit 1
 fi
-sudo systemctl reload nginx
+if ! sudo systemctl reload nginx; then
+	rollback
+	exit 1
+fi
+trap - ERR
 
 echo "==> Swap file (safety net against out-of-memory kills)"
 if [[ -z "$(swapon --show --noheadings)" ]]; then
