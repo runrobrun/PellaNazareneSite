@@ -206,7 +206,7 @@ Verify the `pn-site.php` role setup: pastors as Author, office admin as Editor. 
 
 ### SEC-1 WordPress hardening · M · review · needs INF-1
 Decisions (2026-10-21): two-factor is **required for everyone who can edit content** (pastors, office, admins), by **authenticator app plus backup codes** only.
-- Done in code (`pn-security.php`, Two Factor plugin pinned 0.17.0): 2FA enforcement with fail-open if the plugin is off and a `PN_REQUIRE_2FA` emergency switch; generic login errors; author archives, author links, user sitemap, and oEmbed author data closed; application passwords off. Tested against real WordPress (`deploy/tests/wp-integration.sh`, in CI).
+- Done in code (`pn-security.php`, Two Factor plugin pinned 0.17.0): 2FA enforcement (authenticator **and** backup codes both required; password-only sessions are revoked when enrollment completes and a verified-2FA session is required afterward; admin pages, admin-ajax and REST closed until enrolled), fail-open if the plugin is off or its internals changed, and a `PN_REQUIRE_2FA` emergency switch; generic login errors; author archives, author links, user sitemap, and oEmbed author data closed; application passwords off. Tested against real WordPress (`deploy/tests/wp-integration.sh`, in CI).
 - Done in Nginx: login-page throttle, `wp-config.php`/`readme.html`/`license.txt` blocked above the PHP handler. Tested in Nginx 1.24 (`deploy/tests/nginx-config.sh`, in CI).
 - Done in setup: `FORCE_SSL_ADMIN`, registration off, debug off, `DISALLOW_FILE_EDIT`, unique salts per install. Table prefix left as `wp_` on purpose (see `docs/setup.md`).
 - Already in `pn-site.php`: REST user list hidden from the public, `?author=N` blocked, XML-RPC off.

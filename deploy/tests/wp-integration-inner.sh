@@ -27,6 +27,7 @@ wp plugin install two-factor --version=0.17.0 --activate --quiet || setup_fail "
 wp user create ed ed@example.test --role=editor --user_pass='Editor-pass-1!' --quiet
 wp user create pastor pastor@example.test --role=author --user_pass='Pastor-pass-1!' --quiet
 wp user create reader reader@example.test --role=subscriber --user_pass='Reader-pass-1!' --quiet
+wp user create deacon deacon@example.test --role=author --user_pass='Deacon-pass-1!' --quiet
 wp rewrite structure '/%postname%/' --hard --quiet
 wp post create --post_title=Hello --post_status=publish --post_author=1 --quiet >/dev/null
 ( wp server --host=127.0.0.1 --port=8080 >/tmp/server.log 2>&1 & )
@@ -48,6 +49,7 @@ get_loc()  { curl -s -o /dev/null -b "$2" -w '%{redirect_url}' "$1"; }
 echo "== 1. Methods: authenticator app and backup codes only"
 providers="$(wp eval 'echo implode(",", array_keys(Two_Factor_Core::get_providers()));')"
 expect_eq "providers" "$providers" "Two_Factor_Totp,Two_Factor_Backup_Codes"
+expect_eq "plugin API this file relies on is present" "$(wp eval 'echo pn_two_factor_api_ready() ? "yes" : "no";')" "yes"
 
 echo "== 2. Who must use two-factor"
 for pair in boss:1 ed:1 pastor:1 reader:; do
@@ -119,7 +121,9 @@ Two_Factor_Core::enable_provider_for_user($u->ID, "Two_Factor_Backup_Codes");
 file_put_contents("/tmp/ed.codes", implode("\n", $codes));'
 expect_eq "both methods complete enrollment" "$(wp eval "echo pn_user_needs_two_factor_setup(get_user_by('login','ed')) ? 'yes' : 'no';")" "no"
 expect_eq "the pre-enrollment cookie was revoked" "$(get_code "$BASE/wp-admin/edit.php" /tmp/j_ed)" "302"
-expect_eq "the old cookie cannot call REST" "$(rest_get /wp/v2/users/me /tmp/j_ed "$n_ed" | tail -1)" "401"
+r="$(rest_get /wp/v2/users/me /tmp/j_ed "$n_ed")"
+expect_eq "the old cookie cannot call REST (WordPress answers 403 for a dead session)" "$(tail -1 <<<"$r")" "403"
+expect_contains "...because the session is no longer valid" "$r" "rest_cookie_invalid_nonce"
 wp eval '
 $u = get_user_by("login","ed");
 $codes = file("/tmp/ed.codes", FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -156,6 +160,34 @@ expect_eq "enrolled editor: admin-ajax works" "$(get_code "$BASE/wp-admin/admin-
 n_ed2="$(rest_nonce /tmp/j_ed2 ed)"
 expect_eq "enrolled editor: REST works" "$(rest_get /wp/v2/users/me /tmp/j_ed2 "$n_ed2" | tail -1)" "200"
 
+echo "== 8b. Real enrollment, end to end, through the plugin's own REST routes (what the profile page does)"
+did="$(wp user get deacon --field=ID)"
+rm -f /tmp/j_dc; login deacon 'Deacon-pass-1!' /tmp/j_dc >/dev/null
+n_dc="$(rest_nonce /tmp/j_dc deacon)"
+expect_eq "password-only session is gated from normal admin pages" "$(get_code "$BASE/wp-admin/edit.php" /tmp/j_dc)" "302"
+dkey="$(wp eval 'echo Two_Factor_Totp::generate_key();')"
+dcode="$(DK="$dkey" wp eval 'echo Two_Factor_Totp::calc_totp(getenv("DK"));')"
+r="$(curl -s -b /tmp/j_dc -H "X-WP-Nonce: $n_dc" -X POST -d "user_id=$did&key=$dkey&code=$dcode&enable_provider=true" -w '\n%{http_code}' "$BASE/wp-json/two-factor/1.0/totp")"
+expect_eq "step 1: enable the authenticator app (REST setup route allowed)" "$(tail -1 <<<"$r")" "200"
+expect_eq "authenticator alone is not complete enrollment" "$(wp eval "echo pn_user_needs_two_factor_setup(get_user_by('login','deacon')) ? 'yes' : 'no';")" "yes"
+expect_eq "...and normal admin pages are still gated" "$(get_code "$BASE/wp-admin/edit.php" /tmp/j_dc)" "302"
+r="$(curl -s -b /tmp/j_dc -H "X-WP-Nonce: $n_dc" -X POST -d "user_id=$did&enable_provider=true" -w '\n%{http_code}' "$BASE/wp-json/two-factor/1.0/generate-backup-codes")"
+expect_eq "step 2: generate backup codes (still allowed mid-enrollment)" "$(tail -1 <<<"$r")" "200"
+backup="$(grep -o '"codes":\[[^]]*\]' <<<"$r" | grep -o '"[a-zA-Z0-9]\{8\}"' | head -1 | tr -d '"')"
+[[ -n "$backup" ]] && ok "got a backup code to test with" || bad "no backup codes in the response"
+expect_eq "enrollment is now complete" "$(wp eval "echo pn_user_needs_two_factor_setup(get_user_by('login','deacon')) ? 'yes' : 'no';")" "no"
+expect_eq "the password-only session was revoked on completion" "$(get_code "$BASE/wp-admin/edit.php" /tmp/j_dc)" "302"
+expect_contains "...it now goes to the login page, not the profile page" "$(get_loc "$BASE/wp-admin/edit.php" /tmp/j_dc)" "wp-login.php"
+rm -f /tmp/j_dc2; page="$(login deacon 'Deacon-pass-1!' /tmp/j_dc2)"
+expect_contains "next login: password alone asks for a code" "$page" 'name="authcode"'
+dnonce="$(field "$page" wp-auth-nonce)"
+curl -s -o /dev/null -c /tmp/j_dc2 -b /tmp/j_dc2 -d "provider=Two_Factor_Totp&wp-auth-id=$did&wp-auth-nonce=$dnonce&authcode=$(DK="$dkey" wp eval 'echo Two_Factor_Totp::calc_totp(getenv("DK"));')&redirect_to=$BASE/wp-admin/" "$BASE/wp-login.php?action=validate_2fa"
+expect_eq "authenticator code logs in: posts list loads" "$(get_code "$BASE/wp-admin/edit.php" /tmp/j_dc2)" "200"
+rm -f /tmp/j_dc3; page="$(login deacon 'Deacon-pass-1!' /tmp/j_dc3)"; dnonce="$(field "$page" wp-auth-nonce)"
+resp="$(curl -s -c /tmp/j_dc3 -b /tmp/j_dc3 -d "provider=Two_Factor_Backup_Codes&wp-auth-id=$did&wp-auth-nonce=$dnonce&two-factor-backup-code=$backup&redirect_to=$BASE/wp-admin/" "$BASE/wp-login.php?action=validate_2fa")"
+[[ -n "${DEBUG:-}" ]] && { echo "--- DEBUG backup=[$backup] page asked for:"; sed 's/<[^>]*>/ /g' <<<"$page" | tr -s ' \n' | grep -iE "backup|code|provider|authentication" | head -4; echo "--- DEBUG response:"; sed 's/<[^>]*>/ /g' <<<"$resp" | tr -s ' \n' | grep -iE "error|invalid|wait|many|code" | head -4; }
+expect_eq "a backup code logs in too" "$(get_code "$BASE/wp-admin/edit.php" /tmp/j_dc3)" "200"
+
 echo "== 9. Emergency off-switch and fail-open"
 expect_eq "needs setup normally (pastor)" "$(wp eval "echo pn_user_needs_two_factor_setup(get_user_by('login','pastor')) ? 'yes' : 'no';")" "yes"
 expect_eq "PN_REQUIRE_2FA=false turns enforcement off" "$(wp --exec='define("PN_REQUIRE_2FA", false);' eval "echo pn_user_needs_two_factor_setup(get_user_by('login','pastor')) ? 'yes' : 'no';")" "no"
@@ -164,6 +196,22 @@ rm -f /tmp/j_pa; login pastor 'Pastor-pass-1!' /tmp/j_pa >/dev/null
 expect_eq "Two Factor plugin inactive: nobody is locked out" "$(get_code "$BASE/wp-admin/edit.php" /tmp/j_pa)" "200"
 expect_contains "...and admins are warned" "$(curl -s -c /tmp/j_boss -b /tmp/j_boss -b 'wordpress_test_cookie=WP%20Cookie%20check' --data-urlencode 'log=boss' --data-urlencode 'pwd=Admin-pass-1!' -d "wp-submit=Log+In&redirect_to=$BASE/wp-admin/" -L "$BASE/wp-login.php")" "NOT being enforced"
 wp plugin activate two-factor --quiet
+
+echo "== 10. A future plugin update that renames an internal method must not crash the site"
+wp plugin deactivate two-factor --quiet
+# Stand-ins that exist but lack the methods pn-security.php relies on (loads before pn-security.php: 'aa' sorts first)
+cat > wp-content/mu-plugins/aa-fake-two-factor.php <<'FAKE'
+<?php
+class Two_Factor_Core {}
+class Two_Factor_Totp {}
+class Two_Factor_Backup_Codes {}
+FAKE
+expect_eq "API check notices the incompatible plugin" "$(wp eval 'echo pn_two_factor_api_ready() ? "yes" : "no";')" "no"
+rm -f /tmp/j_pa3; login pastor 'Pastor-pass-1!' /tmp/j_pa3 >/dev/null
+expect_eq "no fatal error: the admin still loads (fails open)" "$(get_code "$BASE/wp-admin/edit.php" /tmp/j_pa3)" "200"
+rm -f wp-content/mu-plugins/aa-fake-two-factor.php
+wp plugin activate two-factor --quiet
+expect_eq "real plugin back: API check passes again" "$(wp eval 'echo pn_two_factor_api_ready() ? "yes" : "no";')" "yes"
 
 echo
 echo "Passed: $PASS   Failed: $FAIL"

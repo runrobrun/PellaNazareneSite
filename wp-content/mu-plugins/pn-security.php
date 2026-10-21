@@ -40,6 +40,29 @@ add_filter(
  */
 
 /**
+ * Whether the Two Factor plugin is loaded AND exposes everything this file relies on.
+ *
+ * This file uses several internals of the plugin (pinned in plugins.txt). If an update ever renames one,
+ * calling it would be a fatal error on every admin page, so instead we treat the plugin as unavailable:
+ * fail open, and show administrators a red warning (see admin_notices below).
+ *
+ * @return bool
+ */
+function pn_two_factor_api_ready(): bool {
+	return class_exists( 'Two_Factor_Core' ) && class_exists( 'Two_Factor_Totp' ) && class_exists( 'Two_Factor_Backup_Codes' )
+		&& method_exists( 'Two_Factor_Core', 'get_enabled_providers_for_user' )
+		&& method_exists( 'Two_Factor_Core', 'is_current_user_session_two_factor' )
+		&& method_exists( 'Two_Factor_Core', 'get_user_two_factor_revalidate_url' )
+		&& method_exists( 'Two_Factor_Core', 'update_current_user_session' )
+		&& method_exists( 'Two_Factor_Totp', 'get_instance' )
+		&& method_exists( 'Two_Factor_Totp', 'get_user_totp_key' )
+		&& method_exists( 'Two_Factor_Backup_Codes', 'get_instance' )
+		&& defined( 'Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY' )
+		&& defined( 'Two_Factor_Totp::SECRET_META_KEY' )
+		&& defined( 'Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY' );
+}
+
+/**
  * Whether this user must use two-factor sign-in.
  *
  * @param mixed $user A WP_User.
@@ -61,7 +84,7 @@ function pn_user_must_use_two_factor( $user ): bool {
  * @return bool
  */
 function pn_user_needs_two_factor_setup( $user ): bool {
-	if ( ! class_exists( 'Two_Factor_Core' ) || ! pn_user_must_use_two_factor( $user ) ) {
+	if ( ! pn_two_factor_api_ready() || ! pn_user_must_use_two_factor( $user ) ) {
 		return false;
 	}
 	$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user );
@@ -78,7 +101,7 @@ function pn_user_needs_two_factor_setup( $user ): bool {
  * @return bool
  */
 function pn_user_needs_two_factor_reauthentication( $user ): bool {
-	return class_exists( 'Two_Factor_Core' )
+	return pn_two_factor_api_ready()
 		&& pn_user_must_use_two_factor( $user )
 		&& ! pn_user_needs_two_factor_setup( $user )
 		&& ! Two_Factor_Core::is_current_user_session_two_factor();
@@ -94,7 +117,7 @@ function pn_user_needs_two_factor_reauthentication( $user ): bool {
  */
 function pn_revoke_sessions_after_two_factor_setup( $meta_id, $user_id, $meta_key ): void {
 	unset( $meta_id );
-	if ( ! class_exists( 'Two_Factor_Core' ) || ! class_exists( 'Two_Factor_Totp' ) || ! class_exists( 'Two_Factor_Backup_Codes' ) ) {
+	if ( ! pn_two_factor_api_ready() ) {
 		return;
 	}
 	$watched_meta = array(
@@ -174,7 +197,7 @@ add_action(
 add_filter(
 	'rest_pre_dispatch',
 	function ( $result, $server, $request ) {
-		$user = wp_get_current_user();
+		$user        = wp_get_current_user();
 		$setup_route = 0 === strpos( $request->get_route(), '/two-factor/' );
 		if ( null === $result && pn_user_needs_two_factor_setup( $user ) && ! $setup_route ) {
 			return new WP_Error(
@@ -208,11 +231,11 @@ add_action(
 				esc_html__( 'Set up and enable the authenticator app, generate and save backup codes, then sign in again with a two-factor code to unlock the rest of the site.', 'pella-nazarene' )
 			);
 		}
-		if ( ! class_exists( 'Two_Factor_Core' ) && current_user_can( 'manage_options' ) && ! ( defined( 'PN_REQUIRE_2FA' ) && ! PN_REQUIRE_2FA ) ) {
+		if ( ! pn_two_factor_api_ready() && current_user_can( 'manage_options' ) && ! ( defined( 'PN_REQUIRE_2FA' ) && ! PN_REQUIRE_2FA ) ) {
 			printf(
 				'<div class="notice notice-error"><p><strong>%s</strong> %s</p></div>',
 				esc_html__( 'Two-factor is NOT being enforced.', 'pella-nazarene' ),
-				esc_html__( 'The "Two Factor" plugin is not active. Activate it.', 'pella-nazarene' )
+				esc_html__( 'The "Two Factor" plugin is not active, or it is a version this site does not support. Activate version 0.17.0.', 'pella-nazarene' )
 			);
 		}
 	}
