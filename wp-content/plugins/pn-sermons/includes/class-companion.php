@@ -22,22 +22,26 @@ class Companion {
 	const DEFAULT_MODEL = 'claude-sonnet-5-5';
 
 	public static function init(): void {
-		add_action( 'transition_post_status', [ __CLASS__, 'on_publish' ], 10, 3 );
-		add_action( self::HOOK, [ __CLASS__, 'draft' ] );
+		add_action( 'transition_post_status', array( __CLASS__, 'on_publish' ), 10, 3 );
+		add_action( self::HOOK, array( __CLASS__, 'draft' ) );
 
-		add_action( 'pn_speaker_edit_form_fields', [ __CLASS__, 'speaker_user_field' ] );
-		add_action( 'edited_pn_speaker', [ __CLASS__, 'save_speaker_user' ] );
+		add_action( 'pn_speaker_edit_form_fields', array( __CLASS__, 'speaker_user_field' ) );
+		add_action( 'edited_pn_speaker', array( __CLASS__, 'save_speaker_user' ) );
 
-		register_post_meta( Post_Types::POST_TYPE, 'pn_transcript', [
-			'type'          => 'string',
-			'single'        => true,
-			'show_in_rest'  => false,
-			'auth_callback' => fn() => current_user_can( 'edit_posts' ),
-		] );
+		register_post_meta(
+			Post_Types::POST_TYPE,
+			'pn_transcript',
+			array(
+				'type'          => 'string',
+				'single'        => true,
+				'show_in_rest'  => false,
+				'auth_callback' => fn() => current_user_can( 'edit_posts' ),
+			)
+		);
 	}
 
 	public static function default_prompt(): string {
-		return <<<PROMPT
+		return <<<'PROMPT'
 Write a companion blog post for the sermon transcript below, for the website of Pella Nazarene, a Church of the Nazarene congregation in Pella, Iowa.
 
 - 400 to 600 words, warm and plain, written for church members and curious visitors.
@@ -50,15 +54,15 @@ Write a companion blog post for the sermon transcript below, for the website of 
 PROMPT;
 	}
 
-	public static function on_publish( string $new, string $old, \WP_Post $post ): void {
-		if ( 'publish' !== $new || 'publish' === $old || Post_Types::POST_TYPE !== $post->post_type ) {
+	public static function on_publish( string $new_status, string $old_status, \WP_Post $post ): void {
+		if ( 'publish' !== $new_status || 'publish' === $old_status || Post_Types::POST_TYPE !== $post->post_type ) {
 			return;
 		}
 		if ( ! Settings::get( 'companion_enabled' ) || get_post_meta( $post->ID, 'pn_companion_post', true ) ) {
 			return;
 		}
 		// Run in the background so publishing stays fast.
-		wp_schedule_single_event( time() + 30, self::HOOK, [ $post->ID ] );
+		wp_schedule_single_event( time() + 30, self::HOOK, array( $post->ID ) );
 	}
 
 	public static function draft( int $sermon_id ): void {
@@ -89,20 +93,30 @@ PROMPT;
 			$transcript
 		);
 
-		$response = wp_remote_post( self::API_URL, [
-			'timeout' => 120,
-			'headers' => [
-				'x-api-key'         => $api_key,
-				'anthropic-version' => '2023-06-01',
-				'content-type'      => 'application/json',
-			],
-			'body'    => wp_json_encode( [
-				'model'      => apply_filters( 'pn_sermons_model', self::DEFAULT_MODEL ),
-				'max_tokens' => 2000,
-				'system'     => (string) Settings::get( 'companion_prompt' ),
-				'messages'   => [ [ 'role' => 'user', 'content' => $context ] ],
-			] ),
-		] );
+		$response = wp_remote_post(
+			self::API_URL,
+			array(
+				'timeout' => 120,
+				'headers' => array(
+					'x-api-key'         => $api_key,
+					'anthropic-version' => '2023-06-01',
+					'content-type'      => 'application/json',
+				),
+				'body'    => wp_json_encode(
+					array(
+						'model'      => apply_filters( 'pn_sermons_model', self::DEFAULT_MODEL ),
+						'max_tokens' => 2000,
+						'system'     => (string) Settings::get( 'companion_prompt' ),
+						'messages'   => array(
+							array(
+								'role'    => 'user',
+								'content' => $context,
+							),
+						),
+					)
+				),
+			)
+		);
 
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
 			YouTube_Import::log( 'Claude API error: ' . ( is_wp_error( $response ) ? $response->get_error_message() : wp_remote_retrieve_body( $response ) ) );
@@ -121,16 +135,19 @@ PROMPT;
 		$body   = wp_kses_post( $post['body_html'] );
 		$body  .= sprintf( '<p><em>%s <a href="%s">%s</a></em></p>', esc_html__( 'Adapted from Sunday\'s message.', 'pn-sermons' ), esc_url( get_permalink( $sermon ) ), esc_html__( 'Watch the full sermon.', 'pn-sermons' ) );
 
-		$post_id = wp_insert_post( [
-			'post_type'     => 'post',
-			'post_status'   => 'draft',
-			'post_author'   => $author,
-			'post_title'    => sanitize_text_field( $post['title'] ),
-			'post_excerpt'  => sanitize_text_field( $post['excerpt'] ?? '' ),
-			'post_content'  => $body,
-			'post_category' => [ self::category_id() ],
-			'meta_input'    => [ 'pn_sermon_id' => $sermon_id ],
-		], true );
+		$post_id = wp_insert_post(
+			array(
+				'post_type'     => 'post',
+				'post_status'   => 'draft',
+				'post_author'   => $author,
+				'post_title'    => sanitize_text_field( $post['title'] ),
+				'post_excerpt'  => sanitize_text_field( $post['excerpt'] ?? '' ),
+				'post_content'  => $body,
+				'post_category' => array( self::category_id() ),
+				'meta_input'    => array( 'pn_sermon_id' => $sermon_id ),
+			),
+			true
+		);
 
 		if ( is_wp_error( $post_id ) ) {
 			YouTube_Import::log( 'Could not save companion post: ' . $post_id->get_error_message() );
@@ -179,7 +196,7 @@ PROMPT;
 	}
 
 	private static function notify( int $post_id, int $author ): void {
-		$to = array_filter( explode( ',', (string) Settings::get( 'notify_emails' ) ) );
+		$to   = array_filter( explode( ',', (string) Settings::get( 'notify_emails' ) ) );
 		$user = get_userdata( $author );
 		if ( $user ) {
 			$to[] = $user->user_email;
@@ -187,6 +204,7 @@ PROMPT;
 		if ( ! $to ) {
 			return;
 		}
+		/* translators: %s: title of the sermon the draft was written for. */
 		$subject = sprintf( __( 'Draft ready for review: %s', 'pn-sermons' ), get_the_title( $post_id ) );
 		$message = sprintf(
 			"%s\n\n%s\n\n%s",
@@ -204,14 +222,16 @@ PROMPT;
 			<th scope="row"><label for="pn_user_id"><?php esc_html_e( 'WordPress user', 'pn-sermons' ); ?></label></th>
 			<td>
 				<?php
-				wp_dropdown_users( [
-					'name'              => 'pn_user_id',
-					'id'                => 'pn_user_id',
-					'selected'          => $current,
-					'show_option_none'  => __( '— None —', 'pn-sermons' ),
-					'option_none_value' => 0,
-					'capability'        => [ 'edit_posts' ],
-				] );
+				wp_dropdown_users(
+					array(
+						'name'              => 'pn_user_id',
+						'id'                => 'pn_user_id',
+						'selected'          => $current,
+						'show_option_none'  => __( '— None —', 'pn-sermons' ),
+						'option_none_value' => 0,
+						'capability'        => array( 'edit_posts' ),
+					)
+				);
 				wp_nonce_field( 'pn_speaker_user', 'pn_speaker_user_nonce' );
 				?>
 				<p class="description"><?php esc_html_e( 'Companion posts for this speaker are drafted under this account, and they get the review email.', 'pn-sermons' ); ?></p>

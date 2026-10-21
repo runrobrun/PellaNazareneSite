@@ -39,3 +39,7 @@ wp-content/mu-plugins/*
 *.log
 node_modules/
 .wp-env/
+
+# Dev tooling installed by Composer
+vendor/
+.phpcs.cache

@@ -58,7 +58,8 @@ Add the `.wp-env.json` the README describes (theme, plugin, mu-plugin mounted; p
 - `npx @wordpress/env start` yields a working site with this repo's code active.
 - README instructions verified from a clean checkout.
 
-### DEV-2 CI pipeline · M · todo
+### DEV-2 CI pipeline · M · review
+Branch `story/DEV-2-ci`. Workflow, `phpcs.xml.dist`, `composer.json`/`composer.lock`; existing code brought to the WordPress standard (160 auto-fixes, the rest by hand). Still to do after merge: turn on branch protection on `main` (GitHub settings, requires the three CI checks) and a plugin-vulnerability check (SEC-2).
 Add `.github/workflows/ci.yml`.
 - PHP lint (`php -l`) and PHPCS with WordPress coding standards on every push and PR.
 - ShellCheck on `scripts/` and `deploy/`.
