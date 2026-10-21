@@ -1,0 +1,13 @@
+# gitleaks config, picked up automatically from the repo root (CI and local runs).
+title = "Pella Nazarene"
+
+[extend]
+useDefault = true
+
+# Narrow on purpose: one rule, one file. The Nginx test starts a throwaway container, protects a
+# fake site with the made-up login church:secret, sends requests to it, and deletes it. It is not
+# reachable from outside and is not a real credential. Everything else is still scanned.
+[[allowlists]]
+description = "Throwaway basic-auth login used only inside the Nginx config test container"
+targetRules = ["curl-auth-user"]
+paths = ['''deploy/tests/nginx-config-inner\.sh''']
