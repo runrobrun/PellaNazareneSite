@@ -65,33 +65,6 @@ BACKUP_FILE="$BACKUPS/pre-${SHA:0:12}-$(date +%Y%m%d-%H%M%S).sql.gz"
 # Keep the five most recent.
 find "$BACKUPS" -name 'pre-*.sql.gz' -type f -printf '%T@ %p\n' | sort -rn | tail -n +6 | cut -d' ' -f2- | xargs -r rm -f
 
-rollback() {
-	local reason="$1" status="${2:-1}"
-	echo "!! $reason; rolling back to ${PREVIOUS:0:7}" >&2
-	if ! git -C "$REPO" reset --hard --quiet "$PREVIOUS"; then
-		echo "!! Could not reset the checkout to ${PREVIOUS:0:7}" >&2
-		exit 1
-	fi
-	sudo rm -f "$CANDIDATE"
-	if ! PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
-		"$RUNNER" "$ROOT" "$CACHE_DIR" "$PREVIOUS"; then
-		echo "!! Rollback deployment failed; inspect staging before retrying." >&2
-		exit 1
-	fi
-	echo "Rolled back to ${PREVIOUS:0:7}. Pre-deploy database backup: $BACKUP_FILE (not restored automatically)." >&2
-	exit "$status"
-}
-
-echo "==> Deploy"
-# CI deploys code only. Third-party plugins are installed and updated on purpose (see
-# docs/setup.md), so a code merge never changes plugin versions and a rollback never has to undo them.
-if PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 "$CANDIDATE" "$ROOT" "$CACHE_DIR" "$SHA"; then
-	:
-else
-	deploy_status=$?
-	rollback "Deployment exited with status $deploy_status" "$deploy_status"
-fi
-
 health_check() {
 	local path body code password
 	password="$(sudo -n sed -n 's/^password: //p' "$SECRETS_FILE")"
@@ -112,6 +85,43 @@ health_check() {
 		fi
 	done
 }
+
+rollback() {
+	local reason="$1" status="${2:-1}"
+	echo "!! $reason; rolling back to ${PREVIOUS:0:7}" >&2
+	if ! git -C "$REPO" reset --hard --quiet "$PREVIOUS"; then
+		echo "!! Could not reset the checkout to ${PREVIOUS:0:7}" >&2
+		exit 1
+	fi
+	sudo rm -f "$CANDIDATE"
+	if ! PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
+		"$RUNNER" "$ROOT" "$CACHE_DIR" "$PREVIOUS"; then
+		echo "!! Rollback deployment failed; inspect staging before retrying." >&2
+		exit 1
+	fi
+	echo "Rolled back to ${PREVIOUS:0:7}. Pre-deploy database backup: $BACKUP_FILE (not restored automatically)." >&2
+	echo "==> Health check after rollback" >&2
+	local attempt
+	for attempt in 1 2 3; do
+		if health_check; then
+			echo "Staging is healthy again on ${PREVIOUS:0:7}." >&2
+			exit "$status"
+		fi
+		sleep 4
+	done
+	echo "!! STAGING IS STILL UNHEALTHY after rolling back to ${PREVIOUS:0:7}. It needs manual attention (database backup: $BACKUP_FILE)." >&2
+	exit 6
+}
+
+echo "==> Deploy"
+# CI deploys code only. Third-party plugins are installed and updated on purpose (see
+# docs/setup.md), so a code merge never changes plugin versions and a rollback never has to undo them.
+if PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 "$CANDIDATE" "$ROOT" "$CACHE_DIR" "$SHA"; then
+	:
+else
+	deploy_status=$?
+	rollback "Deployment exited with status $deploy_status" "$deploy_status"
+fi
 
 echo "==> Health check"
 for attempt in 1 2 3; do

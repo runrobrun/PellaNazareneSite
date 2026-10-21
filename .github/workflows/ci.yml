@@ -51,7 +51,12 @@ jobs:
 
       # ShellCheck is preinstalled on GitHub's Ubuntu runners.
       - name: ShellCheck
-        run: shellcheck scripts/*.sh deploy/*.sh
+        run: shellcheck scripts/*.sh deploy/*.sh deploy/tests/*.sh
+
+      # Exercises the CI deploy wrapper (healthy, rollback heals, rollback cannot heal, deploy fails)
+      # against stubs in a throwaway container; touches no server.
+      - name: CI deploy wrapper tests
+        run: docker run --rm -v "$PWD":/work:ro ubuntu:24.04 bash /work/deploy/tests/ci-deploy-harness.sh
 
   secrets:
     name: Secret scan
