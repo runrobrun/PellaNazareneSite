@@ -51,7 +51,7 @@ define( 'PN_ANTHROPIC_API_KEY', '…' );   // only when companion posts are turn
 
 ## 4. Nginx, cron, Cloudflare
 
-- Copy `deploy/nginx.conf.example` to `/etc/nginx/sites-available/`, adjust, enable, `nginx -t && systemctl reload nginx`.
+- Before enabling the production vhost, provision the `deploy` user with `scripts/bootstrap-server.sh deploy` (run as root), then verify `ssh deploy@SERVER` works and `sudo -n true` succeeds. From a repository checkout, run `scripts/apply-server-tuning.sh` as `deploy` first; it installs the snippets included by the vhost. Then copy `deploy/nginx.conf.example` to `/etc/nginx/sites-available/`, adjust, enable, and run `nginx -t && systemctl reload nginx`.
 - Create a Cloudflare origin certificate; set SSL mode to **Full (strict)**.
 - Install `deploy/crontab.example` for the `www-data` user.
 - `mkdir -p /var/backups/pellanazarene && chown www-data /var/backups/pellanazarene`
@@ -62,6 +62,16 @@ define( 'PN_ANTHROPIC_API_KEY', '…' );   // only when companion posts are turn
 2. Add that key as a read-only **deploy key** on the GitHub repo so the server can `git fetch`.
 3. Add repo secrets: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH` (`/var/www/pellanazarene`).
 4. Create a `production` environment in the repo settings (optionally require approval).
+
+## Nginx and PHP-FPM tuning
+
+Config for both sites lives in `deploy/nginx/` and `deploy/php/`; `scripts/apply-server-tuning.sh` installs it on the server (run as `deploy` from a repo checkout). It backs up every file it replaces and rolls back if the Nginx or PHP-FPM config test fails. It installs:
+
+- `pn-performance.conf` (gzip types, hidden Nginx version, open-file cache), `pn-security-headers.conf`, and `pn-fastcgi-cache.conf` (page-cache rules with stale-while-revalidate).
+- A PHP-FPM pool sized for the 4 GB server (12 workers max) that replaces the packaged `www.conf`, and `99-pn.ini` (OPcache, upload limits, `expose_php` off). Shell-execution functions are disabled for web requests; if a plugin breaks, remove only the function it needs from `deploy/php/pn-pool.conf`.
+- A 2 GB swap file if the server has none.
+
+HSTS and a Content-Security-Policy are deliberately not set yet; they are added after HTTPS is verified on production and the YouTube/Church Center embeds are checked. Verify the cache with `curl -sI <url> | grep -i x-cache` twice: the first request should say `MISS`, the second `HIT`.
 
 ## Staging site
 

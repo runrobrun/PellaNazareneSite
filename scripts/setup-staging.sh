@@ -160,70 +160,12 @@ if ! sudo test -f /etc/nginx/htpasswd-staging; then
 	unset AUTHPASS
 fi
 
+echo "==> Nginx and PHP-FPM tuning"
+"$ROOT/repo/scripts/apply-server-tuning.sh"
+
 echo "==> Nginx staging site"
-sudo tee /etc/nginx/sites-available/staging.conf >/dev/null <<NGX
-server {
-	listen 80;
-	listen [::]:80;
-	server_name $DOMAIN;
-	location ^~ /.well-known/acme-challenge/ { root $WP; auth_basic off; }
-	location / { return 301 https://\$host\$request_uri; }
-}
-
-server {
-	# Ubuntu 24.04 ships Nginx 1.24, which needs http2 on the listen line.
-	listen 443 ssl http2;
-	listen [::]:443 ssl http2;
-	server_name $DOMAIN;
-
-	ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-	ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-	ssl_protocols TLSv1.2 TLSv1.3;
-
-	root  $WP;
-	index index.php;
-	client_max_body_size 64m;
-
-	# Private and hidden from search engines.
-	auth_basic "Staging";
-	auth_basic_user_file /etc/nginx/htpasswd-staging;
-	add_header X-Robots-Tag "noindex, nofollow, noarchive" always;
-
-	# Same page-cache rules as production.
-	set \$skip_cache 0;
-	if (\$request_method = POST)  { set \$skip_cache 1; }
-	if (\$query_string != "")     { set \$skip_cache 1; }
-	if (\$request_uri ~* "/wp-admin/|/wp-json/|/xmlrpc.php|wp-.*\.php|/feed/|sitemap") { set \$skip_cache 1; }
-	if (\$http_cookie ~* "comment_author|wordpress_[a-f0-9]+|wp-postpass|wordpress_logged_in") { set \$skip_cache 1; }
-
-	location / {
-		try_files \$uri \$uri/ /index.php?\$args;
-	}
-
-	location ~ \.php\$ {
-		include snippets/fastcgi-php.conf;
-		fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-		fastcgi_cache PELLA_STG;
-		fastcgi_cache_key "\$scheme\$request_method\$host\$request_uri";
-		fastcgi_cache_valid 200 301 302 60m;
-		fastcgi_cache_bypass \$skip_cache;
-		fastcgi_no_cache \$skip_cache;
-		add_header X-Cache \$upstream_cache_status;
-		add_header X-Robots-Tag "noindex, nofollow, noarchive" always;
-	}
-
-	location = /xmlrpc.php { deny all; }
-	location ~ /\.(?!well-known) { deny all; }
-	location ~* /wp-content/uploads/.*\.php\$ { deny all; }
-
-	location ~* \.(?:css|js|webp|jpg|jpeg|png|gif|svg|woff2?|mp4)\$ {
-		expires 30d;
-		add_header Cache-Control "public";
-		add_header X-Robots-Tag "noindex, nofollow, noarchive" always;
-		access_log off;
-	}
-}
-NGX
+sed -e "s|@DOMAIN@|$DOMAIN|g" -e "s|@WEBROOT@|$WP|g" "$ROOT/repo/deploy/nginx/staging.conf.template" \
+	| sudo tee /etc/nginx/sites-available/staging.conf >/dev/null
 sudo nginx -t
 sudo systemctl reload nginx
 
