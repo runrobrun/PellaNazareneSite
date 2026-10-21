@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Runs on the server (called by GitHub Actions over SSH).
+# pn-ci-deploy-contract: 1
 # Usage: deploy/deploy.sh /var/www/pellanazarene [/var/cache/nginx/pellanazarene] [COMMIT_SHA]
 #   Second argument is this site's Nginx FastCGI cache directory (defaults to
 #   the production one). Staging passes its own so it never clears production's.

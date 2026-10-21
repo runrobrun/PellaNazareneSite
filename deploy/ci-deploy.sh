@@ -44,6 +44,19 @@ fi
 PREVIOUS="$(git -C "$REPO" rev-parse HEAD)"
 echo "==> Deploying ${SHA:0:7} (currently ${PREVIOUS:0:7})"
 
+echo "==> Checking deploy runner"
+if ! git -C "$REPO" show "$SHA:deploy/deploy.sh" | sudo tee "$CANDIDATE" >/dev/null; then
+	echo "Could not read deploy/deploy.sh at $SHA." >&2
+	exit 1
+fi
+if ! grep -Fxq '# pn-ci-deploy-contract: 1' "$CANDIDATE"; then
+	sudo rm -f "$CANDIDATE"
+	echo "Refusing to deploy $SHA: deploy/deploy.sh does not support CI runner contract 1." >&2
+	exit 5
+fi
+sudo chown root:root "$CANDIDATE"
+sudo chmod 755 "$CANDIDATE"
+
 echo "==> Database backup"
 sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 750 "$BACKUPS"
 BACKUP_FILE="$BACKUPS/pre-${SHA:0:12}-$(date +%Y%m%d-%H%M%S).sql.gz"
@@ -70,13 +83,6 @@ rollback() {
 }
 
 echo "==> Deploy"
-# Take this commit's deploy.sh straight from git (no checkout change yet), root-owned.
-if ! git -C "$REPO" show "$SHA:deploy/deploy.sh" | sudo tee "$CANDIDATE" >/dev/null; then
-	echo "Could not read deploy/deploy.sh at $SHA." >&2
-	exit 1
-fi
-sudo chown root:root "$CANDIDATE"
-sudo chmod 755 "$CANDIDATE"
 # CI deploys code only. Third-party plugins are installed and updated on purpose (see
 # docs/setup.md), so a code merge never changes plugin versions and a rollback never has to undo them.
 if PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 "$CANDIDATE" "$ROOT" "$CACHE_DIR" "$SHA"; then
