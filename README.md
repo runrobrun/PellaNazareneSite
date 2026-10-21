@@ -55,9 +55,9 @@ Third-party GitHub Actions are pinned to full commit SHAs; update them deliberat
 
 ## Deploying
 
-Push to `main`. GitHub Actions lints the PHP, then SSHes to the server and runs `deploy/deploy.sh`, which pulls the repo, syncs `wp-content/` code into the live site, installs plugins from `plugins.txt`, and flushes caches.
+Merge a pull request to `main`. After CI passes, `.github/workflows/deploy.yml` deploys that exact commit to **staging**: it backs up the database, runs `deploy/deploy.sh` (syncs `wp-content/` code, installs plugins from `plugins.txt`, flushes caches), health-checks the site, and rolls back automatically if the check fails. Production deploys are added at cutover. Setup and security model: `docs/setup.md` section 5.
 
-Required GitHub secrets: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH`.
+Environment secrets (`staging`): `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`.
 
 ## Secrets
 

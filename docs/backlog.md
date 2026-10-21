@@ -58,7 +58,7 @@ Add the `.wp-env.json` the README describes (theme, plugin, mu-plugin mounted; p
 - `npx @wordpress/env start` yields a working site with this repo's code active.
 - README instructions verified from a clean checkout.
 
-### DEV-2 CI pipeline · M · review
+### DEV-2 CI pipeline · M · done
 Branch `story/DEV-2-ci`. Workflow, `phpcs.xml.dist`, `composer.json`/`composer.lock`; existing code brought to the WordPress standard (160 auto-fixes, the rest by hand). Still to do after merge: turn on branch protection on `main` (GitHub settings, requires the three CI checks) and a plugin-vulnerability check (SEC-2).
 Add `.github/workflows/ci.yml`.
 - PHP lint (`php -l`) and PHPCS with WordPress coding standards on every push and PR.
@@ -66,7 +66,8 @@ Add `.github/workflows/ci.yml`.
 - Secret scanning (gitleaks or GitHub secret scanning) and dependency/plugin vulnerability check against `plugins.txt` (e.g. WPScan or Patchstack data).
 - Branch protection on `main`: PR required, CI must pass.
 
-### DEV-3 Deploy pipeline · M · todo · needs INF-1, INF-2, DEV-2
+### DEV-3 Deploy pipeline · M · doing · needs INF-1, INF-2, DEV-2
+Staging half built on branch `story/DEV-3-deploy-staging`: `deploy.yml`, forced-command wrapper `deploy/ci-deploy.sh`, `scripts/setup-ci-deploy.sh` (see `docs/setup.md` section 5). Includes database backup, SHA-pinned deploy, health check, automatic rollback. Production job with required approval is added at cutover (MIG-9).
 Add `.github/workflows/deploy.yml`.
 - Merge to `main` deploys to staging automatically; production deploy requires approval via the `production` GitHub environment.
 - Uses `deploy/deploy.sh`; add pre-deploy DB backup and a rollback step.

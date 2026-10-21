@@ -58,10 +58,16 @@ define( 'PN_ANTHROPIC_API_KEY', '…' );   // only when companion posts are turn
 
 ## 5. GitHub deploys
 
-1. Create a deploy user on the server with write access to `/var/www/pellanazarene` and an SSH key.
-2. Add that key as a read-only **deploy key** on the GitHub repo so the server can `git fetch`.
-3. Add repo secrets: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH` (`/var/www/pellanazarene`).
-4. Create a `production` environment in the repo settings (optionally require approval).
+Merging to `main` deploys to **staging** automatically after CI passes (`.github/workflows/deploy.yml`). Production is added at cutover (MIG-9) with required approval.
+
+How it works: the workflow SSHes to the server with a key made only for CI. In `~deploy/.ssh/authorized_keys` that key is locked with `restrict,command="/usr/local/bin/pn-ci-deploy"`, so it cannot open a shell or run anything else. The wrapper (`deploy/ci-deploy.sh`, root-owned) accepts only `staging <40-character sha>`, refuses any commit that is not on `origin/main`, backs up the staging database (last five kept in `/var/backups/pn-staging-db`), deploys that exact commit with the root-owned, stable `/usr/local/libexec/pn-staging-deploy` runner, health-checks the site over localhost, and rolls back to the previous commit if deployment or health checks fail. CI deployments do not update third-party plugins; update them separately so plugin updates are outside the code rollback. Direct staging deployments use the same lock. The database backup is not restored automatically; the path is printed.
+
+One-time setup:
+
+1. On your computer, make a key just for CI (no passphrase): `ssh-keygen -t ed25519 -N "" -C pella-ci-deploy -f ~/.ssh/pella_ci_deploy`
+2. On the server, from the staging checkout: `scripts/setup-ci-deploy.sh "ssh-ed25519 AAAA... pella-ci-deploy"` (paste the line from `pella_ci_deploy.pub`). It installs the wrapper and stable runner, appends the key (existing keys are never touched), and prints the server's host-key fingerprint.
+3. In GitHub, create an environment named **staging** (Settings > Environments), set deployment branches to `main` only, and add these environment secrets: `DEPLOY_HOST` (`staging.pellanazarene.org`), `DEPLOY_USER` (`deploy`), `DEPLOY_SSH_KEY` (the private key file's contents), and `DEPLOY_KNOWN_HOSTS` (the output of `ssh-keyscan -t ed25519 staging.pellanazarene.org`, after checking its fingerprint matches the one the server printed). Then delete the private key from your computer; it lives only in GitHub.
+4. To revoke CI access, delete the `pella-ci-deploy` line from `~deploy/.ssh/authorized_keys`.
 
 ## Nginx and PHP-FPM tuning
 
