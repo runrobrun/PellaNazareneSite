@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Runs on the server (called by GitHub Actions over SSH).
-# Usage: deploy/deploy.sh /var/www/pellanazarene [/var/cache/nginx/pellanazarene]
+# Usage: deploy/deploy.sh /var/www/pellanazarene [/var/cache/nginx/pellanazarene] [COMMIT_SHA]
 #   Second argument is this site's Nginx FastCGI cache directory (defaults to
 #   the production one). Staging passes its own so it never clears production's.
+#   Third argument deploys that exact commit (40 hex characters) instead of the
+#   tip of origin/main; the CI wrapper uses it to deploy what CI actually tested.
 #
 # Expects:
 #   $DEPLOY_PATH/repo        a git clone of this repository
@@ -11,12 +13,17 @@ set -euo pipefail
 
 DEPLOY_PATH="${1:?Usage: $0 /deploy/path [/nginx/cache/dir]}"
 CACHE_DIR="${2:-/var/cache/nginx/pellanazarene}"
+REF="${3:-origin/main}"
+if [[ "$REF" != "origin/main" && ! "$REF" =~ ^[0-9a-f]{40}$ ]]; then
+	echo "Third argument must be a full 40-character commit SHA." >&2
+	exit 2
+fi
 REPO="$DEPLOY_PATH/repo"
 WP="$DEPLOY_PATH/public"
 
 cd "$REPO"
 git fetch --quiet origin main
-git reset --hard --quiet origin/main
+git reset --hard --quiet "$REF"
 echo "Deploying $(git rev-parse --short HEAD)"
 
 # Sync only our code. --delete keeps removed files from lingering,
