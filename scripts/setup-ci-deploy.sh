@@ -5,7 +5,8 @@
 # The argument is the PUBLIC half of a key made just for CI. Its private half goes
 # into the GitHub `staging` environment secrets and nowhere else.
 #
-# Installs the wrapper and stable deploy runner root-owned, then appends the CI key
+# Installs the wrapper and the initial known-good deploy runner root-owned (the wrapper
+# refreshes the runner itself after every healthy deploy), then appends the CI key
 # to ~deploy/.ssh/authorized_keys, locked to the wrapper. Append only: existing
 # keys are never changed, so this cannot lock you out.
 set -euo pipefail
