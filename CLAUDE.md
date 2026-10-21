@@ -66,6 +66,8 @@ The site must load fast, especially on phones on church-parking-lot cellular.
 
 Never point local or staging at production's database, API keys, or SMTP. Staging must be `noindex` and block outbound email.
 
+Third-party tracking (Google Analytics, measurement ID `G-3E45KJPG3G`, see FEAT-8) loads on **production only**: never on staging, local, or for logged-in staff.
+
 ## Conventions
 
 - PHP 8.3, WordPress coding standards, tabs for indentation. Prefix everything with `pn_` / `PN_`.
