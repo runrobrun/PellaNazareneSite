@@ -57,15 +57,16 @@ jobs:
     name: Secret scan
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Scans the whole history on every run (the gitleaks action only scans the
+      # commits in the push or PR). Image pinned by digest; update it on purpose.
+      - name: gitleaks (full history)
+        run: |
+          docker run --rm -v "$PWD":/repo -w /repo \
+            zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+            detect --source /repo --redact --no-banner --log-opts="--all"
