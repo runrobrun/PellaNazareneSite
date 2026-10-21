@@ -39,6 +39,20 @@ npx @wordpress/env stop
 
 `.wp-env.json` mounts this repo's theme, plugin, and mu-plugin into the local site.
 
+## Checks
+
+CI (`.github/workflows/ci.yml`) runs on every push and pull request: PHP syntax, WordPress coding standards (PHPCS, config in `phpcs.xml.dist`), ShellCheck on `scripts/` and `deploy/`, and a gitleaks secret scan. Run the same checks locally with Docker (nothing to install):
+
+```bash
+docker run --rm -v "$PWD":/app -w /app composer:2 install            # once; tooling comes from composer.lock
+docker run --rm -v "$PWD":/app -w /app composer:2 vendor/bin/phpcs   # coding standards (phpcbf auto-fixes)
+docker run --rm -v "$PWD":/app:ro -w /app php:8.3-cli sh -c "find wp-content -name '*.php' -print0 | xargs -0 -n1 php -l"
+docker run --rm -v "$PWD":/mnt:ro -w /mnt koalaman/shellcheck:stable scripts/*.sh deploy/*.sh
+docker run --rm -v "$PWD":/repo -w /repo zricethezav/gitleaks:latest detect --source /repo --redact
+```
+
+Third-party GitHub Actions are pinned to full commit SHAs; update them deliberately.
+
 ## Deploying
 
 Push to `main`. GitHub Actions lints the PHP, then SSHes to the server and runs `deploy/deploy.sh`, which pulls the repo, syncs `wp-content/` code into the live site, installs plugins from `plugins.txt`, and flushes caches.

@@ -25,7 +25,7 @@ Custom code and config for pellanazarene.org, a self-hosted WordPress site being
 - [ ] Acceptance criteria met.
 - [ ] **Security check passed**: run `/security-review` on the branch and fix or explicitly justify every finding. Also confirm the checklist below. This is mandatory before any PR.
 - [ ] **Performance check passed**: no new render-blocking assets, no uncached heavy queries, images sized and lazy-loaded; see Performance rules.
-- [ ] PHP lints clean (`php -l` on changed files) and, once CI exists, CI is green.
+- [ ] Checks pass locally (see README "Checks") and CI is green: PHP syntax, WordPress coding standards (PHPCS), ShellCheck, secret scan.
 - [ ] Verified on local (`wp-env`) and, once it exists, on staging.
 - [ ] Docs updated (`README.md`, `docs/setup.md`, `docs/runbook.md`) if setup, ops, or secrets changed.
 - [ ] Backlog status updated.
@@ -94,4 +94,4 @@ Follow `docs/PellaNazareneBrandingGuide.pdf`. Mission: "to love people where the
 
 ## Known gaps
 
-`README.md` references `.github/workflows/ci.yml`, `deploy.yml`, and `.wp-env.json`, which do not exist yet (see backlog). Don't assume they work.
+`README.md` references `.github/workflows/deploy.yml` and `.wp-env.json`, which do not exist yet (see DEV-1 and DEV-3 in the backlog). Don't assume they work. CI (`ci.yml`) exists.

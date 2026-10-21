@@ -1,0 +1,21 @@
+{
+	"name": "pellanazarene/site",
+	"description": "Dev tooling for the Pella Nazarene site (coding standards only; nothing here ships to the server).",
+	"type": "project",
+	"license": "proprietary",
+	"require-dev": {
+		"wp-coding-standards/wpcs": "^3.4",
+		"phpcompatibility/phpcompatibility-wp": "^2.1",
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.2"
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		},
+		"sort-packages": true
+	},
+	"scripts": {
+		"lint": "phpcs",
+		"fix": "phpcbf"
+	}
+}

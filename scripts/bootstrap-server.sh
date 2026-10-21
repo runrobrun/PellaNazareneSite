@@ -15,6 +15,7 @@ DEPLOY_USER="${1:?Usage: $0 DEPLOY_USER [--lock-ssh]}"
 LOCK_SSH="${2:-}"
 
 [[ $EUID -eq 0 ]] || { echo "Run as root." >&2; exit 1; }
+# shellcheck source=/dev/null
 [[ "$(. /etc/os-release && echo "$VERSION_ID")" == "24.04" ]] || { echo "Expected Ubuntu 24.04." >&2; exit 1; }
 
 export DEBIAN_FRONTEND=noninteractive

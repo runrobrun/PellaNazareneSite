@@ -17,13 +17,16 @@ class YouTube_Import {
 	const FEED_URL        = 'https://www.youtube.com/feeds/videos.xml?channel_id=%s';
 
 	public static function init(): void {
-		add_action( self::HOOK, [ __CLASS__, 'run' ] );
+		add_action( self::HOOK, array( __CLASS__, 'run' ) );
 		// Self-heal if the schedule was lost (e.g. plugin copied in without activation).
-		add_action( 'init', function () {
-			if ( ! wp_next_scheduled( self::HOOK ) ) {
-				self::schedule();
+		add_action(
+			'init',
+			function () {
+				if ( ! wp_next_scheduled( self::HOOK ) ) {
+					self::schedule();
+				}
 			}
-		} );
+		);
 	}
 
 	public static function schedule(): void {
@@ -48,7 +51,7 @@ class YouTube_Import {
 			return 0;
 		}
 
-		$response = wp_remote_get( sprintf( self::FEED_URL, rawurlencode( $channel ) ), [ 'timeout' => 15 ] );
+		$response = wp_remote_get( sprintf( self::FEED_URL, rawurlencode( $channel ) ), array( 'timeout' => 15 ) );
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
 			self::log( 'Feed request failed: ' . ( is_wp_error( $response ) ? $response->get_error_message() : wp_remote_retrieve_response_code( $response ) ) );
 			return 0;
@@ -67,7 +70,7 @@ class YouTube_Import {
 				continue;
 			}
 			if ( self::create_draft( $video ) ) {
-				$count++;
+				++$count;
 			}
 		}
 
@@ -82,55 +85,60 @@ class YouTube_Import {
 		$feed     = simplexml_load_string( $xml );
 		libxml_use_internal_errors( $previous );
 		if ( ! $feed ) {
-			return [];
+			return array();
 		}
 
-		$videos = [];
+		$videos = array();
 		foreach ( $feed->entry as $entry ) {
 			$yt    = $entry->children( 'http://www.youtube.com/xml/schemas/2015' );
 			$media = $entry->children( 'http://search.yahoo.com/mrss/' )->group;
 			$thumb = $media ? $media->children( 'http://search.yahoo.com/mrss/' )->thumbnail : null;
 
-			$id = (string) $yt->videoId;
+			$id = (string) $yt->videoId; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- element name is defined by YouTube's feed schema.
 			if ( ! preg_match( '/^[\w-]{11}$/', $id ) ) {
 				continue;
 			}
-			$videos[] = [
+			$videos[] = array(
 				'id'          => $id,
 				'title'       => trim( (string) $entry->title ),
 				'published'   => (string) $entry->published,
 				'description' => $media ? trim( (string) $media->children( 'http://search.yahoo.com/mrss/' )->description ) : '',
 				'thumbnail'   => $thumb ? (string) $thumb->attributes()->url : '',
-			];
+			);
 		}
 		return $videos;
 	}
 
 	private static function already_imported( string $video_id ): bool {
-		$existing = get_posts( [
-			'post_type'      => Post_Types::POST_TYPE,
-			'post_status'    => 'any',
-			'meta_key'       => 'pn_youtube_id',
-			'meta_value'     => $video_id,
-			'fields'         => 'ids',
-			'posts_per_page' => 1,
-			'no_found_rows'  => true,
-		] );
+		$existing = get_posts(
+			array(
+				'post_type'      => Post_Types::POST_TYPE,
+				'post_status'    => 'any',
+				'meta_key'       => 'pn_youtube_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- one-row duplicate check on the import path, not a page load.
+				'meta_value'     => $video_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- same.
+				'fields'         => 'ids',
+				'posts_per_page' => 1,
+				'no_found_rows'  => true,
+			)
+		);
 		return ! empty( $existing );
 	}
 
 	private static function create_draft( array $video ): int {
 		$timestamp = strtotime( $video['published'] ) ?: time();
 
-		$post_id = wp_insert_post( [
-			'post_type'     => Post_Types::POST_TYPE,
-			'post_status'   => 'draft',
-			'post_title'    => $video['title'],
-			'post_excerpt'  => wp_trim_words( $video['description'], 55 ),
-			'post_date_gmt' => gmdate( 'Y-m-d H:i:s', $timestamp ),
-			'post_date'     => get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $timestamp ) ),
-			'meta_input'    => [ 'pn_youtube_id' => $video['id'] ],
-		], true );
+		$post_id = wp_insert_post(
+			array(
+				'post_type'     => Post_Types::POST_TYPE,
+				'post_status'   => 'draft',
+				'post_title'    => $video['title'],
+				'post_excerpt'  => wp_trim_words( $video['description'], 55 ),
+				'post_date_gmt' => gmdate( 'Y-m-d H:i:s', $timestamp ),
+				'post_date'     => get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $timestamp ) ),
+				'meta_input'    => array( 'pn_youtube_id' => $video['id'] ),
+			),
+			true
+		);
 
 		if ( is_wp_error( $post_id ) ) {
 			self::log( 'Could not create draft for ' . $video['id'] . ': ' . $post_id->get_error_message() );
@@ -152,7 +160,7 @@ class YouTube_Import {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		require_once ABSPATH . 'wp-admin/includes/image.php';
 
-		foreach ( [ $preferred, $fallback ] as $url ) {
+		foreach ( array( $preferred, $fallback ) as $url ) {
 			$id = media_sideload_image( $url, $post_id, $title, 'id' );
 			if ( ! is_wp_error( $id ) ) {
 				set_post_thumbnail( $post_id, (int) $id );

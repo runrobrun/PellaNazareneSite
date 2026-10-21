@@ -27,13 +27,19 @@ PN_Sermons\YouTube_Import::init();
 PN_Sermons\Video::init();
 PN_Sermons\Companion::init();
 
-register_activation_hook( __FILE__, function () {
-	PN_Sermons\Post_Types::register();
-	flush_rewrite_rules();
-	PN_Sermons\YouTube_Import::schedule();
-} );
+register_activation_hook(
+	__FILE__,
+	function () {
+		PN_Sermons\Post_Types::register();
+		flush_rewrite_rules();
+		PN_Sermons\YouTube_Import::schedule();
+	}
+);
 
-register_deactivation_hook( __FILE__, function () {
-	PN_Sermons\YouTube_Import::unschedule();
-	flush_rewrite_rules();
-} );
+register_deactivation_hook(
+	__FILE__,
+	function () {
+		PN_Sermons\YouTube_Import::unschedule();
+		flush_rewrite_rules();
+	}
+);

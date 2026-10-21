@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<ruleset name="Pella Nazarene" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/squizlabs/PHP_CodeSniffer/master/phpcs.xsd">
+	<description>WordPress coding standards for the code in this repo (not WordPress core or third-party plugins).</description>
+
+	<!-- Only our own code. -->
+	<file>wp-content/plugins/pn-sermons</file>
+	<file>wp-content/mu-plugins/pn-site.php</file>
+	<file>wp-content/themes/pella-nazarene</file>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="ps"/><!-- progress, and show sniff names -->
+	<arg name="parallel" value="8"/>
+
+	<rule ref="WordPress"/>
+
+	<!-- Runs on PHP 8.3 (see docs/setup.md). -->
+	<config name="testVersion" value="8.3-"/>
+	<rule ref="PHPCompatibilityWP"/>
+	<config name="minimum_wp_version" value="6.6"/>
+
+	<!-- Everything global is prefixed pn_ / PN_ (see CLAUDE.md). -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="pn"/>
+				<element value="PN"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Deliberate relaxations (reviewed in the CI story, DEV-2):
+	     - Docblocks on every function/file are not required; the code is small and self-describing.
+	     - Short ternaries (?:) are fine on PHP 8.3.
+	     - "pn" is our agreed 2-letter prefix (CLAUDE.md); the sniff only wants longer ones. -->
+	<rule ref="Squiz.Commenting.FileComment"><severity>0</severity></rule>
+	<rule ref="Squiz.Commenting.FunctionComment.Missing"><severity>0</severity></rule>
+	<rule ref="Squiz.Commenting.FunctionComment.MissingParamTag"><severity>0</severity></rule>
+	<rule ref="Generic.Commenting.DocComment.MissingShort"><severity>0</severity></rule>
+	<rule ref="Universal.Operators.DisallowShortTernary"><severity>0</severity></rule>
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed"><severity>0</severity></rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="pn-sermons"/>
+				<element value="pella-nazarene"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

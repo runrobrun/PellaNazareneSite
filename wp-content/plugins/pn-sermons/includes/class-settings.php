@@ -11,62 +11,74 @@ class Settings {
 	const OPTION = 'pn_sermons_settings';
 
 	public static function init(): void {
-		add_action( 'admin_menu', [ __CLASS__, 'menu' ] );
-		add_action( 'admin_init', [ __CLASS__, 'register' ] );
-		add_action( 'admin_post_pn_sermons_import_now', [ __CLASS__, 'handle_import_now' ] );
+		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
+		add_action( 'admin_init', array( __CLASS__, 'register' ) );
+		add_action( 'admin_post_pn_sermons_import_now', array( __CLASS__, 'handle_import_now' ) );
 	}
 
 	public static function defaults(): array {
-		return [
+		return array(
 			'channel_id'        => '',
 			'title_filter'      => '',
 			'companion_enabled' => 0,
 			'companion_prompt'  => Companion::default_prompt(),
 			'notify_emails'     => '',
-		];
+		);
 	}
 
 	public static function get( string $key ) {
 		if ( 'channel_id' === $key && defined( 'PN_YOUTUBE_CHANNEL_ID' ) ) {
 			return PN_YOUTUBE_CHANNEL_ID;
 		}
-		$opts = wp_parse_args( get_option( self::OPTION, [] ), self::defaults() );
+		$opts = wp_parse_args( get_option( self::OPTION, array() ), self::defaults() );
 		return $opts[ $key ] ?? null;
 	}
 
 	public static function menu(): void {
-		add_options_page( __( 'Sermons', 'pn-sermons' ), __( 'Sermons', 'pn-sermons' ), 'manage_options', 'pn-sermons', [ __CLASS__, 'render' ] );
+		add_options_page( __( 'Sermons', 'pn-sermons' ), __( 'Sermons', 'pn-sermons' ), 'manage_options', 'pn-sermons', array( __CLASS__, 'render' ) );
 	}
 
 	public static function register(): void {
-		register_setting( 'pn_sermons', self::OPTION, [
-			'type'              => 'array',
-			'sanitize_callback' => [ __CLASS__, 'sanitize' ],
-			'default'           => self::defaults(),
-		] );
+		register_setting(
+			'pn_sermons',
+			self::OPTION,
+			array(
+				'type'              => 'array',
+				'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+				'default'           => self::defaults(),
+			)
+		);
 	}
 
 	public static function sanitize( $input ): array {
-		$input = is_array( $input ) ? $input : [];
-		return [
+		$input = is_array( $input ) ? $input : array();
+		return array(
 			'channel_id'        => sanitize_text_field( $input['channel_id'] ?? '' ),
 			'title_filter'      => sanitize_text_field( $input['title_filter'] ?? '' ),
 			'companion_enabled' => empty( $input['companion_enabled'] ) ? 0 : 1,
 			'companion_prompt'  => sanitize_textarea_field( $input['companion_prompt'] ?? Companion::default_prompt() ),
 			'notify_emails'     => implode( ',', array_filter( array_map( 'sanitize_email', explode( ',', $input['notify_emails'] ?? '' ) ) ) ),
-		];
+		);
 	}
 
 	public static function render(): void {
-		$o     = wp_parse_args( get_option( self::OPTION, [] ), self::defaults() );
+		$o     = wp_parse_args( get_option( self::OPTION, array() ), self::defaults() );
 		$name  = self::OPTION;
 		$const = defined( 'PN_YOUTUBE_CHANNEL_ID' );
 		$last  = get_option( YouTube_Import::LAST_RUN_OPTION );
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Sermon settings', 'pn-sermons' ); ?></h1>
-			<?php if ( isset( $_GET['imported'] ) ) : ?>
-				<div class="notice notice-success"><p><?php printf( esc_html__( 'Import finished: %d new sermon draft(s).', 'pn-sermons' ), (int) $_GET['imported'] ); ?></p></div>
+			<?php if ( isset( $_GET['imported'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only notice. ?>
+				<div class="notice notice-success"><p>
+				<?php
+				printf(
+					/* translators: %d: number of new sermon drafts created by the import. */
+					esc_html__( 'Import finished: %d new sermon draft(s).', 'pn-sermons' ),
+					(int) $_GET['imported'] // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only; cast to int.
+				);
+				?>
+				</p></div>
 			<?php endif; ?>
 			<form method="post" action="options.php">
 				<?php settings_fields( 'pn_sermons' ); ?>
@@ -76,7 +88,12 @@ class Settings {
 						<th scope="row"><label for="pn-channel"><?php esc_html_e( 'Channel ID', 'pn-sermons' ); ?></label></th>
 						<td>
 							<input id="pn-channel" class="regular-text" name="<?php echo esc_attr( $name ); ?>[channel_id]" value="<?php echo esc_attr( $const ? PN_YOUTUBE_CHANNEL_ID : $o['channel_id'] ); ?>" <?php disabled( $const ); ?>>
-							<p class="description"><?php esc_html_e( 'Starts with "UC". Found in YouTube Studio → Settings → Channel → Advanced.', 'pn-sermons' ); ?><?php if ( $const ) { echo ' ' . esc_html__( '(Set in wp-config.php.)', 'pn-sermons' ); } ?></p>
+							<p class="description"><?php esc_html_e( 'Starts with "UC". Found in YouTube Studio → Settings → Channel → Advanced.', 'pn-sermons' ); ?>
+							<?php
+							if ( $const ) {
+								echo ' ' . esc_html__( '(Set in wp-config.php.)', 'pn-sermons' ); }
+							?>
+							</p>
 						</td>
 					</tr>
 					<tr>
@@ -111,7 +128,19 @@ class Settings {
 
 			<hr>
 			<h2><?php esc_html_e( 'Run now', 'pn-sermons' ); ?></h2>
-			<p><?php echo $last ? esc_html( sprintf( __( 'Last checked: %s', 'pn-sermons' ), wp_date( 'M j, Y g:i a', (int) $last ) ) ) : esc_html__( 'Not run yet.', 'pn-sermons' ); ?></p>
+			<p>
+				<?php
+				echo $last
+					? esc_html(
+						sprintf(
+							/* translators: %s: date and time of the last YouTube check. */
+							__( 'Last checked: %s', 'pn-sermons' ),
+							wp_date( 'M j, Y g:i a', (int) $last )
+						)
+					)
+					: esc_html__( 'Not run yet.', 'pn-sermons' );
+				?>
+				</p>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="pn_sermons_import_now">
 				<?php wp_nonce_field( 'pn_sermons_import_now' ); ?>
