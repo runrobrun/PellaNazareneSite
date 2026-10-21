@@ -187,6 +187,16 @@ Set up a blog at `/blog/` starting empty (old posts are not migrated).
 - Linked from the main nav; `/news/*` redirects here (MIG-2).
 - Add a first real post before launch so the page is not empty.
 
+### FEAT-8 Google Analytics on production · S · todo
+Include the Google Analytics 4 tag, measurement ID **`G-3E45KJPG3G`** (a public identifier that appears in page source; not a secret), on the **production** site only.
+- Loaded only when `wp_get_environment_type() === 'production'`, so staging, local, and CI never send data. Test on staging by temporarily forcing the condition, and confirm in GA (Realtime) that production traffic shows up after cutover.
+- Not loaded for logged-in staff (pastors and the office would skew the numbers) or in the admin, previews, or the block editor.
+- Performance: `async` script, loaded after the page's critical content, with no layout shift; the Lighthouse budget in PERF-1 must still pass with the tag on.
+- Privacy: decide with the church whether a cookie notice or consent banner is wanted, and write the decision here. Update the site's privacy statement to mention analytics. IP anonymization is on by default in GA4.
+- Security headers: when the Content-Security-Policy is added (INF-4 follow-up), allow `googletagmanager.com` and `google-analytics.com`.
+- Implemented in `pn-site.php` (or a small mu-plugin) so it travels with the code. The ID is kept in one constant, not scattered through templates.
+- Done when: the tag appears in production page source once, not on staging, and GA Realtime shows a test visit.
+
 ### FEAT-6 Staff roles and editing experience · S · todo
 Verify the `pn-site.php` role setup: pastors as Author, office admin as Editor. Short editor guide in `docs/runbook.md`.
 
