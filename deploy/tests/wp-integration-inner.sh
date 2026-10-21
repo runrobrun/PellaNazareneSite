@@ -98,7 +98,7 @@ n_rd="$(rest_nonce /tmp/j_rd reader)"
 expect_eq "subscriber REST works (not forced)" "$(rest_get /wp/v2/users/me /tmp/j_rd "$n_rd" | tail -1)" "200"
 expect_lacks "no 2FA nag for subscribers" "$(curl -s -b /tmp/j_rd "$BASE/wp-admin/profile.php")" "Two-factor sign-in is required"
 
-echo "== 7. Editor WITH authenticator app: must give a code, then works normally"
+echo "== 7. Both authenticator and backup codes are required"
 wp eval '
 $u = get_user_by("login","ed");
 $key = Two_Factor_Totp::generate_key();
@@ -106,7 +106,32 @@ Two_Factor_Totp::get_instance()->set_user_totp_key($u->ID, $key);
 update_user_meta($u->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array("Two_Factor_Totp"));
 update_user_meta($u->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, "Two_Factor_Totp");
 file_put_contents("/tmp/ed.key", $key);'
-expect_eq "needs-setup is now false" "$(wp eval "echo pn_user_needs_two_factor_setup(get_user_by('login','ed')) ? 'yes' : 'no';")" "no"
+expect_eq "TOTP-only enrollment is incomplete" "$(wp eval "echo pn_user_needs_two_factor_setup(get_user_by('login','ed')) ? 'yes' : 'no';")" "yes"
+wp eval '
+$u = get_user_by("login","pastor");
+Two_Factor_Backup_Codes::get_instance()->generate_codes($u);
+Two_Factor_Core::enable_provider_for_user($u->ID, "Two_Factor_Backup_Codes");'
+expect_eq "backup-codes-only enrollment is incomplete" "$(wp eval "echo pn_user_needs_two_factor_setup(get_user_by('login','pastor')) ? 'yes' : 'no';")" "yes"
+wp eval '
+$u = get_user_by("login","ed");
+$codes = Two_Factor_Backup_Codes::get_instance()->generate_codes($u);
+Two_Factor_Core::enable_provider_for_user($u->ID, "Two_Factor_Backup_Codes");
+file_put_contents("/tmp/ed.codes", implode("\n", $codes));'
+expect_eq "both methods complete enrollment" "$(wp eval "echo pn_user_needs_two_factor_setup(get_user_by('login','ed')) ? 'yes' : 'no';")" "no"
+expect_eq "the pre-enrollment cookie was revoked" "$(get_code "$BASE/wp-admin/edit.php" /tmp/j_ed)" "302"
+expect_eq "the old cookie cannot call REST" "$(rest_get /wp/v2/users/me /tmp/j_ed "$n_ed" | tail -1)" "401"
+wp eval '
+$u = get_user_by("login","ed");
+$codes = file("/tmp/ed.codes", FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+$provider = Two_Factor_Backup_Codes::get_instance();
+foreach ($codes as $code) {
+	if (!$provider->validate_code($u, $code)) {
+		exit(1);
+	}
+}'
+expect_eq "all backup codes may be exhausted without resetting enrollment" "$(wp eval "echo pn_user_needs_two_factor_setup(get_user_by('login','ed')) ? 'yes' : 'no';")" "no"
+
+echo "== 8. Enrolled editor: password alone is NOT enough; second factor is required"
 rm -f /tmp/j_ed2; page="$(login ed 'Editor-pass-1!' /tmp/j_ed2)"
 expect_contains "password alone is NOT enough: asks for the code" "$page" 'name="authcode"'
 expect_eq "no admin access with password only" "$(get_code "$BASE/wp-admin/profile.php" /tmp/j_ed2)" "302"
@@ -131,7 +156,7 @@ expect_eq "enrolled editor: admin-ajax works" "$(get_code "$BASE/wp-admin/admin-
 n_ed2="$(rest_nonce /tmp/j_ed2 ed)"
 expect_eq "enrolled editor: REST works" "$(rest_get /wp/v2/users/me /tmp/j_ed2 "$n_ed2" | tail -1)" "200"
 
-echo "== 8. Emergency off-switch and fail-open"
+echo "== 9. Emergency off-switch and fail-open"
 expect_eq "needs setup normally (pastor)" "$(wp eval "echo pn_user_needs_two_factor_setup(get_user_by('login','pastor')) ? 'yes' : 'no';")" "yes"
 expect_eq "PN_REQUIRE_2FA=false turns enforcement off" "$(wp --exec='define("PN_REQUIRE_2FA", false);' eval "echo pn_user_needs_two_factor_setup(get_user_by('login','pastor')) ? 'yes' : 'no';")" "no"
 wp plugin deactivate two-factor --quiet

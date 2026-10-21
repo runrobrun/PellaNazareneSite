@@ -37,7 +37,12 @@ echo "Deploying $(git rev-parse --short HEAD)"
 rsync -a --delete "$REPO/wp-content/plugins/pn-sermons/"      "$WP/wp-content/plugins/pn-sermons/"
 rsync -a --delete "$REPO/wp-content/themes/pella-nazarene/"   "$WP/wp-content/themes/pella-nazarene/"
 mkdir -p "$WP/wp-content/mu-plugins"
-# Our must-use plugins are the pn-*.php files; nothing else in mu-plugins is touched.
+# Remove managed plugins no longer present in this revision; preserve unrelated MU plugins.
+while IFS= read -r -d '' installed; do
+	if [[ ! -f "$REPO/wp-content/mu-plugins/${installed##*/}" ]]; then
+		rm -f "$installed"
+	fi
+done < <(find "$WP/wp-content/mu-plugins" -maxdepth 1 -type f -name 'pn-*.php' -print0)
 rsync -a --include='pn-*.php' --exclude='*' "$REPO/wp-content/mu-plugins/" "$WP/wp-content/mu-plugins/"
 
 if [[ "${PN_SKIP_PLUGIN_INSTALL:-0}" != "1" ]]; then

@@ -35,7 +35,8 @@ add_filter(
  * Two-factor: enforcement
  * ---------------------------------------------------------------------------
  * Everyone who can edit content (Contributor and up: pastors, office staff, admins) must have
- * two-factor set up. Until they do, every admin page except their own profile redirects to it.
+ * two-factor set up. Until both methods are configured, every admin page except their own profile
+ * redirects to it; setup-era sessions are revoked when enrollment completes.
  */
 
 /**
@@ -63,41 +64,129 @@ function pn_user_needs_two_factor_setup( $user ): bool {
 	if ( ! class_exists( 'Two_Factor_Core' ) || ! pn_user_must_use_two_factor( $user ) ) {
 		return false;
 	}
-	return ! Two_Factor_Core::is_user_using_two_factor( $user );
+	$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user );
+	return ! in_array( 'Two_Factor_Totp', $enabled_providers, true )
+		|| '' === Two_Factor_Totp::get_instance()->get_user_totp_key( $user->ID )
+		|| ! in_array( 'Two_Factor_Backup_Codes', $enabled_providers, true )
+		|| ! metadata_exists( 'user', $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY );
 }
+
+/**
+ * Whether an enrolled user's current session has completed two-factor authentication.
+ *
+ * @param mixed $user A WP_User.
+ * @return bool
+ */
+function pn_user_needs_two_factor_reauthentication( $user ): bool {
+	return class_exists( 'Two_Factor_Core' )
+		&& pn_user_must_use_two_factor( $user )
+		&& ! pn_user_needs_two_factor_setup( $user )
+		&& ! Two_Factor_Core::is_current_user_session_two_factor();
+}
+
+/**
+ * Revoke setup-era sessions when both required providers become fully configured.
+ *
+ * @param int    $meta_id  The user meta ID.
+ * @param int    $user_id  The user ID.
+ * @param string $meta_key The updated user meta key.
+ * @return void
+ */
+function pn_revoke_sessions_after_two_factor_setup( $meta_id, $user_id, $meta_key ): void {
+	unset( $meta_id );
+	if ( ! class_exists( 'Two_Factor_Core' ) || ! class_exists( 'Two_Factor_Totp' ) || ! class_exists( 'Two_Factor_Backup_Codes' ) ) {
+		return;
+	}
+	$watched_meta = array(
+		Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY,
+		Two_Factor_Totp::SECRET_META_KEY,
+		Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY,
+	);
+	if ( ! in_array( $meta_key, $watched_meta, true ) ) {
+		return;
+	}
+
+	$user = get_user_by( 'id', $user_id );
+	if ( ! pn_user_must_use_two_factor( $user ) ) {
+		return;
+	}
+
+	$revoked_meta = 'pn_security_2fa_enrollment_sessions_revoked';
+	if ( pn_user_needs_two_factor_setup( $user ) ) {
+		delete_user_meta( $user_id, $revoked_meta );
+		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user );
+		if ( get_current_user_id() === (int) $user_id
+			&& in_array( 'Two_Factor_Totp', $enabled_providers, true )
+			&& '' !== Two_Factor_Totp::get_instance()->get_user_totp_key( $user_id )
+			&& ! Two_Factor_Core::is_current_user_session_two_factor()
+		) {
+			// Allow setup APIs in this setup-only session; the gates below still block normal admin and REST access.
+			Two_Factor_Core::update_current_user_session(
+				array(
+					'two-factor-provider' => '',
+					'two-factor-login'    => time(),
+				)
+			);
+		}
+		return;
+	}
+	if ( get_user_meta( $user_id, $revoked_meta, true ) ) {
+		return;
+	}
+
+	update_user_meta( $user_id, $revoked_meta, '1' );
+	WP_Session_Tokens::get_instance( $user_id )->destroy_all();
+}
+add_action( 'added_user_meta', 'pn_revoke_sessions_after_two_factor_setup', 10, 3 );
+add_action( 'updated_user_meta', 'pn_revoke_sessions_after_two_factor_setup', 10, 3 );
+add_action( 'deleted_user_meta', 'pn_revoke_sessions_after_two_factor_setup', 10, 3 );
 
 add_action(
 	'admin_init',
 	function () {
 		global $pagenow;
-		if ( ! pn_user_needs_two_factor_setup( wp_get_current_user() ) ) {
+		$user = wp_get_current_user();
+		if ( pn_user_needs_two_factor_setup( $user ) ) {
+			// admin-ajax.php is not used by the setup flow; refusing it stops a password-only session
+			// from fetching a REST token (action=rest-nonce) and publishing without ever seeing a 2FA prompt.
+			if ( wp_doing_ajax() ) {
+				wp_send_json_error( array( 'code' => 'pn_two_factor_required' ), 403 );
+			}
+			// Setup itself happens on the profile page.
+			if ( 'profile.php' === $pagenow ) {
+				return;
+			}
+			wp_safe_redirect( admin_url( 'profile.php#two-factor-options' ) );
+			exit;
+		}
+		if ( ! pn_user_needs_two_factor_reauthentication( $user ) ) {
 			return;
 		}
-		// admin-ajax.php is not used by the setup flow; refusing it stops a password-only session
-		// from fetching a REST token (action=rest-nonce) and publishing without ever seeing a 2FA prompt.
 		if ( wp_doing_ajax() ) {
 			wp_send_json_error( array( 'code' => 'pn_two_factor_required' ), 403 );
 		}
-		// Setup itself happens on the profile page.
-		if ( 'profile.php' === $pagenow ) {
-			return;
-		}
-		wp_safe_redirect( admin_url( 'profile.php#two-factor-options' ) );
+		wp_safe_redirect( Two_Factor_Core::get_user_two_factor_revalidate_url() );
 		exit;
 	}
 );
 
-// The REST API is the other way in. Until two-factor is set up, only the plugin's own setup routes work.
+// The REST API is the other way in. Only the plugin's setup routes stay open during enrollment.
 add_filter(
 	'rest_pre_dispatch',
 	function ( $result, $server, $request ) {
-		if ( null === $result
-			&& 0 !== strpos( $request->get_route(), '/two-factor/' )
-			&& pn_user_needs_two_factor_setup( wp_get_current_user() )
-		) {
+		$user = wp_get_current_user();
+		$setup_route = 0 === strpos( $request->get_route(), '/two-factor/' );
+		if ( null === $result && pn_user_needs_two_factor_setup( $user ) && ! $setup_route ) {
 			return new WP_Error(
 				'pn_two_factor_required',
 				__( 'Set up two-factor sign-in on your profile page first.', 'pella-nazarene' ),
+				array( 'status' => 403 )
+			);
+		}
+		if ( null === $result && pn_user_needs_two_factor_reauthentication( $user ) ) {
+			return new WP_Error(
+				'pn_two_factor_required',
+				__( 'Complete two-factor sign-in before using the REST API.', 'pella-nazarene' ),
 				array( 'status' => 403 )
 			);
 		}
@@ -116,7 +205,7 @@ add_action(
 			printf(
 				'<div class="notice notice-warning"><p><strong>%s</strong> %s</p></div>',
 				esc_html__( 'Two-factor sign-in is required.', 'pella-nazarene' ),
-				esc_html__( 'Scroll to "Two-Factor Options", turn on the authenticator app, then save backup codes somewhere safe. The rest of the site unlocks as soon as it is on.', 'pella-nazarene' )
+				esc_html__( 'Set up and enable the authenticator app, generate and save backup codes, then sign in again with a two-factor code to unlock the rest of the site.', 'pella-nazarene' )
 			);
 		}
 		if ( ! class_exists( 'Two_Factor_Core' ) && current_user_can( 'manage_options' ) && ! ( defined( 'PN_REQUIRE_2FA' ) && ! PN_REQUIRE_2FA ) ) {

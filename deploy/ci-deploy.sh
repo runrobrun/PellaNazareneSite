@@ -86,6 +86,20 @@ health_check() {
 	done
 }
 
+reconcile_mu_plugins() {
+	local source="$REPO/wp-content/mu-plugins"
+	local target="$WP/wp-content/mu-plugins"
+	mkdir -p "$target"
+	while IFS= read -r -d '' installed; do
+		if [[ ! -f "$source/${installed##*/}" ]]; then
+			rm -f "$installed"
+		fi
+	done < <(find "$target" -maxdepth 1 -type f -name 'pn-*.php' -print0)
+	if [[ -d "$source" ]]; then
+		rsync -a --include='pn-*.php' --exclude='*' "$source/" "$target/"
+	fi
+}
+
 rollback() {
 	local reason="$1" status="${2:-1}"
 	echo "!! $reason; rolling back to ${PREVIOUS:0:7}" >&2
@@ -97,6 +111,10 @@ rollback() {
 	if ! PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
 		"$RUNNER" "$ROOT" "$CACHE_DIR" "$PREVIOUS"; then
 		echo "!! Rollback deployment failed; inspect staging before retrying." >&2
+		exit 1
+	fi
+	if ! reconcile_mu_plugins; then
+		echo "!! Could not reconcile must-use plugins during rollback." >&2
 		exit 1
 	fi
 	echo "Rolled back to ${PREVIOUS:0:7}. Pre-deploy database backup: $BACKUP_FILE (not restored automatically)." >&2
