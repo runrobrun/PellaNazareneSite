@@ -10,6 +10,7 @@ This repository holds only what we wrote or configured. WordPress core, third-pa
 wp-content/
   plugins/pn-sermons/        Sermons, series, speakers, scripture; YouTube import; companion-post drafts
   mu-plugins/pn-site.php     Site-wide behavior: admin cleanup, roles, hardening
+  mu-plugins/pn-security.php Two-factor enforcement and username-leak protection
   themes/pella-nazarene/     Child theme of Twenty Twenty-Five: theme.json, patterns, templates
 plugins.txt                  Third-party plugins and pinned versions (installed by WP-CLI)
 scripts/
@@ -41,7 +42,7 @@ npx @wordpress/env stop
 
 ## Checks
 
-CI (`.github/workflows/ci.yml`) runs on every push and pull request: PHP syntax, WordPress coding standards (PHPCS, config in `phpcs.xml.dist`), ShellCheck on `scripts/` and `deploy/`, tests of the CI deploy wrapper (stubbed, no server), and a gitleaks secret scan. Run the same checks locally with Docker (nothing to install):
+CI (`.github/workflows/ci.yml`) runs on every push and pull request: PHP syntax, WordPress coding standards (PHPCS, config in `phpcs.xml.dist`), ShellCheck on `scripts/` and `deploy/`, tests of the CI deploy wrapper (stubbed, no server), a real-WordPress test of the security plugin, an Nginx config test, and a gitleaks secret scan. Run the same checks locally with Docker (nothing to install):
 
 ```bash
 docker run --rm -v "$PWD":/app -w /app composer:2 install            # once; tooling comes from composer.lock
@@ -50,6 +51,8 @@ docker run --rm -v "$PWD":/app:ro -w /app php:8.3-cli sh -c "find wp-content -na
 docker run --rm -v "$PWD":/mnt:ro -w /mnt koalaman/shellcheck:stable scripts/*.sh deploy/*.sh
 docker run --rm -v "$PWD":/repo -w /repo zricethezav/gitleaks:latest detect --source /repo --redact
 docker run --rm -v "$PWD":/work:ro ubuntu:24.04 bash /work/deploy/tests/ci-deploy-harness.sh   # CI deploy wrapper: healthy / rollback heals / rollback cannot heal / deploy fails
+deploy/tests/wp-integration.sh    # real WordPress + Two Factor + pn-security.php, real logins (needs network)
+deploy/tests/nginx-config.sh      # staging Nginx config in Nginx 1.24: blocked files, headers, login throttle
 ```
 
 Third-party GitHub Actions are pinned to full commit SHAs; update them deliberately.

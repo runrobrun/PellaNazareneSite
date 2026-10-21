@@ -41,6 +41,8 @@ server {
 	}
 
 	location = /xmlrpc.php { deny all; }
+	# WordPress core files that reveal the version or install state. Must stay above the PHP handler.
+	location ~* ^/(?:wp-config\.php|wp-config-sample\.php|readme\.html|license\.txt)$ { deny all; }
 	location ~ /\.(?!well-known) { deny all; }
 	location ~* /wp-content/uploads/.*\.php$ { deny all; }
 
@@ -49,6 +51,7 @@ server {
 		fastcgi_pass unix:/run/php/php8.3-fpm.sock;
 		fastcgi_cache PELLA_STG;
 		include snippets/pn-fastcgi-cache.conf;
+		limit_req zone=pn_login burst=5 nodelay;  # only /wp-login.php has a key; see pn-security.conf
 		add_header X-Robots-Tag "noindex, nofollow, noarchive" always;
 		include snippets/pn-security-headers.conf;
 	}

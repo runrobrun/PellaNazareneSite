@@ -31,7 +31,7 @@ wp-content/plugins/*
 wp-content/themes/*
 !wp-content/themes/pella-nazarene/
 wp-content/mu-plugins/*
-!wp-content/mu-plugins/pn-site.php
+!wp-content/mu-plugins/pn-*.php
 
 # Backups, logs, local tooling
 *.sql

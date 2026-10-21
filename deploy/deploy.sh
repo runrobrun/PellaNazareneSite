@@ -37,7 +37,8 @@ echo "Deploying $(git rev-parse --short HEAD)"
 rsync -a --delete "$REPO/wp-content/plugins/pn-sermons/"      "$WP/wp-content/plugins/pn-sermons/"
 rsync -a --delete "$REPO/wp-content/themes/pella-nazarene/"   "$WP/wp-content/themes/pella-nazarene/"
 mkdir -p "$WP/wp-content/mu-plugins"
-rsync -a "$REPO/wp-content/mu-plugins/pn-site.php"            "$WP/wp-content/mu-plugins/pn-site.php"
+# Our must-use plugins are the pn-*.php files; nothing else in mu-plugins is touched.
+rsync -a --include='pn-*.php' --exclude='*' "$REPO/wp-content/mu-plugins/" "$WP/wp-content/mu-plugins/"
 
 if [[ "${PN_SKIP_PLUGIN_INSTALL:-0}" != "1" ]]; then
 	"$REPO/scripts/install-plugins.sh" "$WP"

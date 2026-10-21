@@ -44,6 +44,8 @@ server {
 	# Deny rules MUST come before the PHP handler: Nginx uses the first matching
 	# regex location in file order, so a deny placed after it never runs.
 	location = /xmlrpc.php { deny all; }
+	# WordPress core files that reveal the version or install state. Must stay above the PHP handler.
+	location ~* ^/(?:wp-config\.php|wp-config-sample\.php|readme\.html|license\.txt)$ { deny all; }
 	location ~ /\.(?!well-known) { deny all; }
 	location ~* /wp-content/uploads/.*\.php$ { deny all; }
 
@@ -53,6 +55,7 @@ server {
 
 		fastcgi_cache PELLA;
 		include snippets/pn-fastcgi-cache.conf;
+		limit_req zone=pn_login burst=5 nodelay;  # only /wp-login.php has a key; see pn-security.conf
 		include snippets/pn-security-headers.conf;
 	}
 

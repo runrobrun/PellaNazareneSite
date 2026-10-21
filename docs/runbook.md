@@ -9,6 +9,25 @@
 ## How it's set up
 - See `docs/setup.md`
 
+## Staff accounts and two-factor sign-in
+
+Everyone who can edit content (pastors, office staff, administrators) must use an **authenticator app** (Google Authenticator, Microsoft Authenticator, 1Password, and so on) when they sign in. Subscribers are not affected. There are no email codes.
+
+**First login:** after entering the password the person lands on their Profile page. Scroll to **Two-Factor Options**, turn on the authenticator app and scan the QR code, enter the 6-digit code to confirm, then **generate backup codes and store them somewhere safe** (a password manager). Nothing else in the admin opens until this is done.
+
+**Lost or replaced phone:** sign in with a backup code (each works once). Then set up the new phone and generate fresh backup codes.
+
+**No phone and no backup codes:** an administrator opens Users, Edit, Two-Factor Options, unchecks every method and saves. The person signs in with their password and sets 2FA up again. Or from the server:
+```bash
+wp --path=/var/www/pellanazarene/public two-factor disable <username> --yes
+```
+
+**An administrator is locked out:** SSH to the server (key login only) and run the command above for them. If the Two Factor plugin itself is broken, add `define( 'PN_REQUIRE_2FA', false );` to `wp-config.php` to stop *requiring* 2FA until it is fixed (people who already have it still get asked for a code); remove the line afterwards. If the plugin is inactive, the site shows a red warning to administrators and nobody is locked out.
+
+**Someone leaves:** delete or demote their account (reassign their content), then run `wp config shuffle-salts` to sign everyone out everywhere. Never share a login; create one account per person.
+
+**"429 Too Many Requests" on the login page:** the site allows about 10 login-page requests a minute per address. Wait a minute and try again.
+
 ## Routine tasks
 - Add or remove a staff login
 - Check that backups ran

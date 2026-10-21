@@ -80,6 +80,7 @@ wp config set --path="$WP" WP_ENVIRONMENT_TYPE staging
 wp config set --path="$WP" WP_DEBUG false --raw
 wp config set --path="$WP" DISABLE_WP_CRON true --raw
 wp config set --path="$WP" DISALLOW_FILE_EDIT true --raw
+wp config set --path="$WP" FORCE_SSL_ADMIN true --raw
 wp config set --path="$WP" WP_REDIS_HOST 127.0.0.1
 wp config set --path="$WP" WP_REDIS_DATABASE 1 --raw
 wp config set --path="$WP" WP_REDIS_PREFIX pn_staging_
@@ -94,6 +95,7 @@ if ! wp core is-installed --path="$WP" 2>/dev/null; then
 	unset ADMINPASS
 fi
 wp option update --path="$WP" blog_public 0
+wp option update --path="$WP" users_can_register 0
 wp option update --path="$WP" timezone_string America/Chicago
 wp theme install twentytwentyfive --path="$WP" 2>/dev/null || true
 # Default plugins we never use; unused plugins are attack surface.

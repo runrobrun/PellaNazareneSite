@@ -16,6 +16,7 @@ sudo -n true || { echo "deploy needs passwordless sudo." >&2; exit 1; }
 # source (relative to repo) -> destination
 FILES=(
 	"deploy/nginx/pn-performance.conf:/etc/nginx/conf.d/pn-performance.conf"
+	"deploy/nginx/pn-security.conf:/etc/nginx/conf.d/pn-security.conf"
 	"deploy/nginx/pn-security-headers.conf:/etc/nginx/snippets/pn-security-headers.conf"
 	"deploy/nginx/pn-fastcgi-cache.conf:/etc/nginx/snippets/pn-fastcgi-cache.conf"
 	"deploy/php/pn-pool.conf:$POOL_DIR/pn.conf"
