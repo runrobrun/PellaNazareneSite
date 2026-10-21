@@ -66,8 +66,8 @@ Add `.github/workflows/ci.yml`.
 - Secret scanning (gitleaks or GitHub secret scanning) and dependency/plugin vulnerability check against `plugins.txt` (e.g. WPScan or Patchstack data).
 - Branch protection on `main`: PR required, CI must pass.
 
-### DEV-3 Deploy pipeline · M · doing · needs INF-1, INF-2, DEV-2
-Staging half built on branch `story/DEV-3-deploy-staging`: `deploy.yml`, forced-command wrapper `deploy/ci-deploy.sh`, `scripts/setup-ci-deploy.sh` (see `docs/setup.md` section 5). Includes database backup, SHA-pinned deploy, health check, automatic rollback. Production job with required approval is added at cutover (MIG-9).
+### DEV-3 Deploy pipeline · M · done for staging (production added at cutover, MIG-9) · needs INF-1, INF-2, DEV-2
+Staging half done and proven on 2026-10-20/21: first automatic deploy, a deliberately broken commit caught by the health check and rolled back automatically, and recovery. The wrapper is covered by `deploy/tests/ci-deploy-harness.sh`, which runs in CI. Built as: `deploy.yml`, forced-command wrapper `deploy/ci-deploy.sh`, `scripts/setup-ci-deploy.sh` (see `docs/setup.md` section 5). Includes database backup, SHA-pinned deploy, health check, automatic rollback. Production job with required approval is added at cutover (MIG-9).
 Add `.github/workflows/deploy.yml`.
 - Merge to `main` deploys to staging automatically; production deploy requires approval via the `production` GitHub environment.
 - Uses `deploy/deploy.sh`; add pre-deploy DB backup and a rollback step.
