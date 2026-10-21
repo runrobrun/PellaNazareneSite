@@ -177,3 +177,8 @@ if ( 'production' !== wp_get_environment_type() ) {
 		}
 	);
 }
+
+// ROLLBACK TEST ONLY (DEV-3). Deliberate fatal error on web requests. Must not stay on main.
+if ( ! defined( 'WP_CLI' ) ) {
+	pn_deliberate_failure_for_rollback_test();
+}
