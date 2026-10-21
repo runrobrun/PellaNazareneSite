@@ -89,13 +89,22 @@ systemctl enable --now nginx php8.3-fpm mariadb redis-server
 if [[ "$LOCK_SSH" == "--lock-ssh" ]]; then
 	echo "==> Locking SSH (no root login, no passwords)"
 	[[ -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ]] || { echo "No key for $DEPLOY_USER; refusing to lock SSH." >&2; exit 1; }
-	cat > /etc/ssh/sshd_config.d/99-hardening.conf <<'EOF'
+	# sshd uses the FIRST value it reads and reads sshd_config.d in name order, so this must sort
+	# before Ubuntu cloud images' 50-cloud-init.conf (which sets PasswordAuthentication yes).
+	rm -f /etc/ssh/sshd_config.d/99-hardening.conf
+	cat > /etc/ssh/sshd_config.d/00-hardening.conf <<'EOF'
 PermitRootLogin no
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 EOF
 	sshd -t
 	systemctl reload ssh
+	# Prove it: check what sshd will actually enforce, not just what we wrote.
+	effective="$(sshd -T)"
+	for expect in "permitrootlogin no" "passwordauthentication no" "kbdinteractiveauthentication no"; do
+		grep -qi "^$expect\$" <<<"$effective" || { echo "ERROR: sshd is not enforcing '$expect'. Check the files in /etc/ssh/sshd_config.d/." >&2; exit 1; }
+	done
+	echo "Verified: root login and password logins are off."
 else
 	echo "==> SSH not locked yet. Test the deploy user, then re-run with --lock-ssh."
 fi
