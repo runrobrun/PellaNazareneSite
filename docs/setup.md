@@ -77,6 +77,10 @@ Config for both sites lives in `deploy/nginx/` and `deploy/php/`; `scripts/apply
 - A PHP-FPM pool sized for the 4 GB server (12 workers max) that replaces the packaged `www.conf`, and `99-pn.ini` (OPcache, upload limits, `expose_php` off). Shell-execution functions are disabled for web requests; if a plugin breaks, remove only the function it needs from `deploy/php/pn-pool.conf`.
 - A 2 GB swap file if the server has none.
 
+**Login protection and blocked files.** `pn-security.conf` throttles `/wp-login.php` to about 10 requests a minute per address (HTTP 429 beyond a short burst); this keys on the client IP, so when Cloudflare is added the real-IP config (INF-3) must be in place first. The vhost also refuses `wp-config.php`, `readme.html`, `license.txt`, `xmlrpc.php`, dotfiles, and any `.php` file under `wp-content/uploads/`. These deny rules must stay **above** the PHP handler in the vhost, because Nginx uses the first matching regex location; `deploy/tests/nginx-config.sh` checks this.
+
+**Two-factor plugin.** CI deploys never install plugins, so after the first deploy that contains `pn-security.php`, install it by hand (a pinned version; do not run `install-plugins.sh`, which upgrades every unpinned plugin): `wp plugin install two-factor --version=0.17.0 --activate --path=/var/www/staging/public`. Until it is active the must-use plugin fails open and shows administrators a red warning. WordPress settings applied at setup: `FORCE_SSL_ADMIN` on and open registration off (`users_can_register` 0). WordPress keeps the default `wp_` table prefix on purpose: renaming it on a live install is invasive and a different prefix adds almost no protection. Staff procedures are in `docs/runbook.md`.
+
 HSTS and a Content-Security-Policy are deliberately not set yet; they are added after HTTPS is verified on production and the YouTube/Church Center embeds are checked. Verify the cache with `curl -sI <url> | grep -i x-cache` twice: the first request should say `MISS`, the second `HIT`.
 
 ## Staging site

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Exercises deploy/ci-deploy.sh with stubbed git/curl/wp/sudo inside a throwaway container,
-# covering: healthy deploy, broken site healed by rollback, broken site NOT healed (exit 6),
-# and a failing deploy script. Nothing touches a real server.
+# covering: managed MU-plugin synchronization, healthy deploy, broken site healed by rollback,
+# broken site NOT healed (exit 6), and a failing deploy script. Nothing touches a real server.
 #
 # Run from the repo root:
 #   docker run --rm -v "$PWD":/work:ro ubuntu:24.04 bash /work/deploy/tests/ci-deploy-harness.sh
@@ -36,6 +36,26 @@ case "$FAKE_CURL" in
   heals) if [[ -f /t/rolled ]]; then printf '<html>fine</html>\n200'; else printf '<html>boom</html>\n500'; fi;;
 esac
 EOF
+cat > $T/bin/rsync <<'EOF'
+#!/usr/bin/env bash
+args=("$@"); source="${args[-2]}"; target="${args[-1]}"
+mkdir -p "$target"
+include_only=0; delete=0
+for arg in "${args[@]}"; do
+  [[ "$arg" == "--include=pn-*.php" ]] && include_only=1
+  [[ "$arg" == "--delete" ]] && delete=1
+done
+if [[ "$include_only" == 1 ]]; then
+  for file in "$source"pn-*.php; do
+    [[ -f "$file" ]] && cp -a "$file" "$target"
+  done
+else
+  if [[ "$delete" == 1 ]]; then
+    find "$target" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+  fi
+  cp -a "${source%/}/." "$target"
+fi
+EOF
 printf '#!/usr/bin/env bash\ntouch /t/rolled\necho "[known-good RUNNER ran]"\n' > $T/libexec/pn-staging-deploy.orig
 chmod +x $T/bin/*
 # --- a copy of the wrapper pointed at the sandbox --------------------------
@@ -45,10 +65,27 @@ sed -e 's|^ROOT=.*|ROOT="/t/root"|' -e 's|^CACHE_DIR=.*|CACHE_DIR="/t/cache"|' -
     /work/deploy/ci-deploy.sh > $T/wrapper.sh
 SHA=$(printf 'a%.0s' {1..40})
 FAILED=0
+echo "== deploy.sh reconciles managed MU plugins and preserves unrelated ones"
+mkdir -p "$T/root/repo/wp-content/plugins/pn-sermons" "$T/root/repo/wp-content/themes/pella-nazarene" \
+  "$T/root/repo/wp-content/mu-plugins" "$T/root/public/wp-content/mu-plugins" "$T/cache"
+printf 'source site\n' > "$T/root/repo/wp-content/mu-plugins/pn-site.php"
+printf 'installed site\n' > "$T/root/public/wp-content/mu-plugins/pn-site.php"
+printf 'stale security\n' > "$T/root/public/wp-content/mu-plugins/pn-security.php"
+printf 'unrelated\n' > "$T/root/public/wp-content/mu-plugins/custom.php"
+PATH=$T/bin:$PATH PN_SKIP_PLUGIN_INSTALL=1 bash /work/deploy/deploy.sh "$T/root" "$T/cache" "$SHA" >/dev/null
+[[ ! -e "$T/root/public/wp-content/mu-plugins/pn-security.php" ]] || { echo "FAIL [deploy sync]: stale managed plugin remains"; FAILED=1; }
+[[ -e "$T/root/public/wp-content/mu-plugins/custom.php" ]] || { echo "FAIL [deploy sync]: unrelated MU plugin was removed"; FAILED=1; }
+echo "ok   [deploy sync]"
+
 run() {  # name, FAKE_CURL, FAKE_DEPLOY_FAIL, expected exit code, expected message, expected RUNNER afterwards
   local name="$1" curl_mode="$2" deploy_fail="$3" want_exit="$4" want_msg="$5" want_runner="$6" out code
   rm -f /t/rolled /t/git.log "$T/libexec/pn-staging-deploy.candidate"
   cp "$T/libexec/pn-staging-deploy.orig" "$T/libexec/pn-staging-deploy"; chmod +x "$T/libexec/pn-staging-deploy"
+  mkdir -p "$T/root/repo/wp-content/mu-plugins" "$T/root/public/wp-content/mu-plugins"
+  printf 'source site\n' > "$T/root/repo/wp-content/mu-plugins/pn-site.php"
+  printf 'installed site\n' > "$T/root/public/wp-content/mu-plugins/pn-site.php"
+  printf 'stale security\n' > "$T/root/public/wp-content/mu-plugins/pn-security.php"
+  printf 'unrelated\n' > "$T/root/public/wp-content/mu-plugins/custom.php"
   out="$(PATH=$T/bin:$PATH FAKE_CURL="$curl_mode" FAKE_DEPLOY_FAIL="$deploy_fail" SSH_ORIGINAL_COMMAND="staging $SHA" bash "$T/wrapper.sh" 2>&1)"; code=$?
   [[ "$code" == "$want_exit" ]] || { echo "FAIL [$name]: exit $code, wanted $want_exit"; FAILED=1; }
   grep -qF "$want_msg" <<<"$out" || { echo "FAIL [$name]: output lacks: $want_msg"; FAILED=1; }
@@ -57,6 +94,8 @@ run() {  # name, FAKE_CURL, FAKE_DEPLOY_FAIL, expected exit code, expected messa
     grep -q 'candidate deploy.sh ran' "$T/libexec/pn-staging-deploy" || { echo "FAIL [$name]: new deploy.sh was not promoted"; FAILED=1; }
   else
     grep -q 'known-good RUNNER ran' "$T/libexec/pn-staging-deploy" || { echo "FAIL [$name]: known-good runner was replaced"; FAILED=1; }
+    [[ ! -e "$T/root/public/wp-content/mu-plugins/pn-security.php" ]] || { echo "FAIL [$name]: rollback left the removed security plugin active"; FAILED=1; }
+    [[ -e "$T/root/public/wp-content/mu-plugins/custom.php" ]] || { echo "FAIL [$name]: rollback removed an unrelated MU plugin"; FAILED=1; }
   fi
   [[ ! -e "$T/libexec/pn-staging-deploy.candidate" ]] || { echo "FAIL [$name]: candidate file left behind"; FAILED=1; }
   echo "ok   [$name] exit=$code"

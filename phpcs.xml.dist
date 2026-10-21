@@ -4,7 +4,7 @@
 
 	<!-- Only our own code. -->
 	<file>wp-content/plugins/pn-sermons</file>
-	<file>wp-content/mu-plugins/pn-site.php</file>
+	<file>wp-content/mu-plugins</file>
 	<file>wp-content/themes/pella-nazarene</file>
 
 	<arg name="extensions" value="php"/>

@@ -58,6 +58,32 @@ jobs:
       - name: CI deploy wrapper tests
         run: docker run --rm -v "$PWD":/work:ro ubuntu:24.04 bash /work/deploy/tests/ci-deploy-harness.sh
 
+  wordpress:
+    name: WordPress security tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Real WordPress + the Two Factor plugin + our must-use plugin, exercised with real HTTP logins.
+      - name: Two-factor enforcement and username-leak tests
+        run: deploy/tests/wp-integration.sh
+
+  nginx:
+    name: Nginx config tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The repo's staging config loaded into the server's Nginx version, then real requests.
+      - name: Blocked files, headers, and login throttle
+        run: deploy/tests/nginx-config.sh
+
   secrets:
     name: Secret scan
     runs-on: ubuntu-24.04

@@ -6,3 +6,6 @@ the-events-calendar
 fluentform
 wp-mail-smtp
 redis-cache
+# Required by wp-content/mu-plugins/pn-security.php (two-factor sign-in). Pinned: security
+# plugins change behavior between versions; update on purpose and test on staging first.
+two-factor 0.17.0
