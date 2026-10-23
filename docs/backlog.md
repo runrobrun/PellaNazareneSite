@@ -143,12 +143,11 @@ Do not migrate: the 4 old blog posts (dated 2021-01-27, one mentions "Omega Chur
 
 ## Epic 3: Site build
 
-### FE-1 Brand and design system in `theme.json` · M · todo
-Implement `docs/PellaNazareneBrandingGuide.pdf` in `theme.json`. The current palette there is placeholder (`#2f5d8c` etc.) and must be replaced.
-- Colors: primary navy `#2D3D54`, white `#FFFFFF`, black `#000000`. Any tints needed for backgrounds are derived from the navy; no new hues without staff approval. Contrast meets WCAG AA (white on navy passes comfortably).
-- Typeface: Plus Jakarta Sans, self-hosted (open license, `font-display: swap`). Extra Bold for headings, Light Italic for subheadings, Regular for body. Only those three styles are loaded, or one variable font file if smaller. Heading and body sizes must contrast clearly.
-- Logo: primary (full text with symbol) wherever possible; symbol-only as the secondary (favicon, small spaces). Minimum width 100 px, keep aspect ratio and clear space around it; black or white one-color versions allowed on suitable backgrounds. Need original logo files from the designer (see MIG-5).
-- Button, link, and spacing styles defined here rather than in CSS overrides.
+### FE-1 Brand and design system in `theme.json` · M · review
+Brand guide implemented in `theme.json`; reference and decisions in `docs/design-system.md`.
+- Done: navy/white/black plus navy tints (9 swatches, all other color choices off); every text pairing meets WCAG AA (tested from the file); Plus Jakarta Sans self-hosted (56 KB, preload, `font-display: swap`) with Extra Bold headings, Regular body, and a Light Italic "Subheading" block style; link, button (outline too), quote, focus, and heading-spacing styles; parent's 23 whole-site variations hidden; unused WordPress default palettes removed from the output. Tested against real WordPress (`deploy/tests/theme-check.sh`, in CI) and checked visually at desktop and phone widths.
+- Measured: fonts a typical page downloads 54 KB (Manrope) to 27 KB, main font now preloaded; page HTML 13.3 to 12.9 KB gzipped.
+- Not in this story: the **logo** (original files still needed, MIG-5) and header/footer/navigation/templates (FE-2). Font-swap layout shift to be measured in PERF-1.
 
 ### FE-2 Core templates and navigation · M · todo
 Home, page, post, 404, search, header and footer parts (service times, address, contact in `parts/service-info.html`), responsive menu.
