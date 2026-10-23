@@ -149,7 +149,10 @@ Brand guide implemented in `theme.json`; reference and decisions in `docs/design
 - Measured: fonts a typical page downloads 54 KB (Manrope) to 27 KB, main font now preloaded; page HTML 13.3 to 12.9 KB gzipped.
 - Not in this story: the **logo** (original files still needed, MIG-5) and header/footer/navigation/templates (FE-2). Font-swap layout shift to be measured in PERF-1.
 
-### FE-2 Core templates and navigation · M · todo
+### FE-2 Core templates and navigation · M · blocked (waiting on the logo files)
+**Decisions (2026-10-23):** the header has one prominent button, **Plan a Visit**; Giving stays in the main menu. The header waits for the real logo; no stand-in wordmark.
+**Needed from the church to unblock:** the logo as SVG (or the highest-resolution files you have): primary (symbol with full text) and symbol-only, in navy, white, and black. Ask the designer, or look in the old site's admin under the Design tab. Minimum display width is 100 px (see the brand guide).
+Work that can start once the logo arrives: header and footer template parts, navigation, 404, search, and the page templates. Brand colors, type, and component styles already exist (FE-1, `docs/design-system.md`).
 Home, page, post, 404, search, header and footer parts (service times, address, contact in `parts/service-info.html`), responsive menu.
 
 ### FE-3 Staff and ministry pages · S · todo
