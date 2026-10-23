@@ -43,21 +43,22 @@ Heading sizes are fluid (they shrink on phones): `h1` 32 to 52 px, `h2` 26 to 36
 
 ## Logo and icons
 
-Web versions live in `wp-content/themes/pella-nazarene/assets/images/` as **SVG** (crisp at any size, 1 to 14 KB each). They are built from the designer's PNG masters in `docs/branding/source/` by `scripts/build-brand-assets.sh`, which refuses to produce a shape that strays more than about 2 px from its master. Use them as `get_theme_file_uri( 'assets/images/<file>' )`, always with `width`/`height` attributes and meaningful `alt` text.
+Web versions live in `wp-content/themes/pella-nazarene/assets/images/` as **SVG** (crisp at any size, 1 to 14 KB each). They are built from the designer's PNG masters in `docs/branding/source/` by `scripts/build-brand-assets.sh`, which refuses to produce a shape that strays from its master: 99.9% of every outline must be within 1.5 px and no point more than 3 px away (measured: within 1.0 px for 99.9%, worst point 2 px, at 1000 to 3000 px canvases). Use them as `get_theme_file_uri( 'assets/images/<file>' )`, always with `width`/`height` attributes and meaningful `alt` text.
 
 | File | Use |
 |---|---|
 | `logo-primary.svg` | **The logo**: symbol + "pella Nazarene Church", navy. Header, footer on white, documents. Use this whenever there is room |
 | `logo-primary-white.svg` | Same in white, for navy backgrounds and photos |
+| `logo-primary-black.svg` | Same in pure black: one-color uses (printing, forms, documents, anywhere navy isn't possible). Prefer navy on the site |
 | `logo-symbol.svg` / `logo-symbol-white.svg` | Symbol only. Tight spaces, social avatars, the favicon source |
-| `logo-lighthouse.svg` | **Lighthouse Student Ministry** (youth), stacked. The youth ministry page and youth materials only, never in place of the church logo |
+| `logo-lighthouse.svg` / `logo-lighthouse-black.svg` | **Lighthouse Student Ministry** (youth), stacked, navy or black. The youth ministry page and youth materials only, never in place of the church logo |
 | `icon-love-people.svg` / `-white.svg` | Mission icon: the split heart ("love people where they are") |
 | `icon-grow-together.svg` / `-white.svg` | Mission icon: the sprout ("grow together in Jesus") |
 | `icon.svg`, `favicon.ico`, `apple-touch-icon.png` | Browser tab, bookmarks, phone home screen. Printed by `functions.php` unless an administrator sets a Site Icon in WordPress |
 
 The mission icons also come as a white glyph on a navy rounded square (`docs/branding/source/tile-*.png`); on the site build that tile in CSS: navy `#2D3D54` square, white icon SVG on top.
 
-**Rules from the brand guide:** keep the aspect ratio; never recolor beyond navy, white, or black (the supplied files are exactly `#2D3D54` and `#FFFFFF`); never smaller than **100 px wide** on screen; leave clear space around it. The guide shows a safe area but the PDF text doesn't give a measurement; until someone confirms it from the guide's "Logo Safe Area" page, use half the logo's height on every side.
+**Rules from the brand guide:** keep the aspect ratio; never recolor beyond navy, white, or black (the supplied files are exactly `#2D3D54`, `#FFFFFF`, and `#000000`); never smaller than **100 px wide** on screen; leave clear space around it. The guide shows a safe area but the PDF text doesn't give a measurement; until someone confirms it from the guide's "Logo Safe Area" page, use half the logo's height on every side.
 
 **Check them:** `deploy/tests/brand-assets-check.sh` verifies the masters are exact brand colors, every shipped SVG is plain artwork (no scripts, event handlers, links, or external references, since an SVG opened directly in a browser can run code), each still matches its master, and the favicon set is valid.
 
