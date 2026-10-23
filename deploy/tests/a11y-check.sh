@@ -14,5 +14,5 @@ docker run -d --name "$WP" --network "$NET" --network-alias pn-wp -v "$PWD":/rep
 for _ in $(seq 1 90); do docker exec "$WP" test -f /tmp/ready 2>/dev/null && break; sleep 3; done
 docker exec "$WP" test -f /tmp/ready || { echo "SETUP FAILED: the test site did not start"; docker logs "$WP" 2>&1 | tail -5; exit 1; }
 sleep 2
-docker run --rm --network "$NET" --user root -v "$PWD/deploy/tests/a11y/axe-run.mjs":/work/axe-run.mjs:ro --entrypoint sh zenika/alpine-chrome:with-puppeteer -c \
+docker run --rm --network "$NET" --user root -e BREAK_FOCUS="${BREAK_FOCUS:-}" -v "$PWD/deploy/tests/a11y/axe-run.mjs":/work/axe-run.mjs:ro --entrypoint sh zenika/alpine-chrome:with-puppeteer -c \
   'mkdir -p /tmp/a && cd /tmp/a && cp /work/axe-run.mjs . && npm init -y >/dev/null 2>&1 && npm install axe-core puppeteer-core >/dev/null 2>&1 && PUPPETEER_EXECUTABLE_PATH=$(command -v chromium-browser) node axe-run.mjs'

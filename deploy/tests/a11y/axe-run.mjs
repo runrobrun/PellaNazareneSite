@@ -7,6 +7,44 @@ const require = createRequire(import.meta.url);
 const BASE = process.env.BASE || 'http://pn-wp:8080';
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'];
 const axeSrc = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
+// Keyboard focus must be visible and distinguishable (WCAG 2.4.7, 1.4.11): tab through the page and, for every
+// element that takes focus, require a visible outline (not 'none') with at least 3:1 contrast against what is
+// behind it. axe cannot see this because it depends on the CSS state while an element has focus.
+function luminance([r, g, b]) {
+  const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+function contrast(a, b) { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); }
+const rgbOf = (s) => { const m = (s || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/); return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null; };
+
+async function checkFocus(page, name) {
+  let problems = 0, stops = 0;
+  await page.evaluate(() => { document.activeElement && document.activeElement.blur(); window.scrollTo(0, 0); });
+  for (let i = 0; i < 60; i++) {
+    await page.keyboard.press('Tab');
+    const info = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el || el === document.body || el === document.documentElement) return null;
+      const cs = getComputedStyle(el);
+      let node = el.parentElement, bg = 'rgb(255, 255, 255)';
+      while (node) { const c = getComputedStyle(node).backgroundColor; const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/); if (m && (m[4] === undefined || parseFloat(m[4]) > 0)) { bg = c; break; } node = node.parentElement; }
+      const r = el.getBoundingClientRect();
+      return { label: (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 28), tag: el.tagName.toLowerCase(),
+        style: cs.outlineStyle, width: parseFloat(cs.outlineWidth), color: cs.outlineColor, bg, shadow: cs.boxShadow !== 'none', visible: r.width > 0 && r.height > 0 };
+    });
+    if (!info) break;
+    if (!info.visible) continue;
+    stops++;
+    const ring = rgbOf(info.color), behind = rgbOf(info.bg);
+    const hasOutline = info.style !== 'none' && info.width > 0 && ring && ring[3] > 0;
+    const ratio = hasOutline && behind ? contrast(ring, behind) : 0;
+    const ok = hasOutline && ratio >= 3 && (info.tag !== 'a' || info.width >= 2);
+    if (!ok) { problems++; console.log(`   [focus] ${info.label} <${info.tag}>: outline ${info.style} ${info.width}px ${info.color} on ${info.bg} = ${ratio.toFixed(2)}:1 (need a visible ring, 3:1 or better, and 2px+ on links)`); }
+  }
+  console.log(`== ${name}: keyboard focus on ${stops} stops, ${problems} without a clearly visible ring`);
+  return problems;
+}
+
 (async () => {
   const browser = await puppeteer.launch({ executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser', args: ['--no-sandbox', '--disable-gpu'] });
   let total = 0;
@@ -26,6 +64,7 @@ const axeSrc = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
       await page.waitForSelector('.wp-block-navigation__responsive-container.is-menu-open', { visible: true, timeout: 5000 });
       console.log('   (menu overlay opened: true)');
     }
+    if (process.env.BREAK_FOCUS) await page.addStyleTag({ content: 'a:focus-visible{outline-color:#fff !important}' });
     await page.evaluate(axeSrc);
     const res = await page.evaluate(async (tags) => await axe.run(document, { runOnly: { type: 'tag', values: tags } }), TAGS);
     console.log(`== ${name}: ${res.passes.length} rules passed, ${res.violations.length} violations, ${res.incomplete.length} need manual review`);
@@ -34,6 +73,8 @@ const axeSrc = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
       console.log(`   [${v.impact}] ${v.id}: ${v.help} (${v.nodes.length} element${v.nodes.length > 1 ? 's' : ''})`);
       for (const n of v.nodes.slice(0, 2)) console.log(`       ${n.target.join(' ')}  ${(n.failureSummary || '').split('\n')[1] || ''}`.slice(0, 190));
     }
+    // Focus walk last: WordPress closes the mobile menu when focus leaves it, so scan with the menu open first.
+    total += await checkFocus(page, `${name}: focus`);
     await page.close();
   }
   await browser.close();
