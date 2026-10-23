@@ -96,8 +96,10 @@ class CLI {
 	 * @param array $assoc_args Named arguments.
 	 */
 	public function backfill( $args, $assoc_args ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed -- WP-CLI always passes both.
-		$channel  = $this->channel( $assoc_args );
-		$playlist = (string) ( $assoc_args['playlist'] ?? '' );
+		$channel           = $this->channel( $assoc_args );
+		$playlist          = (string) ( $assoc_args['playlist'] ?? '' );
+		$format            = (string) ( $assoc_args['format'] ?? 'table' );
+		$structured_format = in_array( $format, array( 'csv', 'json' ), true );
 		if ( '' === $playlist ) {
 			if ( ! preg_match( '/^UC[\w-]{22}$/', $channel ) ) {
 				\WP_CLI::error( 'No valid channel ID. Pass --channel=UC... or set PN_YOUTUBE_CHANNEL_ID in wp-config.php.' );
@@ -110,11 +112,15 @@ class CLI {
 			}
 		}
 
-		\WP_CLI::log( 'Reading the channel\'s uploads from YouTube...' );
+		if ( ! $structured_format ) {
+			\WP_CLI::log( 'Reading the channel\'s uploads from YouTube...' );
+		}
 		$videos = YouTube_API::fetch_uploads(
 			$playlist,
-			static function ( int $page, int $count ): void {
-				\WP_CLI::log( sprintf( '  page %d: %d videos so far', $page, $count ) );
+			static function ( int $page, int $count ) use ( $structured_format ): void {
+				if ( ! $structured_format ) {
+					\WP_CLI::log( sprintf( '  page %d: %d videos so far', $page, $count ) );
+				}
 			}
 		);
 		if ( is_wp_error( $videos ) ) {
@@ -138,7 +144,7 @@ class CLI {
 			)
 		);
 
-		\WP_CLI\Utils\format_items( (string) ( $assoc_args['format'] ?? 'table' ), $rows, array( 'date', 'id', 'action', 'reason', 'speaker', 'series', 'title', 'scripture' ) );
+		\WP_CLI\Utils\format_items( $format, $rows, array( 'date', 'id', 'action', 'reason', 'speaker', 'series', 'title', 'scripture' ) );
 
 		$tally = array();
 		foreach ( $rows as $row ) {
@@ -146,19 +152,21 @@ class CLI {
 			$tally[ $key ] = ( $tally[ $key ] ?? 0 ) + 1;
 		}
 		ksort( $tally );
-		\WP_CLI::log( '' );
-		\WP_CLI::log( sprintf( '%d videos read from YouTube.', count( $videos ) ) );
-		foreach ( $tally as $what => $n ) {
-			\WP_CLI::log( sprintf( '  %4d  %s', $n, $what ) );
-		}
-		$flagged = array_filter( $rows, static fn( $row ) => '' !== $row['notes'] && in_array( $row['action'], array( 'created', 'would create' ), true ) );
-		if ( $flagged ) {
-			\WP_CLI::log( sprintf( '%d sermon(s) have a note for the reviewer (see the "pn_import_note" field on each).', count( $flagged ) ) );
-		}
-		if ( $dry ) {
-			\WP_CLI::success( 'Dry run: nothing was created.' );
-		} else {
-			\WP_CLI::success( 'Done. Review the drafts under Sermons in the admin, then publish them.' );
+		if ( ! $structured_format ) {
+			\WP_CLI::log( '' );
+			\WP_CLI::log( sprintf( '%d videos read from YouTube.', count( $videos ) ) );
+			foreach ( $tally as $what => $n ) {
+				\WP_CLI::log( sprintf( '  %4d  %s', $n, $what ) );
+			}
+			$flagged = array_filter( $rows, static fn( $row ) => '' !== $row['notes'] && in_array( $row['action'], array( 'created', 'would create' ), true ) );
+			if ( $flagged ) {
+				\WP_CLI::log( sprintf( '%d sermon(s) have a note for the reviewer (see the "pn_import_note" field on each).', count( $flagged ) ) );
+			}
+			if ( $dry ) {
+				\WP_CLI::success( 'Dry run: nothing was created.' );
+			} else {
+				\WP_CLI::success( 'Done. Review the drafts under Sermons in the admin, then publish them.' );
+			}
 		}
 	}
 

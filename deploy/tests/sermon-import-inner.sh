@@ -77,6 +77,18 @@ expect_eq "no sermons exist after a dry run" "$(count)" "0"
 expect_eq "the lock is released after import" "$(wp option get pn_sermons_youtube_import_lock 2>/dev/null || echo absent)" "absent"
 expect_contains "read every page (more than 100 videos)" "$out" "page 3:"
 expect_lacks "never prints the key" "$out" "$KEY"
+json="$(wp pn-sermons backfill --dry-run "${ARGS[@]}" --format=json)"
+if php -r 'exit( is_array( json_decode( stream_get_contents( STDIN ), true ) ) ? 0 : 1 );' <<<"$json"; then
+	ok "JSON output contains only a valid report"
+else
+	bad "JSON output contains only a valid report"
+fi
+csv="$(wp pn-sermons backfill --dry-run "${ARGS[@]}" --format=csv)"
+if php -r 'exit( fgetcsv( STDIN ) === array( "date", "id", "action", "reason", "speaker", "series", "title", "scripture" ) ? 0 : 1 );' <<<"$csv"; then
+	ok "CSV output starts with the report header"
+else
+	bad "CSV output starts with the report header"
+fi
 
 echo "== 3. The real import"
 out="$(wp pn-sermons backfill "${ARGS[@]}" 2>&1)"
