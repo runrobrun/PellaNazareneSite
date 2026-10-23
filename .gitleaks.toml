@@ -4,10 +4,10 @@ title = "Pella Nazarene"
 [extend]
 useDefault = true
 
-# Narrow on purpose: one rule, one file. The Nginx test starts a throwaway container, protects a
-# fake site with the made-up login church:secret, sends requests to it, and deletes it. It is not
-# reachable from outside and is not a real credential. Everything else is still scanned.
+# Narrow on purpose: one rule, two test files. The Nginx test and the redirect stack test each start a
+# throwaway container, protect a fake site with the made-up login church:secret, send requests to it, and
+# delete it. It is not reachable from outside and is not a real credential. Everything else is still scanned.
 [[allowlists]]
-description = "Throwaway basic-auth login used only inside the Nginx config test container"
+description = "Throwaway basic-auth login used only inside the Nginx and redirect test containers"
 targetRules = ["curl-auth-user"]
-paths = ['''deploy/tests/nginx-config-inner\.sh''']
+paths = ['''deploy/tests/nginx-config-inner\.sh''', '''deploy/tests/redirects-stack\.sh''']
