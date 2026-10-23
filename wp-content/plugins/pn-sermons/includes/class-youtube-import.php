@@ -276,8 +276,8 @@ class YouTube_Import {
 			'notes'         => $parsed['notes'],
 		);
 
-		$override = Sermon_Data::override_for( $overrides, $video['id'], $parsed['date'] );
-		$key      = $override ? md5( wp_json_encode( $override ) ) : '';
+		$override         = Sermon_Data::override_for( $overrides, $video['id'], $parsed['date'] );
+		$key              = $override ? md5( wp_json_encode( $override ) ) : '';
 		$override_claimed = $override && ! empty( $override['legacy_slug'] ) && isset( $legacy[ sanitize_title( (string) $override['legacy_slug'] ) ] );
 		if ( $override && ! isset( $used[ $key ] ) && ! $override_claimed ) {
 			$used[ $key ] = true;
@@ -445,7 +445,7 @@ class YouTube_Import {
 	/** YouTube IDs of every sermon on the site, including drafts and the trash (a sermon deleted on purpose must not come back). */
 	private static function existing_ids(): array {
 		global $wpdb;
-		$ids = (array) $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one read of one meta key per import run.
+		$ids      = (array) $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one read of one meta key per import run.
 			$wpdb->prepare(
 				"SELECT pm.meta_value FROM {$wpdb->postmeta} pm INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE pm.meta_key = %s AND p.post_type = %s AND p.post_status <> 'auto-draft'",
 				'pn_youtube_id',
