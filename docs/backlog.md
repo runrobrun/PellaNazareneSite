@@ -147,12 +147,15 @@ Do not migrate: the 4 old blog posts (dated 2021-01-27, one mentions "Omega Chur
 Brand guide implemented in `theme.json`; reference and decisions in `docs/design-system.md`.
 - Done: navy/white/black plus navy tints (9 swatches, all other color choices off); every text pairing meets WCAG AA (tested from the file); Plus Jakarta Sans self-hosted (56 KB, preload, `font-display: swap`) with Extra Bold headings, Regular body, and a Light Italic "Subheading" block style; link, button (outline too), quote, focus, and heading-spacing styles; parent's 23 whole-site variations hidden; unused WordPress default palettes removed from the output. Tested against real WordPress (`deploy/tests/theme-check.sh`, in CI) and checked visually at desktop and phone widths.
 - Measured: fonts a typical page downloads 54 KB (Manrope) to 27 KB, main font now preloaded; page HTML 13.3 to 12.9 KB gzipped.
-- Not in this story: the **logo** (original files still needed, MIG-5) and header/footer/navigation/templates (FE-2). Font-swap layout shift to be measured in PERF-1.
+- Not in this story: header/footer/navigation/templates (FE-2). Font-swap layout shift to be measured in PERF-1.
 
 ### FE-1b Logo, icons, and favicon assets · S · review
 Designer's PNG masters kept in `docs/branding/source/`; traced to SVG (worst edge movement 1.4 px on a 3000 px canvas, enforced by the build) so the primary and symbol logos in navy and white, the Lighthouse Student Ministry logo, and both mission icons ship at 1 to 14 KB each; favicon set (`favicon.ico`, `icon.svg` with a dark-mode variant, `apple-touch-icon.png`) wired into the page head. Tests: `deploy/tests/brand-assets-check.sh`. Optional: ask the designer for official SVG exports to replace the traced ones (same file names).
 
 ### FE-2 Core templates and navigation · M · todo
+**Decisions (2026-10-23):** the header has one prominent button, **Plan a Visit**; Giving stays in the main menu. The header uses FE-1b's supplied logo assets; no stand-in wordmark.
+**Optional from the church:** black variants of the primary and symbol logos; FE-1b supplies the navy and white assets. Ask the designer, or look in the old site's admin under the Design tab. Minimum display width is 100 px (see the brand guide).
+Work can start now: header and footer template parts, navigation, 404, search, and the page templates. Brand colors, type, and component styles already exist (FE-1, `docs/design-system.md`).
 Home, page, post, 404, search, header and footer parts (service times, address, contact in `parts/service-info.html`), responsive menu.
 
 ### FE-3 Staff and ministry pages · S · todo
