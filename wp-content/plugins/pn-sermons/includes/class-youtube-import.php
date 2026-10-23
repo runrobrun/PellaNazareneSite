@@ -13,13 +13,16 @@ defined( 'ABSPATH' ) || exit;
  */
 class YouTube_Import {
 
-	const HOOK            = 'pn_sermons_youtube_import';
-	const LAST_RUN_OPTION = 'pn_sermons_last_import';
-	const IMPORT_LOCK     = 'pn_sermons_youtube_import_lock';
-	const FEED_URL        = 'https://www.youtube.com/feeds/videos.xml?channel_id=%s';
+	const HOOK                   = 'pn_sermons_youtube_import';
+	const LAST_RUN_OPTION        = 'pn_sermons_last_import';
+	const IMPORT_LOCK            = 'pn_sermons_youtube_import_lock';
+	const REJECTED_OPTION_PREFIX = 'pn_sermons_rejected_youtube_';
+	const FEED_URL               = 'https://www.youtube.com/feeds/videos.xml?channel_id=%s';
 
 	public static function init(): void {
 		add_action( self::HOOK, array( __CLASS__, 'run' ) );
+		add_action( 'wp_trash_post', array( __CLASS__, 'remember_trashed_video' ) );
+		add_action( 'before_delete_post', array( __CLASS__, 'remember_purged_video' ) );
 		// Self-heal if the schedule was lost (e.g. plugin copied in without activation).
 		add_action(
 			'init',
@@ -39,6 +42,24 @@ class YouTube_Import {
 
 	public static function unschedule(): void {
 		wp_clear_scheduled_hook( self::HOOK );
+	}
+
+	public static function remember_trashed_video( int $post_id ): void {
+		$post = get_post( $post_id );
+		if ( ! $post || Post_Types::POST_TYPE !== $post->post_type ) {
+			return;
+		}
+		$video_id = (string) get_post_meta( $post_id, 'pn_youtube_id', true );
+		if ( 1 === preg_match( '/^[\w-]{11}$/', $video_id ) ) {
+			add_option( self::REJECTED_OPTION_PREFIX . $video_id, $video_id, '', false );
+		}
+	}
+
+	public static function remember_purged_video( int $post_id ): void {
+		$post = get_post( $post_id );
+		if ( $post && Post_Types::POST_TYPE === $post->post_type && 'trash' === $post->post_status ) {
+			self::remember_trashed_video( $post_id );
+		}
 	}
 
 	/**
@@ -257,7 +278,8 @@ class YouTube_Import {
 
 		$override = Sermon_Data::override_for( $overrides, $video['id'], $parsed['date'] );
 		$key      = $override ? md5( wp_json_encode( $override ) ) : '';
-		if ( $override && ! isset( $used[ $key ] ) ) {
+		$override_claimed = $override && ! empty( $override['legacy_slug'] ) && isset( $legacy[ sanitize_title( (string) $override['legacy_slug'] ) ] );
+		if ( $override && ! isset( $used[ $key ] ) && ! $override_claimed ) {
 			$used[ $key ] = true;
 			foreach ( array( 'title', 'slug', 'speaker' ) as $field ) {
 				if ( ! empty( $override[ $field ] ) ) {
@@ -423,13 +445,20 @@ class YouTube_Import {
 	/** YouTube IDs of every sermon on the site, including drafts and the trash (a sermon deleted on purpose must not come back). */
 	private static function existing_ids(): array {
 		global $wpdb;
-		return (array) $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one read of one meta key per import run.
+		$ids = (array) $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one read of one meta key per import run.
 			$wpdb->prepare(
 				"SELECT pm.meta_value FROM {$wpdb->postmeta} pm INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE pm.meta_key = %s AND p.post_type = %s AND p.post_status <> 'auto-draft'",
 				'pn_youtube_id',
 				Post_Types::POST_TYPE
 			)
 		);
+		$rejected = (array) $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- read the import rejection markers once per run.
+			$wpdb->prepare(
+				"SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$wpdb->esc_like( self::REJECTED_OPTION_PREFIX ) . '%'
+			)
+		);
+		return array_merge( $ids, $rejected );
 	}
 
 	/** Old addresses already recorded on a sermon, so two sermons never claim the same one. */

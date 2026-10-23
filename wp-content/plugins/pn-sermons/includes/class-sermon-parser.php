@@ -339,7 +339,7 @@ class Sermon_Parser {
 	 * @return string[]
 	 */
 	private function segments( string $line ): array {
-		$parts = preg_split( '/\s+[-–—|]\s+|:\s+/u', $line ) ?: array();
+		$parts = preg_split( '/\s+[-–—|]\s+|(?<!\d):\s+/u', $line ) ?: array();
 		$out   = array();
 		foreach ( $parts as $part ) {
 			$part = trim( $part, " \t\"'“”‘’" );

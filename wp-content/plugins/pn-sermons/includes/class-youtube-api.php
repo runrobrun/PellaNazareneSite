@@ -106,6 +106,7 @@ class YouTube_API {
 				$found[ $id ]               = true;
 				$items[ $id ]['duration']   = self::seconds( (string) ( $detail['contentDetails']['duration'] ?? '' ) );
 				$items[ $id ]['live']       = (string) ( $detail['snippet']['liveBroadcastContent'] ?? 'none' );
+				$items[ $id ]['published']  = (string) ( $detail['snippet']['publishedAt'] ?? $items[ $id ]['published'] );
 				$items[ $id ]['embeddable'] = ! isset( $detail['status']['embeddable'] ) || (bool) $detail['status']['embeddable'];
 				$items[ $id ]['privacy']    = (string) ( $detail['status']['privacyStatus'] ?? $items[ $id ]['privacy'] );
 			}

@@ -41,7 +41,11 @@ break_it() {  # file, exact old text, new text (fails loudly if the old text is 
 case "${BREAK:-}" in
 	"") ;;
 	no-dedupe)   break_it $I/class-youtube-import.php "if ( isset( \$existing[ \$video['id'] ] ) ) {" "if ( false ) {" ;;
-	ignore-trash) break_it $I/class-youtube-import.php "p.post_status <> 'auto-draft'" "p.post_status NOT IN ('auto-draft','trash')" ;;
+	ignore-trash)
+		break_it $I/class-youtube-import.php "p.post_status <> 'auto-draft'" "p.post_status NOT IN ('auto-draft','trash')"
+		break_it $I/class-youtube-import.php "add_action( 'wp_trash_post', array( __CLASS__, 'remember_trashed_video' ) );" "// disabled by test fault injection"
+		break_it $I/class-youtube-import.php "add_action( 'before_delete_post', array( __CLASS__, 'remember_purged_video' ) );" "// disabled by test fault injection"
+		;;
 	dry-run-writes) break_it $I/class-youtube-import.php "if ( \$opts['dry_run'] ) {" "if ( false ) {" ;;
 	leak-key)    break_it $I/class-youtube-api.php "return sprintf( '%s (HTTP %d%s)', \$message, \$code," "return sprintf( '%s [key=' . self::key() . '] (HTTP %d%s)', \$message, \$code," ;;
 	rest-exposed) break_it $I/class-post-types.php "'show_in_rest'  => false," "'show_in_rest'  => true," ;;
@@ -93,9 +97,9 @@ fi
 echo "== 3. The real import"
 out="$(wp pn-sermons backfill "${ARGS[@]}" 2>&1)"
 expect_contains "finishes" "$out" "Done."
-expect_eq "116 sermons: 112 services + 4 specials (Shorts, live, private, youth clip, duplicate skipped)" "$(count)" "116"
+expect_eq "117 sermons: 112 services + 4 specials, including a duplicate Vision Sunday recording" "$(count)" "117"
 expect_eq "3 hand-described sermons published" "$(count publish)" "3"
-expect_eq "everything else is a draft" "$(count draft)" "113"
+expect_eq "everything else is a draft" "$(count draft)" "114"
 expect_contains "the Short is skipped" "$out" "too short"
 expect_contains "the live stream is skipped" "$out" "live stream not finished"
 expect_contains "the private video is skipped" "$out" "not public"
@@ -121,6 +125,11 @@ expect_eq "its title is the message, not the video title" "$(wp post get "$hol" 
 expect_eq "its speaker" "$(wp post term list "$hol" pn_speaker --field=name)" "Cindy Olson"
 vis="$(by_yt VISION00001)"
 expect_eq "Vision Sunday is matched by its service date" "$(wp post get "$vis" --field=post_title)" "Vision Sunday 1: Living Out Our Mission"
+vis_repeat="$(by_yt VISION00002)"
+expect_eq "a second Vision Sunday recording does not reuse the hand-written title" "$(wp post get "$vis_repeat" --field=post_title)" "Sunday Morning Service May 7, 2023 (repeat)"
+expect_eq "a second Vision Sunday recording stays a draft" "$(wp post get "$vis_repeat" --field=post_status)" "draft"
+expect_eq "a second Vision Sunday recording does not claim the old address" "$(meta "$vis_repeat" pn_legacy_slug 2>/dev/null || true)" ""
+expect_eq "a title without a date uses videos.list publication date" "$(wp post get "$(by_yt SVC00000000)" --field=post_date | cut -c1-10)" "2026-10-20"
 msg="$(by_yt 3JdIij39S2g)"
 expect_eq "God's Messenger keeps its new slug" "$(wp post get "$msg" --field=post_name)" "gods-messenger-malachi-3-1-4"
 expect_eq "and remembers the old one" "$(meta "$msg" pn_legacy_slug)" "gods-messenger-malachi-31-4"
@@ -134,14 +143,19 @@ expect_eq "a draft is never revealed (falls back to the sermons list)" "$(wp eva
 
 echo "== 6. Safe to run again"
 out="$(wp pn-sermons backfill "${ARGS[@]}" 2>&1)"
-expect_eq "second run creates nothing" "$(count)" "116"
+expect_eq "second run creates nothing" "$(count)" "117"
 expect_contains "says so" "$out" "already imported"
 wp post update "$plain" --post_title="Edited by staff" --quiet
-wp post update "$(by_yt SVC00000006)" --post_status=trash --quiet
+trashed="$(by_yt SVC00000006)"
+wp post update "$trashed" --post_status=trash --quiet
 out="$(wp pn-sermons backfill "${ARGS[@]}" 2>&1)"
-expect_eq "a sermon moved to the trash is not brought back (115 live + 1 in the trash)" "$(count) $(count trash)" "115 1"
+expect_eq "a sermon moved to the trash is not brought back (116 live + 1 in the trash)" "$(count) $(count trash)" "116 1"
 expect_eq "an edited sermon is untouched" "$(wp post get "$plain" --field=post_title)" "Edited by staff"
 expect_eq "no duplicate speakers or series" "$(wp term list pn_series --field=slug | sort | uniq -d | wc -l)" "0"
+wp post delete "$trashed" --force --quiet
+wp pn-sermons backfill "${ARGS[@]}" >/dev/null 2>&1
+expect_eq "a permanently deleted sermon remains rejected" "$(by_yt SVC00000006)" ""
+expect_eq "the rejected video is not recreated" "$(count)" "116"
 
 echo "== 7. Options"
 wipe
