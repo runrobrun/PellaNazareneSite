@@ -65,10 +65,16 @@ expect_lacks "never prints the key" "$out" "$KEY"
 expect_contains "shows the uploads playlist" "$out" "UUtest00000000000000000A"
 
 echo "== 2. Dry run changes nothing"
+wp option add pn_sermons_youtube_import_lock 1 --autoload=no --quiet
+wp pn-sermons backfill --dry-run "${ARGS[@]}" >/dev/null 2>&1
+expect_eq "a concurrent import creates nothing" "$(count)" "0"
+expect_eq "a concurrent import does not release the other import's lock" "$(wp option get pn_sermons_youtube_import_lock)" "1"
+wp option delete pn_sermons_youtube_import_lock --quiet
 out="$(wp pn-sermons backfill --dry-run "${ARGS[@]}" 2>&1)"; [[ -n "${DEBUG:-}" ]] && echo "$out" | head -30
 expect_contains "says it is a dry run" "$out" "Dry run: nothing was created"
 expect_contains "would create" "$out" "would create"
 expect_eq "no sermons exist after a dry run" "$(count)" "0"
+expect_eq "the lock is released after import" "$(wp option get pn_sermons_youtube_import_lock 2>/dev/null || echo absent)" "absent"
 expect_contains "read every page (more than 100 videos)" "$out" "page 3:"
 expect_lacks "never prints the key" "$out" "$KEY"
 

@@ -15,6 +15,7 @@ class YouTube_Import {
 
 	const HOOK            = 'pn_sermons_youtube_import';
 	const LAST_RUN_OPTION = 'pn_sermons_last_import';
+	const IMPORT_LOCK     = 'pn_sermons_youtube_import_lock';
 	const FEED_URL        = 'https://www.youtube.com/feeds/videos.xml?channel_id=%s';
 
 	public static function init(): void {
@@ -96,6 +97,20 @@ class YouTube_Import {
 			$opts['status'] = 'draft';
 		}
 
+		if ( ! add_option( self::IMPORT_LOCK, time(), '', false ) ) {
+			self::log( 'A YouTube import is already running.' );
+			return array();
+		}
+
+		try {
+			return self::import_locked( $videos, $opts );
+		} finally {
+			delete_option( self::IMPORT_LOCK );
+		}
+	}
+
+	/** Import videos while holding the shared lock. */
+	private static function import_locked( array $videos, array $opts ): array {
 		$parser    = new Sermon_Parser( Sermon_Data::rules() );
 		$overrides = Sermon_Data::overrides();
 		$existing  = array_flip( self::existing_ids() );
