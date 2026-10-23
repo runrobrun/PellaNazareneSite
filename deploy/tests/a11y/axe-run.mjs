@@ -23,9 +23,8 @@ const axeSrc = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
     await page.goto(BASE + path, { waitUntil: 'networkidle0' });
     if (openMenu) {
       await page.click('.wp-block-navigation__responsive-container-open');
-      await new Promise(r => setTimeout(r, 600));
-      const open = await page.$('.wp-block-navigation__responsive-container.is-menu-open');
-      console.log(`   (menu overlay opened: ${!!open})`);
+      await page.waitForSelector('.wp-block-navigation__responsive-container.is-menu-open', { visible: true, timeout: 5000 });
+      console.log('   (menu overlay opened: true)');
     }
     await page.evaluate(axeSrc);
     const res = await page.evaluate(async (tags) => await axe.run(document, { runOnly: { type: 'tag', values: tags } }), TAGS);
