@@ -73,7 +73,7 @@ for f in svgs:
         problems.append(f'unexpected elements {sorted(tags - ALLOWED_TAGS)}')
     if any(a.startswith('on') or a in ('href', 'src') for a in attrs):
         problems.append('event handler or link attribute')
-    if re.search(r'(?i)<script|javascript:|data:|https?://(?!www\.w3\.org/2000/svg)|@import|url\(', text):
+    if re.search(r'(?i)<\?xml-stylesheet\b|<script|javascript:|data:|https?://(?!www\.w3\.org/2000/svg)|(?<!:)//[^/\s]+|@import|url\(', text):
         problems.append('script, external reference, or import')
     if 'style' in tags and f.name != 'icon.svg':
         problems.append('<style> outside icon.svg')

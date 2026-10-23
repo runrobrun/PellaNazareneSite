@@ -8,6 +8,10 @@ OUT="wp-content/themes/pella-nazarene/assets/images"
 PREVIEW="${1:-}"   # optional: a folder to write contact.png into, for a quick visual check
 mkdir -p "$OUT"
 args=(-v "$PWD/docs/branding/source":/src:ro -v "$PWD/$OUT":/out -v "$PWD/scripts/brand-assets/build.py":/build.py:ro)
-[[ -n "$PREVIEW" ]] && { mkdir -p "$PREVIEW"; args+=(-v "$PREVIEW":/prev); }
+if [[ -n "$PREVIEW" ]]; then
+  mkdir -p "$PREVIEW"
+  PREVIEW="$(cd "$PREVIEW" && pwd)"
+  args+=(-v "$PREVIEW":/prev)
+fi
 docker run --rm "${args[@]}" python:3.12-slim sh -c \
   "apt-get update -qq >/dev/null && apt-get install -y -qq potrace libcairo2 >/dev/null && pip install -q pillow numpy scipy cairosvg 2>&1 | grep -v -i 'notice' ; python /build.py"
