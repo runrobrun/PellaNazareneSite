@@ -129,7 +129,7 @@ class Sermon_Parser {
 
 		$out = array(
 			'date'            => self::service_date( $video_title, $published ),
-			'title'           => $video_title,
+			'title'           => self::without_date_prefix( $video_title ),
 			'speaker'         => '',
 			'series_name'     => '',
 			'series_slug'     => '',
@@ -229,6 +229,15 @@ class Sermon_Parser {
 		return $out;
 	}
 
+	/** "20201004 Why Fast and Pray" becomes "Why Fast and Pray"; a title that is only a date is kept. */
+	public static function without_date_prefix( string $title ): string {
+		if ( ! preg_match( '/^(\d{4})[\s._-]?(\d{2})[\s._-]?(\d{2})(?!\d)[\s._:-]*/', $title, $m ) || ! checkdate( (int) $m[2], (int) $m[3], (int) $m[1] ) ) {
+			return $title;
+		}
+		$rest = trim( substr( $title, strlen( $m[0] ) ) );
+		return '' === $rest ? $title : $rest;
+	}
+
 	/**
 	 * The Sunday the service was held. Taken from the video title when it has a date, otherwise from the
 	 * publish date, so a service uploaded on Monday morning is still dated Sunday.
@@ -255,7 +264,12 @@ class Sermon_Parser {
 			'nov' => 11,
 			'dec' => 12,
 		);
-		$regex  = '/\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(\d{4}))?\b/i';
+		// A date typed first as digits: 2020 08 02, 2020-08-02, 20200830.
+		if ( preg_match( '/^(\d{4})[\s._-]?(\d{2})[\s._-]?(\d{2})(?!\d)/', $video_title, $n ) && checkdate( (int) $n[2], (int) $n[3], (int) $n[1] ) ) {
+			return sprintf( '%04d-%02d-%02d', $n[1], $n[2], $n[3] );
+		}
+
+		$regex = '/\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(\d{4}))?\b/i';
 		if ( preg_match( $regex, $video_title, $m ) ) {
 			$month = $months[ strtolower( substr( $m[1], 0, 3 ) ) ];
 			$day   = (int) $m[2];
