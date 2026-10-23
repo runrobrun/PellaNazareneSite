@@ -166,6 +166,9 @@ has "404 page is friendly"                            "$(cat /tmp/404.html)" "fi
 hasx "...and offers a Plan a visit button of its own"  "$(tr '\n' ' ' </tmp/404.html)" 'href="/new-here/">Plan a visit</a>'
 hasx "...and a Watch a sermon button"                 "$(cat /tmp/404.html)" "Watch a sermon"
 hasx "...and a Contact us button"                     "$(cat /tmp/404.html)" "Contact us"
+expect_eq "404 page has one header landmark" "$(tr '\n' ' ' </tmp/404.html | grep -o '<header' | wc -l | tr -d ' ')" "1"
+expect_eq "404 page has one main landmark"   "$(tr '\n' ' ' </tmp/404.html | grep -o '<main' | wc -l | tr -d ' ')" "1"
+expect_eq "404 page has one footer landmark" "$(tr '\n' ' ' </tmp/404.html | grep -o '<footer' | wc -l | tr -d ' ')" "1"
 has "...and a search box"                             "$(cat /tmp/404.html)" "wp-block-search"
 has "...with the same header"                         "$(cat /tmp/404.html)" "logo-primary.svg"
 expect_eq "search works" "$(curl -s -o /tmp/search.html -w '%{http_code}' "$BASE/?s=love")" "200"

@@ -48,7 +48,8 @@ Heading sizes are fluid (they shrink on phones): `h1` 32 to 52 px, `h2` 26 to 36
 - **404 page**: a friendly message with Plan a visit, Watch a sermon, and Contact us buttons and a search box.
 - Menu links are built from the site's own address, so staging links to staging and production to production. **Until the pages exist (MIG-3), menu items other than Sermons lead to the 404 page.**
 - **Edit these in the repo, not in the Site Editor.** Saving a change in the Site Editor stores a copy in the database that then overrides the theme's file and stops future updates from showing up.
-- Skip-to-content link, `header`/`nav`/`main`/`footer` landmarks, and two labelled menus (Primary, Footer) come with it.
+- Skip-to-content link, `header`/`nav`/`main`/`footer` landmarks (on every page type, including the 404), and two labelled menus (Primary, Footer) come with it.
+- **Keyboard focus rings:** a 3 px ring on every link and button, **navy on the white header and mobile menu, white on the navy footer**. A white ring on the white header would be invisible, which is exactly the mistake a code review caught; `a11y-check.sh` now tabs through each page and fails if any stop lacks a visible ring at 3:1 contrast or better.
 
 ## Logo and icons
 
@@ -85,8 +86,8 @@ The mission icons also come as a white glyph on a navy rounded square (`docs/bra
 ## Checking it
 
 ```bash
-deploy/tests/a11y-check.sh                        # axe-core in a real browser: WCAG 2.2 AA + best practice, desktop, phone, mobile menu open, 404, search
-deploy/tests/theme-check.sh                       # real WordPress + the parent theme + ours: 101 checks (colors, fonts, preload, no dangling variables, locked-down options, component styles)
+deploy/tests/a11y-check.sh                        # axe-core in a real browser (WCAG 2.2 AA + best practice) AND a keyboard walk that requires a visible 3:1 focus ring on every stop: desktop, phone, mobile menu open, 404, search
+deploy/tests/theme-check.sh                       # real WordPress + the parent theme + ours: 104 checks (colors, fonts, preload, no dangling variables, locked-down options, component styles)
 docker run --rm -v "$PWD":/repo:ro php:8.3-cli php /repo/deploy/tests/brand-contrast.php /repo/wp-content/themes/pella-nazarene/theme.json
 deploy/tests/brand-assets-check.sh                # logos and icons: exact colors, safe SVGs, match the masters, favicon set
 scripts/build-brand-assets.sh                     # rebuild the SVGs and favicons if the masters ever change
