@@ -11,6 +11,7 @@ PASS=0; FAIL=0
 ok()  { PASS=$((PASS+1)); echo "  ok    $1"; }
 bad() { FAIL=$((FAIL+1)); echo "  FAIL  $1"; }
 expect_eq() { [[ "$2" == "$3" ]] && ok "$1" || bad "$1 (got '$2', wanted '$3')"; }
+hasx()  { grep -qF -- "$3" <<<"$2" && ok "$1" || bad "$1 (missing, case-sensitive: $3)"; }   # case-sensitive: use when another part of the page could match by accident
 has()   { grep -qiF -- "$3" <<<"$2" && ok "$1" || bad "$1 (missing: $3)"; }
 lacks() { grep -qiF -- "$3" <<<"$2" && bad "$1 (found: $3)" || ok "$1"; }
 setup_fail() { echo "SETUP FAILED: $1"; exit 1; }
@@ -127,6 +128,48 @@ echo "       block style variations: $(wp eval '$v = WP_Theme_JSON_Resolver::get
 expect_eq "Subheading block style is registered" "$(wp eval '$v = WP_Theme_JSON_Resolver::get_style_variations("block"); echo in_array("Subheading", array_column($v, "title"), true) ? "yes" : "no";')" "yes"
 expect_eq "administrators are offered no whole-site variations (REST, as the Site Editor asks)" "$(wp eval 'wp_set_current_user(1); $r = rest_do_request(new WP_REST_Request("GET", "/wp/v2/global-styles/themes/pella-nazarene/variations")); echo count($r->get_data());')" "0"
 expect_eq "...but the parent still ships them (proving the filter is what hides them)" "$(wp eval 'echo count(WP_Theme_JSON_Resolver::get_style_variations()) > 0 ? "yes" : "no";')" "yes"
+
+echo "== 6b. Header, menu, footer, and page templates (the home page, as a visitor sees it)"
+N="$(tr '\n' ' ' <<<"$HTML" | sed 's/  */ /g')"
+logo_tag="$(grep -o '<img[^>]*logo-primary\.svg[^>]*>' <<<"$N" | head -1)"
+has "header shows the primary logo"                  "$logo_tag" "logo-primary.svg"
+has "...with width and height (no layout shift)"      "$logo_tag" 'width="220" height="75"'
+has "...and a description for screen readers"         "$logo_tag" 'alt="Pella Church of the Nazarene, home page"'
+has "...that links to the home page"                  "$N" "<a class=\"pn-logo\" href=\"$BASE/\">"
+has "footer shows the white logo"                     "$N" "logo-primary-white.svg"
+for path in new-here about-us sermons events kids giving contact; do has "main menu links to /$path/" "$N" "href=\"$BASE/$path/\""; done
+for label in "New Here" "About Us" "Sermons" "Events" "Kids" "Giving" "Contact"; do has "main menu label: $label" "$N" ">$label<"; done
+has "Plan a Visit button in the menu"                 "$N" "pn-cta"
+has "...pointing at New Here"                         "$(grep -o '<li[^>]*pn-cta[^>]*>.\{0,250\}' <<<"$N" | head -1)" "href=\"$BASE/new-here/\""
+has "main menu is labelled Primary"                   "$N" 'aria-label="Primary"'
+has "footer menu is labelled Footer"                  "$N" 'aria-label="Footer"'
+has "mobile menu button exists"                       "$N" "wp-block-navigation__responsive-container-open"
+has "Facebook link"                                   "$N" 'href="https://www.facebook.com/PellaNazarene"'
+has "Instagram link"                                  "$N" 'href="https://www.instagram.com/pellanazarene"'
+has "YouTube link"                                    "$N" 'href="https://www.youtube.com/@pellanazarene"'
+has "service times are in the footer"                 "$N" "Worship 10:30"
+has "street address is in the footer"                 "$N" "303 University Street"
+has "phone number is a tap-to-call link"              "$N" 'href="tel:+16416281818"'
+has "office hours are in the footer"                  "$N" "Monday 1"
+has "copyright year is current"                       "$N" "© $(date +%Y) Pella Church of the Nazarene"
+expect_eq "exactly one header landmark" "$(grep -o '<header' <<<"$N" | wc -l | tr -d ' ')" "1"
+expect_eq "exactly one main landmark"   "$(grep -o '<main' <<<"$N" | wc -l | tr -d ' ')" "1"
+expect_eq "exactly one footer landmark" "$(grep -o '<footer' <<<"$N" | wc -l | tr -d ' ')" "1"
+has "skip-to-content link"                            "$N" 'class="skip-link'
+has "...and the place it jumps to exists"             "$N" 'id="wp--skip-link--target"'
+expect_eq "every image has an alt attribute" "$(grep -o '<img[^>]*>' <<<"$N" | grep -vc ' alt=' | tr -d ' ')" "0"
+external="$(grep -o '\(src\|href\)="https\?://[^"]*"' <<<"$N" | grep -v "$BASE" | grep -v 'facebook.com/PellaNazarene\|instagram.com/pellanazarene\|youtube.com/@pellanazarene' | head -3 | tr '\n' ' ')"
+expect_eq "no third-party scripts, styles, or images on the page" "$external" ""
+code404="$(curl -s -o /tmp/404.html -w '%{http_code}' "$BASE/does-not-exist/")"
+expect_eq "unknown address is a real 404" "$code404" "404"
+has "404 page is friendly"                            "$(cat /tmp/404.html)" "find that page"
+hasx "...and offers a Plan a visit button of its own"  "$(tr '\n' ' ' </tmp/404.html)" 'href="/new-here/">Plan a visit</a>'
+hasx "...and a Watch a sermon button"                 "$(cat /tmp/404.html)" "Watch a sermon"
+hasx "...and a Contact us button"                     "$(cat /tmp/404.html)" "Contact us"
+has "...and a search box"                             "$(cat /tmp/404.html)" "wp-block-search"
+has "...with the same header"                         "$(cat /tmp/404.html)" "logo-primary.svg"
+expect_eq "search works" "$(curl -s -o /tmp/search.html -w '%{http_code}' "$BASE/?s=love")" "200"
+has "search results keep the header and footer"       "$(tr '\n' ' ' </tmp/search.html)" "logo-primary-white.svg"
 
 echo "== 7. WCAG AA contrast of every pairing the theme uses"
 php /repo/deploy/tests/brand-contrast.php /repo/wp-content/themes/pella-nazarene/theme.json | tail -2 | sed 's/^/       /'

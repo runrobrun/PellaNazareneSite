@@ -50,6 +50,7 @@ $pairs = array(
 	array( 'accent-3', 'accent-2', 4.5, 'navy text on the 8% tint' ),
 	array( 'accent-3', 'accent-1', 4.5, 'navy text on the 20% tint' ),
 	array( 'base', 'accent-3', 4.5, 'white text on navy (parent patterns)' ),
+	array( 'accent-1', 'accent-3', 4.5, 'footer hover and copyright text on navy' ),
 	array( 'accent-3', 'base', 3.0, 'focus ring and button edge against the page' ),
 );
 
