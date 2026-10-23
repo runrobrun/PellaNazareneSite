@@ -205,8 +205,8 @@ class Sermon_Parser {
 			$title              = $unknown[1];
 			$out['notes'][]     = 'Series guessed from the first part of the description; check it.';
 		} elseif ( $count >= 2 ) {
-			$title          = $series_hit ? $unknown[ $count - 1 ] : '';
-			$extra_lines    = $series_hit ? array_slice( $unknown, 0, $count - 1 ) : $unknown;
+			$title          = '';
+			$extra_lines    = $unknown;
 			$out['notes'][] = 'The description has more parts than expected; the title may need fixing.';
 		}
 		if ( '' !== $title ) {
