@@ -71,6 +71,20 @@ jobs:
       - name: Two-factor enforcement and username-leak tests
         run: deploy/tests/wp-integration.sh
 
+  theme:
+    name: Brand theme tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Real WordPress + Twenty Twenty-Five + our theme: brand colors and fonts reach the page, nothing
+      # dangling, locked-down options, WCAG contrast of every color pairing read from theme.json.
+      - name: Brand colors, fonts, and contrast
+        run: deploy/tests/theme-check.sh
+
   nginx:
     name: Nginx config tests
     runs-on: ubuntu-24.04

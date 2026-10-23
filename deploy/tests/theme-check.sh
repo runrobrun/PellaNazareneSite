@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Installs real WordPress + Twenty Twenty-Five + our theme in throwaway containers and checks what
+# WordPress actually generates from theme.json (brand colors, fonts, variables, preload, style limits).
+# Needs Docker and network. Run from the repo root: deploy/tests/theme-check.sh
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+RUN_ID="$$"; NET="pn-theme-test-net-$RUN_ID"; DB="pn-theme-test-db-$RUN_ID"
+cleanup() { docker rm -f "$DB" >/dev/null 2>&1 || true; docker network rm "$NET" >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+cleanup
+docker network create "$NET" >/dev/null
+docker run -d --name "$DB" --network "$NET" --network-alias pn-test-db -e MARIADB_ROOT_PASSWORD=root -e MARIADB_DATABASE=wp mariadb:11 >/dev/null
+# A "command not found" inside the test would mean a check silently did not run, so treat it as a failure.
+OUT="$(mktemp)"
+status=0
+docker run --rm --network "$NET" -v "$PWD":/repo:ro --entrypoint bash wordpress:cli /repo/deploy/tests/theme-check-inner.sh 2>&1 | tee "$OUT" || status=$?
+if grep -q "command not found" "$OUT"; then echo "FAIL  a check did not run: command not found (see output above)"; status=1; fi
+rm -f "$OUT"
+exit "$status"
