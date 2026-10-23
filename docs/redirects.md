@@ -46,6 +46,6 @@ Never use `--allow-fallback` at cutover: it would pass while old sermon links st
 1. Edit `deploy/redirects/expected.csv` (and `deploy/tests/redirects-extra.csv` for edge cases only the test stack can set up). Columns are explained at the top of the file.
 2. Change the matching rule: Nginx (`deploy/nginx/pn-redirects.conf`) for fixed answers, WordPress (`pn_legacy_url_action()`) for ones that depend on what exists.
 3. `python3 deploy/tests/redirects-coverage.py` (every URL in the old-site inventory has a row, and the table agrees with the inventory's own decisions) and `deploy/tests/redirects-check.sh` (the stack test). CI runs both.
-4. After deploying, `scripts/apply-server-tuning.sh` installs the Nginx files; run `scripts/check-redirects.sh` against the live site.
+4. After deploying, run `scripts/apply-server-tuning.sh` to install the Nginx maps and snippet. For an existing installation, back up each active site HTTPS vhost and add `include snippets/pn-redirects-server.conf;` inside its server block before the location blocks if it is not already present, as shown in the updated vhost templates. The tuning script does not update active vhosts. Run `sudo nginx -t && sudo systemctl reload nginx`, then run `scripts/check-redirects.sh` against the live site.
 
 Not covered: links into the old media folder (`/mt-content/uploads/...`); they now return 404. Only worth a rule if something external is found linking to them.
