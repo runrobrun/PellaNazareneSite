@@ -57,7 +57,10 @@ for table in "${TABLES[@]}"; do
 	while IFS=, read -r path status location fallback layer note || [[ -n "${path:-}" ]]; do
 		[[ -z "${path:-}" || "$path" == \#* || "$path" == path ]] && continue
 		[[ -n "$ONLY_LAYER" && "$layer" != "$ONLY_LAYER" ]] && continue
-		out="$("${CURL[@]}" "$BASE$path" || true)"
+		if ! out="$("${CURL[@]}" "$BASE$path")"; then
+			report FAIL "$path" "request failed (connection, TLS, or timeout error)"
+			continue
+		fi
 		code="${out%% *}"; got="${out#* }"
 		got="$(sed -E 's#^https?://[^/]+##' <<<"$got")"      # compare paths only, so any host works
 		case "$status" in
@@ -65,7 +68,7 @@ for table in "${TABLES[@]}"; do
 				if [[ "$PAGES_MUST_EXIST" == 1 ]]; then
 					[[ "$code" == 200 ]] && report ok "$path" "answers 200" || report FAIL "$path" "must answer 200, got $code"
 				else
-					[[ "$code" != 301 && "$code" != 302 && "$code" != 308 && "$code" != 410 ]] && report ok "$path" "not redirected ($code)" || report FAIL "$path" "must not redirect or be gone, got $code ${got}"
+					[[ "$code" == 200 || "$code" == 404 ]] && report ok "$path" "not redirected ($code)" || report FAIL "$path" "wanted 200 or a not-yet-built page (404), got $code ${got}"
 				fi ;;
 			301)
 				if [[ "$code" == 301 ]] && matches "$got" "$location"; then report ok "$path" "301 -> $got"
