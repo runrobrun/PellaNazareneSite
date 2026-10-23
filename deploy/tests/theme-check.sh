@@ -4,12 +4,12 @@
 # Needs Docker and network. Run from the repo root: deploy/tests/theme-check.sh
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-NET=pn-test-net; DB=pn-test-db
+RUN_ID="$$"; NET="pn-theme-test-net-$RUN_ID"; DB="pn-theme-test-db-$RUN_ID"
 cleanup() { docker rm -f "$DB" >/dev/null 2>&1 || true; docker network rm "$NET" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 cleanup
 docker network create "$NET" >/dev/null
-docker run -d --name "$DB" --network "$NET" -e MARIADB_ROOT_PASSWORD=root -e MARIADB_DATABASE=wp mariadb:11 >/dev/null
+docker run -d --name "$DB" --network "$NET" --network-alias pn-test-db -e MARIADB_ROOT_PASSWORD=root -e MARIADB_DATABASE=wp mariadb:11 >/dev/null
 # A "command not found" inside the test would mean a check silently did not run, so treat it as a failure.
 OUT="$(mktemp)"
 status=0
