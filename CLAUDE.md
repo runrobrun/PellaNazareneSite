@@ -91,7 +91,7 @@ Follow `docs/PellaNazareneBrandingGuide.pdf`. Mission: "to love people where the
 
 - Colors: navy `#2D3D54` (slug `accent-3`), white, black, and tints of the navy. Don't introduce other colors. Details and contrast numbers: `docs/design-system.md`.
 - Type: Plus Jakarta Sans only (Extra Bold headings, Light Italic subheadings via the "Subheading" block style, Regular body), self-hosted in the theme's `assets/fonts/`.
-- Logo: use the primary full-text version when possible; never stretch or recolor beyond navy, white, or black; keep clear space and at least 100 px wide.
+- Logo: use the primary full-text version (`assets/images/logo-primary.svg`, white variant on navy) when possible; symbol-only in tight spaces; the Lighthouse Student Ministry logo is for youth pages only. Never stretch or recolor beyond navy, white, or black; keep clear space and at least 100 px wide. Masters are in `docs/branding/source/`; rebuild web assets with `scripts/build-brand-assets.sh`, never hand-edit them.
 - Brand values are defined in `theme.json`; don't hard-code colors or fonts elsewhere. Custom colors and arbitrary sizes are disabled for editors on purpose. `deploy/tests/theme-check.sh` verifies the brand; CI runs it.
 
 ## Known gaps

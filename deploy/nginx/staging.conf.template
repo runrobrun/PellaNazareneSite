@@ -40,6 +40,9 @@ server {
 		try_files $uri $uri/ /index.php?$args;
 	}
 
+	# The brand icon for the bare /favicon.ico request (bots, old browsers); pages link their icons themselves.
+	location = /favicon.ico { try_files /wp-content/themes/pella-nazarene/assets/images/favicon.ico =404; expires 30d; access_log off; }
+
 	location = /xmlrpc.php { deny all; }
 	# WordPress core files that reveal the version or install state. Must stay above the PHP handler.
 	location ~* ^/(?:wp-config\.php|wp-config-sample\.php|readme\.html|license\.txt)$ { deny all; }

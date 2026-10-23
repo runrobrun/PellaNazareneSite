@@ -18,6 +18,7 @@ echo '<?php echo "page";' > "$ROOT/index.php"
 echo body > "$ROOT/style.css"; echo x > "$ROOT/readme.html"; echo x > "$ROOT/license.txt"
 echo '<?php // secrets' > "$ROOT/wp-config.php"; echo '<?php echo "pwned";' > "$ROOT/wp-content/uploads/evil.php"
 mkdir -p "$ROOT/.git"; echo x > "$ROOT/.git/config"
+mkdir -p "$ROOT/wp-content/themes/pella-nazarene/assets/images"; cp /repo/wp-content/themes/pella-nazarene/assets/images/favicon.ico "$ROOT/wp-content/themes/pella-nazarene/assets/images/favicon.ico"
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=$D" \
   -keyout "/etc/letsencrypt/live/$D/privkey.pem" -out "/etc/letsencrypt/live/$D/fullchain.pem" >/dev/null 2>&1
 printf 'church:%s\n' "$(openssl passwd -apr1 secret)" > /etc/nginx/htpasswd-staging
@@ -46,6 +47,10 @@ expect_eq "PHP file in uploads"           "$(req /wp-content/uploads/evil.php)" 
 expect_eq "PHP file in uploads, odd case" "$(req /wp-content/uploads/evil.PHP)" "403"
 expect_eq "xmlrpc.php"                    "$(req /xmlrpc.php)" "403"
 expect_eq ".git directory"                "$(req /.git/config)" "403"
+
+echo "== Brand icon"
+expect_eq "/favicon.ico is served" "$(req /favicon.ico)" "200"
+expect_eq "...and it is the brand icon (same bytes as the theme's file)" "$(curl -sk --resolve "$D:443:127.0.0.1" -u church:secret "https://$D/favicon.ico" | sha256sum | cut -d' ' -f1)" "$(sha256sum /repo/wp-content/themes/pella-nazarene/assets/images/favicon.ico | cut -d' ' -f1)"
 
 echo "== Headers"
 hdrs="$(curl -sk -D - -o /dev/null --resolve "$D:443:127.0.0.1" -u church:secret "https://$D/style.css" | tr -d '\r')"
