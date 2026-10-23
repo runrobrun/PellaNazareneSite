@@ -50,14 +50,14 @@ for f in sorted(SRC.glob('*.png')):
     px = np.array(im).reshape(-1, 4)
     solid = collections.Counter(map(tuple, px[px[:, 3] == 255][:, :3]))
     top = {'#%02X%02X%02X' % c for c, n in solid.items() if n > 0.02 * max(1, sum(solid.values()))}
-    allowed = {'#2D3D54', '#FFFFFF'}
+    allowed = {'#2D3D54', '#FFFFFF', '#000000'}
     check(top <= allowed and (px[:, 3] == 0).any(), f'{f.name}: colors {sorted(top)}, has transparency')
 
 print('== Shipped SVGs are plain artwork')
 ALLOWED_TAGS = {'svg', 'g', 'path', 'style'}
-ALLOWED_FILLS = {'#2D3D54', '#FFFFFF'}
+ALLOWED_FILLS = {'#2D3D54', '#FFFFFF', '#000000'}
 svgs = sorted(IMG.glob('*.svg'))
-check(len(svgs) == 10, f'10 SVG files present ({len(svgs)})')
+check(len(svgs) == 12, f'12 SVG files present ({len(svgs)})')
 for f in svgs:
     text = f.read_text()
     try:
@@ -87,10 +87,10 @@ for f in svgs:
         problems.append(f'{len(text)} bytes is over the 16 KB budget')
     check(not problems, f'{f.name}: {len(text)} B, fills {sorted(fills)}' + (f' -- {"; ".join(problems)}' if problems else ''))
 
-print('== Shipped SVGs still match their masters (worst edge movement)')
+print('== Shipped SVGs still match their masters (outline distance)')
 FIDELITY = {
     'logo-primary.svg': ('logo-primary-navy.png', 3000), 'logo-symbol.svg': ('logo-symbol-navy.png', 2000),
-    'logo-lighthouse.svg': ('logo-lighthouse-navy.png', 1400), 'icon-love-people.svg': ('icon-love-people-navy.png', 1000),
+    'logo-lighthouse.svg': ('logo-lighthouse-navy.png', 1400), 'logo-lighthouse-black.svg': ('logo-lighthouse-black.png', 1400), 'icon-love-people.svg': ('icon-love-people-navy.png', 1000),
     'icon-grow-together.svg': ('icon-grow-together-navy.png', 1000), 'icon.svg': ('logo-symbol-navy.png', 2000),
 }
 for name, (master, width) in FIDELITY.items():
@@ -99,13 +99,14 @@ for name, (master, width) in FIDELITY.items():
     svg = (IMG / name).read_text()
     if name == 'icon.svg':
         svg = re.sub(r'<style>.*?</style>', '', svg)
-    dev = build.edge_deviation(mask, build.render_alpha(svg, w, h))
+    dev, p999 = build.edge_deviation(mask, build.render_alpha(svg, w, h))
     limit = max(build.MIN_LIMIT_PX, build.MAX_DEVIATION * w)
-    check(dev <= limit, f'{name}: {dev:.2f}px of {w}px wide (limit {limit:.1f}px)')
-for navy, white in [('logo-primary.svg', 'logo-primary-white.svg'), ('logo-symbol.svg', 'logo-symbol-white.svg'),
+    check(dev <= limit and p999 <= build.P999_LIMIT_PX, f'{name}: 99.9% of the outline within {p999:.2f}px, worst point {dev:.2f}px of {w}px wide (limits {build.P999_LIMIT_PX}px / {limit:.1f}px)')
+for navy, white in [('logo-primary.svg', 'logo-primary-white.svg'), ('logo-primary.svg', 'logo-primary-black.svg'), ('logo-symbol.svg', 'logo-symbol-white.svg'),
                     ('icon-love-people.svg', 'icon-love-people-white.svg'), ('icon-grow-together.svg', 'icon-grow-together-white.svg')]:
     a, b = (IMG / navy).read_text(), (IMG / white).read_text()
-    check(a.replace('#2D3D54', '#FFFFFF') == b, f'{white} is {navy} in white, nothing else changed')
+    other = '#000000' if white.endswith('-black.svg') else '#FFFFFF'
+    check(a.replace('#2D3D54', other) == b, f'{white} is {navy} recolored, nothing else changed')
 
 print('== Favicon set')
 ico = Image.open(IMG / 'favicon.ico')

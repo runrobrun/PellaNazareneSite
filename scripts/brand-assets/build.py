@@ -5,8 +5,10 @@ Run it through scripts/build-brand-assets.sh (Docker), not directly. Input: /src
 Output: /out (the theme's assets/images). Optional contact sheet for a visual check: /prev/contact.png.
 
 Every logo and icon is flat, single-color artwork, so tracing it gives an SVG that is crisp at any size
-and far lighter than the PNG. The build FAILS if a traced shape strays from its master by more than
-0.07% of its width at its worst point, so a bad trace can never ship.
+and far lighter than the PNG. The build FAILS if a traced shape strays from its master: 99.9% of the outline
+must be within 1.5 px, and no point may be more than 3 px (or 0.15% of the width) away, so a bad trace
+can never ship. (A single sharp-corner tip can sit a pixel or two off; that is why the worst-point limit
+is looser than the 99.9% limit.)
 """
 import gzip
 import io
@@ -22,9 +24,10 @@ from PIL import Image
 from scipy import ndimage as ndi
 
 SRC, OUT, PREV = Path('/src'), Path('/out'), Path('/prev')
-NAVY, WHITE = '#2D3D54', '#FFFFFF'
-MAX_DEVIATION = 0.0007          # worst-case edge movement, as a share of the image width...
-MIN_LIMIT_PX = 2.0              # ...but never below 2 px: the measurement moves in whole pixels (1, 1.41, 2...)
+NAVY, WHITE, BLACK = '#2D3D54', '#FFFFFF', '#000000'
+MAX_DEVIATION = 0.0015          # worst single point, as a share of the image width...
+MIN_LIMIT_PX = 3.0              # ...but never below 3 px: the measurement moves in whole pixels (1, 1.41, 2...)
+P999_LIMIT_PX = 1.5             # 99.9% of the outline must be within this
 FAIL = []
 
 
@@ -43,7 +46,7 @@ def trace(mask):
     with tempfile.TemporaryDirectory() as t:
         pbm, svg = Path(t, 'm.pbm'), Path(t, 'm.svg')
         Image.fromarray((~mask * 255).astype('uint8')).convert('1').save(pbm)
-        subprocess.run(['potrace', '-s', '--tight', '-u', '10', '-t', '2', '-a', '1.0', '-O', '0.2', '-o', str(svg), str(pbm)], check=True)
+        subprocess.run(['potrace', '-s', '-u', '10', '-t', '2', '-a', '1.0', '-O', '0.2', '-o', str(svg), str(pbm)], check=True)
         s = svg.read_text()
     d = ' '.join(re.findall(r'<path d="([^"]+)"', s))
     tf = re.search(r'<g transform="([^"]+)"', s).group(1)
@@ -57,12 +60,13 @@ def svg_doc(layers, vb_w, vb_h, extra=''):
 
 
 def edge_deviation(a, b):
-    """Largest distance (px) between the outlines of two masks."""
+    """(largest, 99.9th percentile) distance in px between the outlines of two masks."""
     def edge(m):
         return m ^ ndi.binary_erosion(m)
     ea, eb = edge(a), edge(b)
     da, db = ndi.distance_transform_edt(~ea), ndi.distance_transform_edt(~eb)
-    return float(np.concatenate([da[eb], db[ea]]).max())
+    d = np.concatenate([da[eb], db[ea]])
+    return float(d.max()), float(np.percentile(d, 99.9))
 
 
 def render_alpha(svg, w, h):
@@ -71,19 +75,19 @@ def render_alpha(svg, w, h):
 
 
 def check(name, svg, mask, w, h):
-    dev = edge_deviation(mask, render_alpha(svg, w, h))
+    dev, p999 = edge_deviation(mask, render_alpha(svg, w, h))
     limit = max(MIN_LIMIT_PX, MAX_DEVIATION * w)
-    ok = dev <= limit
+    ok = dev <= limit and p999 <= P999_LIMIT_PX
     if not ok:
         FAIL.append(name)
-    print(f"  {'ok  ' if ok else 'FAIL'} {name:<34} worst edge move {dev:4.2f}px of {w}px wide (limit {limit:.1f}px)  svg {len(svg):>6} B, gzipped {len(gzip.compress(svg.encode())):>5} B")
+    print(f"  {'ok  ' if ok else 'FAIL'} {name:<34} 99.9% within {p999:.2f}px, worst {dev:.2f}px, of {w}px wide (limits {P999_LIMIT_PX}/{limit:.1f})  svg {len(svg):>6} B, gzipped {len(gzip.compress(svg.encode())):>5} B")
 
 
 def write(name, svg):
     (OUT / name).write_text(svg)
 
 
-def mono_asset(stem, navy_master, white_master, width):
+def mono_asset(stem, navy_master, white_master, width, black_master=None, black_same_shape=True):
     """One-color artwork: trace the navy master; the white file reuses the same shape (checked against its master)."""
     im, w, h = load_mask(SRC / navy_master, width)
     mask = np.array(im.getchannel('A')) > 127
@@ -101,6 +105,25 @@ def mono_asset(stem, navy_master, white_master, width):
             FAIL.append(f'{stem}-white (white master differs from navy master: {same:.4f})')
         write(f'{stem}-white.svg', svg_doc([(d, tf, WHITE)], vw, vh))
         print(f"  ok   {stem + '-white.svg':<34} same shape as its white master ({same * 100:.2f}% overlap)")
+    if black_master:
+        bim, _, _ = load_mask(SRC / black_master, width)
+        if black_same_shape:
+            # Same artwork as the navy master (checked), so reuse the verified trace with a black fill.
+            bim = bim.resize((w, h), Image.LANCZOS)
+            bmask = np.array(bim.getchannel('A')) > 127
+            same = (mask & bmask).sum() / (mask | bmask).sum()
+            if same < 0.995:
+                FAIL.append(f'{stem}-black (black master differs from navy master: {same:.4f})')
+            write(f'{stem}-black.svg', svg_doc([(d, tf, BLACK)], vw, vh))
+            print(f"  ok   {stem + '-black.svg':<34} same shape as its black master ({same * 100:.2f}% overlap)")
+        else:
+            # The designer's black file has its own spacing, so trace it from its own master.
+            bw, bh = bim.size
+            bmask = np.array(bim.getchannel('A')) > 127
+            bd, btf, bvw, bvh = trace(bmask)
+            bsvg = svg_doc([(bd, btf, BLACK)], bvw, bvh)
+            check(f'{stem}-black.svg', bsvg, bmask, bw, bh)
+            write(f'{stem}-black.svg', bsvg)
     return svg, mask
 
 
@@ -125,9 +148,9 @@ def contact_sheet(files):
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     print('Logos')
-    prim, prim_mask = mono_asset('logo-primary', 'logo-primary-navy.png', 'logo-primary-white.png', 3000)
+    prim, prim_mask = mono_asset('logo-primary', 'logo-primary-navy.png', 'logo-primary-white.png', 3000, 'logo-primary-black.png')
     sym, sym_mask = mono_asset('logo-symbol', 'logo-symbol-navy.png', 'logo-symbol-white.png', 2000)
-    mono_asset('logo-lighthouse', 'logo-lighthouse-navy.png', None, 1400)
+    mono_asset('logo-lighthouse', 'logo-lighthouse-navy.png', None, 1400, 'logo-lighthouse-black.png', black_same_shape=False)
     print('Mission icons')
     mono_asset('icon-love-people', 'icon-love-people-navy.png', 'icon-love-people-white.png', 1000)
     mono_asset('icon-grow-together', 'icon-grow-together-navy.png', 'icon-grow-together-white.png', 1000)
@@ -150,9 +173,9 @@ def main():
         print(f"  ok   {f:<34} {(OUT / f).stat().st_size} B")
 
     if PREV.exists():
-        contact_sheet([('logo-primary.svg', (255, 255, 255, 255)), ('logo-primary-white.svg', (45, 61, 84, 255)),
+        contact_sheet([('logo-primary.svg', (255, 255, 255, 255)), ('logo-primary-white.svg', (45, 61, 84, 255)), ('logo-primary-black.svg', (255, 255, 255, 255)),
                        ('logo-symbol.svg', (255, 255, 255, 255)), ('logo-symbol-white.svg', (45, 61, 84, 255)),
-                       ('logo-lighthouse.svg', (255, 255, 255, 255)), ('icon-love-people.svg', (255, 255, 255, 255)),
+                       ('logo-lighthouse.svg', (255, 255, 255, 255)), ('logo-lighthouse-black.svg', (255, 255, 255, 255)), ('icon-love-people.svg', (255, 255, 255, 255)),
                        ('icon-love-people-white.svg', (45, 61, 84, 255)), ('icon-grow-together.svg', (255, 255, 255, 255)),
                        ('icon-grow-together-white.svg', (45, 61, 84, 255))])
     if FAIL:

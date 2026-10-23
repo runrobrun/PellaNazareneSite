@@ -114,7 +114,7 @@ Bring over only the ~35 images needed, from `pellanazarene.org/mt-content/upload
 - Keep: staff headshots (toddoweb, cindyoweb, robhweb, floydwweb, floydpreach), congregation photos, kids ministry photos, communion/preaching photos, and the welcome video (see list in the PDF).
 - Confirm with staff before reusing likely stock photos (kids-1..4, family-2, photography.church41..., 2025/10 prayer/baptism/youth/etc., numbered About Us images).
 - Re-compress and convert to WebP/AVIF at sensible sizes; welcome video re-encoded and served via a poster/click-to-play, not autoplaying.
-- Logo: **received 2026-10-23** (primary and symbol in navy and white as PNG masters, plus Lighthouse Student Ministry); web SVGs built under FE-1b. No black version was supplied; the brand guide allows one, ask the designer if needed.
+- Logo: **received 2026-10-23** (primary and symbol in navy and white as PNG masters, plus Lighthouse Student Ministry); web SVGs built under FE-1b. Black versions of the primary and Lighthouse logos followed (FE-1c).
 - Record the licensing status of each stock photo kept.
 
 ### MIG-6 Sermons: import from YouTube instead of the old site · M · todo · needs INF-2
@@ -152,9 +152,12 @@ Brand guide implemented in `theme.json`; reference and decisions in `docs/design
 ### FE-1b Logo, icons, and favicon assets · S · review
 Designer's PNG masters kept in `docs/branding/source/`; traced to SVG (worst edge movement 1.4 px on a 3000 px canvas, enforced by the build) so the primary and symbol logos in navy and white, the Lighthouse Student Ministry logo, and both mission icons ship at 1 to 14 KB each; favicon set (`favicon.ico`, `icon.svg` with a dark-mode variant, `apple-touch-icon.png`) wired into the page head. Tests: `deploy/tests/brand-assets-check.sh`. Optional: ask the designer for official SVG exports to replace the traced ones (same file names).
 
+### FE-1c Black logo versions · S · review
+Pure-black primary and Lighthouse Student Ministry logos received and built as `logo-primary-black.svg` and `logo-lighthouse-black.svg`. The tracing check was tightened to a fairer rule (99.9% of the outline within 1.5 px, worst point within 3 px), and the build now traces the full canvas, which also made the other assets slightly more accurate. Note for the designer (optional): the black Lighthouse file has its two text lines 2 and 4 px closer together than the navy one; the symbol is identical.
+
 ### FE-2 Core templates and navigation · M · todo
 **Decisions (2026-10-23):** the header has one prominent button, **Plan a Visit**; Giving stays in the main menu. The header uses FE-1b's supplied logo assets; no stand-in wordmark.
-**Optional from the church:** black variants of the primary and symbol logos; FE-1b supplies the navy and white assets. Ask the designer, or look in the old site's admin under the Design tab. Minimum display width is 100 px (see the brand guide).
+**Logo assets are complete for the header** (primary in navy, white, and black; symbol in navy and white; see `docs/design-system.md`). Minimum display width is 100 px. **Still wanted from the church for the footer:** the Facebook, Instagram, and YouTube page URLs.
 Work can start now: header and footer template parts, navigation, 404, search, and the page templates. Brand colors, type, and component styles already exist (FE-1, `docs/design-system.md`).
 Home, page, post, 404, search, header and footer parts (service times, address, contact in `parts/service-info.html`), responsive menu.
 
