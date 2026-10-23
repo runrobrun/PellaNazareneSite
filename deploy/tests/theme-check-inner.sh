@@ -10,6 +10,7 @@ wp() { php -d memory_limit=512M /usr/local/bin/wp "$@"; }
 PASS=0; FAIL=0
 ok()  { PASS=$((PASS+1)); echo "  ok    $1"; }
 bad() { FAIL=$((FAIL+1)); echo "  FAIL  $1"; }
+expect_eq() { [[ "$2" == "$3" ]] && ok "$1" || bad "$1 (got '$2', wanted '$3')"; }
 has()   { grep -qiF -- "$3" <<<"$2" && ok "$1" || bad "$1 (missing: $3)"; }
 lacks() { grep -qiF -- "$3" <<<"$2" && bad "$1 (found: $3)" || ok "$1"; }
 setup_fail() { echo "SETUP FAILED: $1"; exit 1; }
@@ -99,7 +100,6 @@ fi
 [[ -z "${undefined// /}" ]] && ok "every preset variable that is used is defined" || bad "used but undefined: $undefined"
 
 echo "== 5. Staff can't wander off-brand"
-expect_eq() { [[ "$2" == "$3" ]] && ok "$1" || bad "$1 (got '$2', wanted '$3')"; }
 expect_eq "custom colors disabled" "$(wp eval 'echo wp_get_global_settings(["color","custom"]) ? "on" : "off";')" "off"
 expect_eq "custom gradients disabled" "$(wp eval 'echo wp_get_global_settings(["color","customGradient"]) ? "on" : "off";')" "off"
 expect_eq "arbitrary font sizes disabled" "$(wp eval 'echo wp_get_global_settings(["typography","customFontSize"]) ? "on" : "off";')" "off"

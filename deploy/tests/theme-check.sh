@@ -10,4 +10,10 @@ trap cleanup EXIT
 cleanup
 docker network create "$NET" >/dev/null
 docker run -d --name "$DB" --network "$NET" -e MARIADB_ROOT_PASSWORD=root -e MARIADB_DATABASE=wp mariadb:11 >/dev/null
-docker run --rm --network "$NET" -v "$PWD":/repo:ro --entrypoint bash wordpress:cli /repo/deploy/tests/theme-check-inner.sh
+# A "command not found" inside the test would mean a check silently did not run, so treat it as a failure.
+OUT="$(mktemp)"
+status=0
+docker run --rm --network "$NET" -v "$PWD":/repo:ro --entrypoint bash wordpress:cli /repo/deploy/tests/theme-check-inner.sh 2>&1 | tee "$OUT" || status=$?
+if grep -q "command not found" "$OUT"; then echo "FAIL  a check did not run: command not found (see output above)"; status=1; fi
+rm -f "$OUT"
+exit "$status"

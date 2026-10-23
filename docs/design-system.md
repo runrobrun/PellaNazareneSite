@@ -56,7 +56,7 @@ Heading sizes are fluid (they shrink on phones): `h1` 32 to 52 px, `h2` 26 to 36
 ## Checking it
 
 ```bash
-deploy/tests/theme-check.sh                       # real WordPress + the parent theme + ours: 43 checks (colors, fonts, preload, no dangling variables, locked-down options, component styles)
+deploy/tests/theme-check.sh                       # real WordPress + the parent theme + ours: 44 checks (colors, fonts, preload, no dangling variables, locked-down options, component styles)
 docker run --rm -v "$PWD":/repo:ro php:8.3-cli php /repo/deploy/tests/brand-contrast.php /repo/wp-content/themes/pella-nazarene/theme.json
 ```
 
