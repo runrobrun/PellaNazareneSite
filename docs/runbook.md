@@ -32,6 +32,7 @@ wp --path=/var/www/pellanazarene/public two-factor disable <username> --yes
 - Add or remove a staff login
 - Check that backups ran
 - Renew the domain
+- Review new sermon drafts each week (Sermons in the admin) and publish them; how the import works and how to import the history: `docs/sermons.md`
 
 ## If something breaks
 - Site is down

@@ -46,6 +46,7 @@ define( 'WP_AUTO_UPDATE_CORE', true );
 define( 'DISALLOW_FILE_EDIT', true );
 define( 'WP_REDIS_HOST', '127.0.0.1' );
 define( 'PN_YOUTUBE_CHANNEL_ID', 'UC…' );
+define( 'PN_YOUTUBE_API_KEY', '…' );      // only for the one-time sermon backfill; see docs/sermons.md
 define( 'PN_ANTHROPIC_API_KEY', '…' );   // only when companion posts are turned on
 ```
 
@@ -107,4 +108,4 @@ Credentials are written to `/root/pella-secrets/` (root-only) and never printed:
 
 ## Backfilling older sermons
 
-The RSS feed only returns the latest 15 videos. To import the full archive, use the YouTube Data API `playlistItems.list` on the channel's uploads playlist (the channel ID with `UC` replaced by `UU`). Not built yet.
+The RSS feed only returns the latest 15 videos. To import the full archive run `wp pn-sermons backfill --dry-run`, then without `--dry-run`. It uses the YouTube Data API and needs `PN_YOUTUBE_API_KEY`. Step-by-step instructions, including creating the key: `docs/sermons.md`.

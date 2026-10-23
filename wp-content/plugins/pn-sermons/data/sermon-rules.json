@@ -1,0 +1,15 @@
+{
+	"_about": "Rules the sermon importer uses to read a YouTube description. Edit this file (in a pull request) to teach it about a new speaker or series; nothing else needs to change.",
+	"speakers": [
+		{ "name": "Todd Olson",  "slug": "todd-olson",  "aliases": ["Todd Olson", "Pastor Todd", "Senior Pastor Todd"] },
+		{ "name": "Cindy Olson", "slug": "cindy-olson", "aliases": ["Cindy Olson", "Pastor Cindy"] },
+		{ "name": "Rob Hammann", "slug": "rob-hammann", "aliases": ["Rob Hammann", "Pastor Rob", "Associate Pastor Rob"] },
+		{ "name": "Floyd Ware",  "slug": "floyd-ware",  "aliases": ["Floyd Ware", "Pastor Floyd"] }
+	],
+	"series": [
+		{ "name": "Holiness in the House: A Study in Titus", "slug": "holiness-in-the-house-a-study-in-titus", "match": ["Holiness in the House"] },
+		{ "name": "For Heaven's Sake", "slug": "for-heavens-sake", "match": ["For Heaven's Sake", "For Heaven’s Sake"] },
+		{ "name": "I AM", "slug": "i-am", "match": ["I AM"], "exact": true }
+	],
+	"ignore_segments": ["Sunday Morning Service", "Sunday AM Worship", "Sunday Morning Worship", "Speaker", "Message", "Sermon", "Scripture", "Series", "Title"]
+}

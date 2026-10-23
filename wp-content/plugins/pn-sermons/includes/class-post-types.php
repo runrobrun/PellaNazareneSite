@@ -73,6 +73,27 @@ class Post_Types {
 			'pn_scripture_ref'  => 'Main passage, e.g. "Acts 1–3"',
 			'pn_companion_post' => 'ID of the companion blog post, if drafted',
 		);
+		// Details the importer records for the reviewer and for old links; not shown on the public site or in the REST API.
+		$private = array(
+			'pn_youtube_title'       => 'The title the video has on YouTube',
+			'pn_youtube_description' => 'The video description on YouTube, as imported',
+			'pn_legacy_slug'         => 'The sermon\'s address on the old website (used for redirects)',
+			'pn_import_note'         => 'What the importer was unsure about; check before publishing',
+			'pn_import_source'       => 'Where the sermon came from: api or rss',
+		);
+		foreach ( $private as $key => $description ) {
+			register_post_meta(
+				self::POST_TYPE,
+				$key,
+				array(
+					'type'          => 'string',
+					'single'        => true,
+					'show_in_rest'  => false,
+					'description'   => $description,
+					'auth_callback' => fn() => current_user_can( 'edit_posts' ),
+				)
+			);
+		}
 		foreach ( $meta as $key => $description ) {
 			register_post_meta(
 				self::POST_TYPE,

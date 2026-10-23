@@ -8,7 +8,7 @@ This repository holds only what we wrote or configured. WordPress core, third-pa
 
 ```
 wp-content/
-  plugins/pn-sermons/        Sermons, series, speakers, scripture; YouTube import; companion-post drafts
+  plugins/pn-sermons/        Sermons, series, speakers, scripture; YouTube import and backfill (`docs/sermons.md`); companion-post drafts
   mu-plugins/pn-site.php     Site-wide behavior: admin cleanup, roles, hardening
   mu-plugins/pn-security.php Two-factor enforcement and username-leak protection
   themes/pella-nazarene/     Child theme of Twenty Twenty-Five: theme.json, patterns, templates
@@ -44,7 +44,7 @@ npx @wordpress/env stop
 
 ## Checks
 
-CI (`.github/workflows/ci.yml`) runs on every push and pull request: PHP syntax, WordPress coding standards (PHPCS, config in `phpcs.xml.dist`), ShellCheck on `scripts/` and `deploy/`, tests of the CI deploy wrapper (stubbed, no server), a real-WordPress test of the security plugin, a brand-theme test, an accessibility test (axe), a redirect test of every old URL, an Nginx config test, and a gitleaks secret scan. Run the same checks locally with Docker (nothing to install):
+CI (`.github/workflows/ci.yml`) runs on every push and pull request: PHP syntax, WordPress coding standards (PHPCS, config in `phpcs.xml.dist`), ShellCheck on `scripts/` and `deploy/`, tests of the CI deploy wrapper (stubbed, no server), a real-WordPress test of the security plugin, a brand-theme test, an accessibility test (axe), a redirect test of every old URL, sermon-import tests (parser and backfill against a fake YouTube), an Nginx config test, and a gitleaks secret scan. Run the same checks locally with Docker (nothing to install):
 
 ```bash
 docker run --rm -v "$PWD":/app -w /app composer:2 install            # once; tooling comes from composer.lock
@@ -76,5 +76,6 @@ Kept in `wp-config.php` on the server only (never committed):
 | Constant | Used by |
 |---|---|
 | `PN_YOUTUBE_CHANNEL_ID` | Sermon import (optional; can also be set in Settings → Sermons) |
+| `PN_YOUTUBE_API_KEY` | Sermon backfill (`wp pn-sermons backfill`); restricted to the YouTube Data API and the server's IP. See `docs/sermons.md` |
 | `PN_ANTHROPIC_API_KEY` | Companion-post drafts |
 | `WPMS_*` | WP Mail SMTP |
