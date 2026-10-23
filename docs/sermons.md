@@ -35,8 +35,10 @@ Always look first. A dry run reads YouTube and prints what *would* happen; it ch
 
 ```bash
 cd /var/www/pellanazarene.org/public     # or the staging site
-wp pn-sermons backfill --dry-run --filter="Sunday Morning Service|Sunday AM Worship"
+wp pn-sermons backfill --dry-run
 ```
+
+The channel's titles do not follow one pattern ("Conquering Worry", "Love Your Enemies", "Sunday Jan 7th - Sunday AM Service"), so do **not** filter by title for the main import. The 20-minute minimum already drops clips and Shorts, and everything arrives as a draft for review. Use `--exclude` for the few things that should not be on the site (a memorial service, for example).
 
 The table lists every video with what the importer decided: the service date, speaker, series, title and scripture it found, and, for the ones it skips, why (too short, not public, a live stream, title does not match). Adjust until the list is right, then run it for real without `--dry-run`.
 
@@ -68,7 +70,7 @@ The descriptions are typed by hand, so the parser is forgiving and conservative.
 - **Speaker**: Todd Olson, Cindy Olson, Rob Hammann, Floyd Ware (with or without "Pastor" or "Associate Pastor"), or any "Pastor/Rev./Dr. First Last".
 - **Scripture**: any Bible book name or abbreviation followed by chapter and verses, such as `John 14:1-4`.
 - **Series**: the known series in `wp-content/plugins/pn-sermons/data/sermon-rules.json`. With two unknown pieces it treats the first as the series and the second as the message, and leaves a note.
-- **Service date**: from the video title ("Sunday Morning Service May 24, 2026"), otherwise the day it was published in Central time. The post is dated the service day, not the upload day.
+- **Service date**: from the video title ("Sunday Morning Service May 24, 2026", "2020 08 02 …", "20200830 …"; a leading date is also removed from the sermon's title), otherwise the day it was published in Central time. The post is dated the service day, not the upload day.
 
 When it cannot tell, it keeps the YouTube title and leaves the details empty rather than guess, and records why in the import note. The original YouTube title and description are always kept in private fields.
 
