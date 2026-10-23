@@ -26,6 +26,7 @@ server {
 	client_max_body_size 64m;
 
 	include snippets/pn-security-headers.conf;
+	include snippets/pn-redirects-server.conf;
 
 	# Real visitor IPs from Cloudflare (keep list current: https://www.cloudflare.com/ips/)
 	# include /etc/nginx/snippets/cloudflare-realip.conf;

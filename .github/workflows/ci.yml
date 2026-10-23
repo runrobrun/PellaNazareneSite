@@ -104,6 +104,21 @@ jobs:
       - name: Accessibility (axe-core)
         run: deploy/tests/a11y-check.sh
 
+  redirects:
+    name: Redirect tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Nginx 1.24 + PHP-FPM 8.3 + WordPress + the sermon plugin + fixture content, as on the server. Every old URL
+      # must do what deploy/redirects/expected.csv says: through Nginx, with PHP stopped (Nginx-only rows), and
+      # through PHP alone. Also proves every URL in the old-site inventory has an outcome.
+      - name: Old URLs redirect correctly
+        run: deploy/tests/redirects-check.sh
+
   nginx:
     name: Nginx config tests
     runs-on: ubuntu-24.04

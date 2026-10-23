@@ -28,6 +28,7 @@ server {
 	auth_basic_user_file /etc/nginx/htpasswd-staging;
 	add_header X-Robots-Tag "noindex, nofollow, noarchive" always;
 	include snippets/pn-security-headers.conf;
+	include snippets/pn-redirects-server.conf;
 
 	# Same page-cache rules as production.
 	set $skip_cache 0;

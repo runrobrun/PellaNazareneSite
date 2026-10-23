@@ -1,0 +1,61 @@
+# What must happen to every old Ministry Designs URL. Checked against a live site by scripts/check-redirects.sh
+# and against the inventory by deploy/tests/redirects-coverage.py. Columns:
+#   path      the old URL path
+#   status    301 = moved permanently, 410 = gone for good, stays = this address is still used (must not redirect)
+#   location  where a 301 goes. Exact path, or "/prefix/*" meaning "any page below /prefix/ (not the list itself)"
+#   fallback  for moves that depend on what exists: where it goes until the new page exists (only accepted
+#             with --allow-fallback; at cutover every one of these must reach its real page)
+#   layer     who answers it: nginx = Nginx alone, no PHP needed (fast); php = WordPress, because the answer depends
+#             on what exists; page = an address that is simply a page. The test stack stops PHP and requires every
+#             nginx row to still work, so a gap in the Nginx rules cannot hide behind the PHP safety net
+#   note      free text, no commas
+path,status,location,fallback,layer,note
+/,stays,,,page,home page
+/new-here/,stays,,,page,page kept
+/about-us/,stays,,,page,page kept
+/kids/,stays,,,page,page kept
+/giving/,stays,,,page,page kept
+/contact/,stays,,,page,page kept
+/resources/,stays,,,page,page kept
+/small-groups/,stays,,,page,page address kept (rebuilt or removed with staff)
+/events-2/,301,/events/,,nginx,events moved to /events/
+/events-2/kids-event/,301,/events/,,nginx,template filler event
+/events-2/family-event/,301,/events/,,nginx,template filler event
+/events-2/youth-event/,301,/events/,,nginx,template filler event
+/events-2/worship-night/,301,/events/,,nginx,template filler event
+/events-2/baptism-sunday/,301,/events/,,nginx,template filler event
+/events-2/movie-night/,301,/events/,,nginx,template filler event
+/small-groups/mens-group/,301,/small-groups/,,nginx,template filler group
+/small-groups/womens-group/,301,/small-groups/,,nginx,template filler group
+/small-groups/young-adults-group/,301,/small-groups/,,nginx,template filler group
+/small-groups/single-mens-group/,301,/small-groups/,,nginx,template filler group
+/small-groups/single-womens-group/,301,/small-groups/,,nginx,template filler group
+/small-groups/local-outreach-group/,301,/small-groups/,,nginx,template filler group
+/news/,301,/blog/,,nginx,old blog index
+/news/our-year-in-review/,301,/blog/,,nginx,old template post
+/news/world-missions/,301,/blog/,,nginx,old template post
+/news/faith-over-fear/,301,/blog/,,nginx,old template post
+/news/biblical-giving/,301,/blog/,,nginx,old template post
+/sermons-t/,301,/sermons/,,nginx,sermon list
+/sermons-t/pentecost-promised-proclaimed-and-practiced/,301,/sermons/*,/sermons/,php,sermon (new page or legacy slug)
+/sermons-t/gods-messenger-malachi-31-4/,301,/sermons/*,/sermons/,php,sermon (new page or legacy slug)
+/sermons-t/vision-sunday-2-living-out-our-mission/,301,/sermons/*,/sermons/,php,sermon (new page or legacy slug)
+/sermons-t/vision-sunday-1-living-out-our-mission/,301,/sermons/*,/sermons/,php,sermon (new page or legacy slug)
+/sermons-t/u_speaker/todd-olson/,301,/sermons/speaker/todd-olson/,/sermons/,php,speaker
+/sermons-t/u_speaker/cindy-olson/,301,/sermons/speaker/cindy-olson/,/sermons/,php,speaker
+/sermons-t/u_speaker/rob-hammann/,301,/sermons/speaker/rob-hammann/,/sermons/,php,speaker
+/sermons-t/u_speaker/floyd-ware/,301,/sermons/speaker/floyd-ware/,/sermons/,php,speaker
+/sermons-t/category/holiness-in-the-house-a-study-in-titus/,301,/sermons/series/holiness-in-the-house-a-study-in-titus/,/sermons/,php,current series
+/sermons-t/u_topic/holiness/,410,,,nginx,empty topic archive (72 of these)
+/sermons-t/u_topic/community/,410,,,nginx,empty topic archive
+/sermons-t/u_topic/holy-spirit/,410,,,nginx,empty topic archive
+/sermons-t/u_scripture/genesis/,410,,,nginx,empty scripture archive (67 of these)
+/sermons-t/u_scripture/john/,410,,,nginx,empty scripture archive
+/sermons-t/u_scripture/acts-1-3/,410,,,nginx,empty scripture archive
+/events-2/category/kids/,410,,,nginx,empty event category (8 of these)
+/events-2/category/uncategorized/,410,,,nginx,empty event category
+/events-2/tag/family/,410,,,nginx,empty event tag (27 of these)
+/events-2/tag/youth/,410,,,nginx,empty event tag
+/small-groups/tag/men/,410,,,nginx,empty group tag (17 of these)
+/small-groups/category/ministry/,410,,,nginx,empty group category (6 of these)
+/small-groups/u_group-details/example-group/,410,,,nginx,template demo data (4 of these)
