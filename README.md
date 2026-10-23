@@ -15,6 +15,7 @@ wp-content/
 plugins.txt                  Third-party plugins and pinned versions (installed by WP-CLI)
 scripts/
   install-plugins.sh         Install/update the plugins in plugins.txt
+  build-brand-assets.sh      Rebuild the SVG logos/icons and favicons from docs/branding/source/
 deploy/
   deploy.sh                  Run on the server by GitHub Actions
   nginx.conf.example         Nginx server block with FastCGI page cache
@@ -54,6 +55,7 @@ docker run --rm -v "$PWD":/work:ro ubuntu:24.04 bash /work/deploy/tests/ci-deplo
 deploy/tests/wp-integration.sh    # real WordPress + Two Factor + pn-security.php, real logins (needs network)
 deploy/tests/nginx-config.sh      # staging Nginx config in Nginx 1.24: blocked files, headers, login throttle
 deploy/tests/theme-check.sh       # real WordPress + parent theme + ours: brand colors, fonts, contrast (see docs/design-system.md)
+deploy/tests/brand-assets-check.sh # logos and icons: exact colors, safe SVGs, match the designer's masters, favicon set
 ```
 
 Third-party GitHub Actions are pinned to full commit SHAs; update them deliberately.

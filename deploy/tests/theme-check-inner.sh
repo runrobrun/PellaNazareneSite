@@ -72,6 +72,19 @@ for f in normal italic; do
   [[ "$code" == "200" && "$magic" == "wOF2" && "$size" -gt 20000 ]] && ok "$f font is served ($size bytes, valid WOFF2)" || bad "$f font: HTTP $code, $size bytes, magic '$magic'"
 done
 
+echo "== 3a. Brand icon (browser tab, bookmarks, phone home screen)"
+has "page links the ICO favicon"        "$HTML" "assets/images/favicon.ico"
+has "page links the SVG icon"           "$HTML" "assets/images/icon.svg"
+has "page links the Apple touch icon"   "$HTML" "assets/images/apple-touch-icon.png"
+lacks "no WordPress default site-icon request" "$HTML" "w-logo-blue"
+magic() { curl -s "$1" | head -c "$2" | od -An -tx1 | tr -d ' \n'; }
+for spec in "favicon.ico:4:00000100" "apple-touch-icon.png:4:89504e47" "icon.svg:4:3c737667"; do
+  f="${spec%%:*}"; rest="${spec#*:}"; n="${rest%%:*}"; want="${rest##*:}"
+  code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE/wp-content/themes/pella-nazarene/assets/images/$f")"
+  expect_eq "$f is served and is the right kind of file" "$code $(magic "$BASE/wp-content/themes/pella-nazarene/assets/images/$f" "$n")" "200 $want"
+done
+echo "       (on a site with an icon chosen in WordPress, that icon wins and these links are skipped)"
+
 echo "== 3b. Component styles"
 has "headings get breathing room above (beats WordPress's block-gap rule)" "$ALLCSS" "h2.wp-block-heading:not(:first-child){margin-block-start:2.5rem}"
 has "buttons are navy"                  "$(grep -o '\.wp-block-button__link){[^}]*}' <<<"$ALLCSS" | head -1)" "background-color:var(--wp--preset--color--accent-3)"

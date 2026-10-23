@@ -65,3 +65,23 @@ add_filter(
 		return new WP_Theme_JSON_Data( $data, 'default' );
 	}
 );
+
+/**
+ * Print the browser-tab, bookmark, and phone home-screen icon links: the brand symbol, shipped with the
+ * theme. An icon an administrator chooses under Appearance > Customize > Site Identity still wins.
+ *
+ * @return void
+ */
+function pn_print_site_icons(): void {
+	if ( has_site_icon() ) {
+		return;
+	}
+	printf(
+		'<link rel="icon" href="%1$s" sizes="any">' . "\n" . '<link rel="icon" href="%2$s" type="image/svg+xml">' . "\n" . '<link rel="apple-touch-icon" href="%3$s">' . "\n",
+		esc_url( get_theme_file_uri( 'assets/images/favicon.ico' ) ),
+		esc_url( get_theme_file_uri( 'assets/images/icon.svg' ) ),
+		esc_url( get_theme_file_uri( 'assets/images/apple-touch-icon.png' ) )
+	);
+}
+add_action( 'wp_head', 'pn_print_site_icons', 2 );
+add_action( 'login_head', 'pn_print_site_icons' );
