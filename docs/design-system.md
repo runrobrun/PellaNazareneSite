@@ -41,6 +41,15 @@ Heading sizes are fluid (they shrink on phones): `h1` 32 to 52 px, `h2` 26 to 36
 - **Quote:** large text with a navy rule on the left.
 - **Callout / section background:** use the 8% tint (`accent-2`) with black or navy text.
 
+## Header, footer, and templates
+
+- **Header** (`patterns/header.php`, used by `parts/header.html`): the primary logo (220 px, shrinking to 150 px on phones; explicit width and height so nothing jumps while it loads), the main menu (**New Here, About Us, Sermons, Events, Kids, Giving, Contact**) and a **Plan a Visit** button that links to New Here. On phones the menu collapses to a hamburger with a full-screen panel; the current page is underlined.
+- **Footer** (`patterns/footer.php`, used by `parts/footer.html`): navy, with the white logo, the mission line, **Facebook, Instagram, and YouTube** icons, a "Visit us" column (the `service-info` part: service times, address, tap-to-call phone, email, office hours) and an "Explore" menu (Plan a Visit, Resources, Blog, Contact), then the copyright line with the current year.
+- **404 page**: a friendly message with Plan a visit, Watch a sermon, and Contact us buttons and a search box.
+- Menu links are built from the site's own address, so staging links to staging and production to production. **Until the pages exist (MIG-3), menu items other than Sermons lead to the 404 page.**
+- **Edit these in the repo, not in the Site Editor.** Saving a change in the Site Editor stores a copy in the database that then overrides the theme's file and stops future updates from showing up.
+- Skip-to-content link, `header`/`nav`/`main`/`footer` landmarks, and two labelled menus (Primary, Footer) come with it.
+
 ## Logo and icons
 
 Web versions live in `wp-content/themes/pella-nazarene/assets/images/` as **SVG** (crisp at any size, 1 to 14 KB each). They are built from the designer's PNG masters in `docs/branding/source/` by `scripts/build-brand-assets.sh`, which refuses to produce a shape that strays from its master: 99.9% of every outline must be within 1.5 px and no point more than 3 px away (measured: within 1.0 px for 99.9%, worst point 2 px, at 1000 to 3000 px canvases). Use them as `get_theme_file_uri( 'assets/images/<file>' )`, always with `width`/`height` attributes and meaningful `alt` text.
@@ -69,14 +78,15 @@ The mission icons also come as a white glyph on a navy rounded square (`docs/bra
 
 ## Not done yet
 
-- **Header, footer, navigation, templates** are still the parent theme's (FE-2, now unblocked by the logo files). Its footer links (Blog, Shop, Patterns...) are placeholders.
+- **Page templates beyond the 404** (home page layout, About, New Here, Kids...) are built with the content (MIG-3). Single pages and posts still use the parent theme's layout. Its footer links (Blog, Shop, Patterns...) are placeholders.
 - **Parent theme's block styles** ("Display", "Subtitle", "Annotation", "Pill shaped", "Style 1 to 5") are still in the editor. They pick up the brand colors, but "Subtitle" overlaps with our "Subheading". Review in FE-2.
 - **Font fallback metrics.** When the brand font swaps in over the fallback there can be a small layout shift. Measure in PERF-1 and, if needed, add size-adjusted fallback faces (PERF-3).
 
 ## Checking it
 
 ```bash
-deploy/tests/theme-check.sh                       # real WordPress + the parent theme + ours: 53 checks (colors, fonts, preload, no dangling variables, locked-down options, component styles)
+deploy/tests/a11y-check.sh                        # axe-core in a real browser: WCAG 2.2 AA + best practice, desktop, phone, mobile menu open, 404, search
+deploy/tests/theme-check.sh                       # real WordPress + the parent theme + ours: 101 checks (colors, fonts, preload, no dangling variables, locked-down options, component styles)
 docker run --rm -v "$PWD":/repo:ro php:8.3-cli php /repo/deploy/tests/brand-contrast.php /repo/wp-content/themes/pella-nazarene/theme.json
 deploy/tests/brand-assets-check.sh                # logos and icons: exact colors, safe SVGs, match the masters, favicon set
 scripts/build-brand-assets.sh                     # rebuild the SVGs and favicons if the masters ever change

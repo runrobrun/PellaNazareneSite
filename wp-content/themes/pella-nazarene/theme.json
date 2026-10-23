@@ -297,9 +297,19 @@
         }
       }
     },
-    "css": ":where(.is-layout-flow, .is-layout-constrained) > h2.wp-block-heading:not(:first-child){margin-block-start:2.5rem}:where(.is-layout-flow, .is-layout-constrained) > h3.wp-block-heading:not(:first-child){margin-block-start:2rem}.wp-block-button.is-style-outline .wp-block-button__link:hover{background-color:var(--wp--preset--color--accent-2);color:var(--wp--preset--color--primary-dark)}"
+    "css": ":where(.is-layout-flow, .is-layout-constrained) > h2.wp-block-heading:not(:first-child){margin-block-start:2.5rem}:where(.is-layout-flow, .is-layout-constrained) > h3.wp-block-heading:not(:first-child){margin-block-start:2rem}.wp-block-button.is-style-outline .wp-block-button__link:hover{background-color:var(--wp--preset--color--accent-2);color:var(--wp--preset--color--primary-dark)}.pn-header{border-bottom:1px solid var(--wp--preset--color--accent-1)}.pn-logo{display:inline-block;line-height:0}.pn-logo img{display:block;height:auto;width:clamp(150px,22vw,220px)}.pn-footer .pn-logo img{width:200px}.pn-header .wp-block-navigation-item__content{padding:.6rem .5rem}.pn-header .wp-block-navigation-item__content:hover{text-decoration:underline}.pn-header .wp-block-navigation-item__content[aria-current=\"page\"]{text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:.4em}.pn-header .pn-cta>.wp-block-navigation-item__content{background:var(--wp--preset--color--accent-3);color:var(--wp--preset--color--base);border-radius:8px;padding:.7rem 1.25rem;font-weight:800;text-decoration:none}.pn-header .pn-cta>.wp-block-navigation-item__content:hover{background:var(--wp--preset--color--primary-dark);color:var(--wp--preset--color--base);text-decoration:none}.pn-header a:focus-visible{outline:3px solid var(--wp--preset--color--accent-3);outline-offset:3px}.pn-footer a:focus-visible{outline:3px solid currentColor;outline-offset:3px}.pn-footer a{color:var(--wp--preset--color--base)}.pn-footer a:hover{color:var(--wp--preset--color--accent-1)}.pn-footer .pn-service-info{font-size:var(--wp--preset--font-size--medium)}.pn-footer .pn-copyright{color:var(--wp--preset--color--accent-1)}.pn-footer-bottom{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid color-mix(in srgb,currentColor 25%,transparent)}"
   },
   "templateParts": [
+    {
+      "name": "header",
+      "title": "Header",
+      "area": "header"
+    },
+    {
+      "name": "footer",
+      "title": "Footer",
+      "area": "footer"
+    },
     {
       "name": "service-info",
       "title": "Service info",

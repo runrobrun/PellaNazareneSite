@@ -155,11 +155,10 @@ Designer's PNG masters kept in `docs/branding/source/`; traced to SVG (worst edg
 ### FE-1c Black logo versions · S · review
 Pure-black primary and Lighthouse Student Ministry logos received and built as `logo-primary-black.svg` and `logo-lighthouse-black.svg`. The tracing check was tightened to a fairer rule (99.9% of the outline within 1.5 px, worst point within 3 px), and the build now traces the full canvas, which also made the other assets slightly more accurate. Note for the designer (optional): the black Lighthouse file has its two text lines 2 and 4 px closer together than the navy one; the symbol is identical.
 
-### FE-2 Core templates and navigation · M · todo
-**Decisions (2026-10-23):** the header has one prominent button, **Plan a Visit**; Giving stays in the main menu. The header uses FE-1b's supplied logo assets; no stand-in wordmark.
-**Logo assets are complete for the header** (primary in navy, white, and black; symbol in navy and white; see `docs/design-system.md`). Minimum display width is 100 px. **Still wanted from the church for the footer:** the Facebook, Instagram, and YouTube page URLs.
-Work can start now: header and footer template parts, navigation, 404, search, and the page templates. Brand colors, type, and component styles already exist (FE-1, `docs/design-system.md`).
-Home, page, post, 404, search, header and footer parts (service times, address, contact in `parts/service-info.html`), responsive menu.
+### FE-2 Core templates and navigation · M · review
+Header (logo, 7-item menu, **Plan a Visit** button, hamburger on phones), footer (white logo, mission, Facebook/Instagram/YouTube, service times and contact via `service-info`, links, copyright), and a friendly 404 with search; skip link and landmarks; documented in `docs/design-system.md`. Tested in real WordPress (`theme-check.sh`: 101 checks) and with axe-core in a real browser (`a11y-check.sh`: 0 violations on home desktop, phone, **mobile menu open**, 404, and search); each check was shown to fail when its part was deliberately broken.
+- Menu links go to pages that don't exist yet; they work as the pages are built (MIG-3). Page layouts for the real content (home, New Here, About, Kids...) come with that content.
+- Still to do in the story's spirit: a search template restyle and blog/archive layouts when the blog has posts (FEAT-7); revisit the parent's extra block styles.
 
 ### FE-3 Staff and ministry pages · S · todo
 Use `patterns/staff-member.php`; pages for pastors, ministries, and "I'm new" visitor information.

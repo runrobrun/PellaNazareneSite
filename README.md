@@ -43,7 +43,7 @@ npx @wordpress/env stop
 
 ## Checks
 
-CI (`.github/workflows/ci.yml`) runs on every push and pull request: PHP syntax, WordPress coding standards (PHPCS, config in `phpcs.xml.dist`), ShellCheck on `scripts/` and `deploy/`, tests of the CI deploy wrapper (stubbed, no server), a real-WordPress test of the security plugin, a brand-theme test, an Nginx config test, and a gitleaks secret scan. Run the same checks locally with Docker (nothing to install):
+CI (`.github/workflows/ci.yml`) runs on every push and pull request: PHP syntax, WordPress coding standards (PHPCS, config in `phpcs.xml.dist`), ShellCheck on `scripts/` and `deploy/`, tests of the CI deploy wrapper (stubbed, no server), a real-WordPress test of the security plugin, a brand-theme test, an accessibility test (axe), an Nginx config test, and a gitleaks secret scan. Run the same checks locally with Docker (nothing to install):
 
 ```bash
 docker run --rm -v "$PWD":/app -w /app composer:2 install            # once; tooling comes from composer.lock
@@ -55,6 +55,7 @@ docker run --rm -v "$PWD":/work:ro ubuntu:24.04 bash /work/deploy/tests/ci-deplo
 deploy/tests/wp-integration.sh    # real WordPress + Two Factor + pn-security.php, real logins (needs network)
 deploy/tests/nginx-config.sh      # staging Nginx config in Nginx 1.24: blocked files, headers, login throttle
 deploy/tests/theme-check.sh       # real WordPress + parent theme + ours: brand colors, fonts, contrast (see docs/design-system.md)
+deploy/tests/a11y-check.sh          # axe-core in a real browser: WCAG 2.2 AA, desktop/phone/mobile menu open/404/search
 deploy/tests/brand-assets-check.sh # logos and icons: exact colors, safe SVGs, match the designer's masters, favicon set
 ```
 
