@@ -2,7 +2,7 @@
 # Runs INSIDE a wordpress:cli container (see a11y-check.sh): real WordPress + Twenty Twenty-Five + our theme,
 # the "Brand check" fixture page as the home page, served on port 8080 for a browser container to visit.
 # Writes /tmp/ready when the site is up. Throwaway.
-set -uo pipefail
+set -euo pipefail
 W=/tmp/wp; mkdir -p "$W"; cd "$W" || exit 1
 wp() { php -d memory_limit=512M /usr/local/bin/wp "$@"; }
 wp core download --quiet >/dev/null
