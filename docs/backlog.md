@@ -117,7 +117,7 @@ Bring over only the ~35 images needed, from `pellanazarene.org/mt-content/upload
 - Logo: **received 2026-10-23** (primary and symbol in navy and white as PNG masters, plus Lighthouse Student Ministry); web SVGs built under FE-1b. Black versions of the primary and Lighthouse logos followed (FE-1c).
 - Record the licensing status of each stock photo kept.
 
-### MIG-6 Sermons: import from YouTube instead of the old site · M · todo · needs INF-2
+### MIG-6 Sermons: import from YouTube instead of the old site · M · in review (code and tests done; the real import waits for the YouTube API key, see docs/sermons.md) · needs INF-2
 The old site has only 4 sermons; the YouTube channel (@pellanazarene) is the real archive. Do not migrate sermon posts from the old site.
 - Backfill with the YouTube Data API `playlistItems.list` on the uploads playlist (the RSS feed returns only the latest 15). Idempotent; no duplicates on re-run.
 - Create speaker terms: Todd Olson, Cindy Olson, Rob Hammann, Floyd Ware (link each to a WP user where applicable).

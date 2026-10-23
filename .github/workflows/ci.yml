@@ -71,6 +71,24 @@ jobs:
       - name: Two-factor enforcement and username-leak tests
         run: deploy/tests/wp-integration.sh
 
+  sermons:
+    name: Sermon import tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The parser that reads YouTube titles and descriptions, on real examples (pure PHP, no WordPress).
+      - name: Sermon parser tests
+        run: docker run --rm -v "$PWD":/repo:ro php:8.3-cli php /repo/deploy/tests/sermon-parser-test.php
+
+      # The whole backfill against real WordPress and a fake YouTube: pagination, skips, drafts, duplicates,
+      # re-runs, old-address redirects, failures, and that the API key never appears anywhere.
+      - name: Sermon import tests
+        run: deploy/tests/sermon-import-check.sh
+
   theme:
     name: Brand theme tests
     runs-on: ubuntu-24.04

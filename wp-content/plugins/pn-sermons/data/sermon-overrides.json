@@ -1,0 +1,40 @@
+{
+	"_about": "Hand-written details for specific videos, matched by YouTube ID or by service date. These are the sermons that existed on the old website: the real description, the old address (so old links still work, see docs/redirects.md), and the speaker. A key starting with an underscore is a comment.",
+	"overrides": [
+		{
+			"match": { "youtube_id": "Nll1UzWZHQA" },
+			"title": "Pentecost Promised, Proclaimed, and Practiced",
+			"slug": "pentecost-promised-proclaimed-and-practiced",
+			"legacy_slug": "pentecost-promised-proclaimed-and-practiced",
+			"speaker": "Rob Hammann",
+			"scripture": "Acts 1–3",
+			"description": "In Acts 1–3, we see Pentecost promised, proclaimed, and practiced. This message explores how the Holy Spirit was not poured out merely for a moment to celebrate, but for a life to live—empowering believers to witness boldly, love authentically, pray faithfully, and embody the presence of Jesus in everyday life.",
+			"status": "publish"
+		},
+		{
+			"match": { "youtube_id": "3JdIij39S2g" },
+			"title": "God's Messenger",
+			"slug": "gods-messenger-malachi-3-1-4",
+			"legacy_slug": "gods-messenger-malachi-31-4",
+			"speaker": "Rob Hammann",
+			"scripture": "Malachi 3:1-4",
+			"status": "publish"
+		},
+		{
+			"match": { "service_date": "2023-05-07" },
+			"title": "Vision Sunday 1: Living Out Our Mission",
+			"slug": "vision-sunday-1-living-out-our-mission",
+			"legacy_slug": "vision-sunday-1-living-out-our-mission",
+			"speaker": "Rob Hammann",
+			"status": "publish"
+		},
+		{
+			"match": { "service_date": "2023-05-14" },
+			"title": "Vision Sunday 2: Living Out Our Mission",
+			"slug": "vision-sunday-2-living-out-our-mission",
+			"legacy_slug": "vision-sunday-2-living-out-our-mission",
+			"speaker": "Rob Hammann",
+			"status": "publish"
+		}
+	]
+}
