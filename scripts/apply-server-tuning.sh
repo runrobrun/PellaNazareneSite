@@ -17,6 +17,8 @@ sudo -n true || { echo "deploy needs passwordless sudo." >&2; exit 1; }
 FILES=(
 	"deploy/nginx/pn-performance.conf:/etc/nginx/conf.d/pn-performance.conf"
 	"deploy/nginx/pn-security.conf:/etc/nginx/conf.d/pn-security.conf"
+	"deploy/nginx/pn-redirects.conf:/etc/nginx/conf.d/pn-redirects.conf"
+	"deploy/nginx/pn-redirects-server.conf:/etc/nginx/snippets/pn-redirects-server.conf"
 	"deploy/nginx/pn-security-headers.conf:/etc/nginx/snippets/pn-security-headers.conf"
 	"deploy/nginx/pn-fastcgi-cache.conf:/etc/nginx/snippets/pn-fastcgi-cache.conf"
 	"deploy/php/pn-pool.conf:$POOL_DIR/pn.conf"

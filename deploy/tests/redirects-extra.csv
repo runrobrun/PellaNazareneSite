@@ -1,0 +1,20 @@
+# Extra cases only the test stack can check (it controls what exists). Same columns as deploy/redirects/expected.csv.
+path,status,location,fallback,layer,note
+/sermons-t/no-such-sermon/,301,/sermons/,,php,unknown sermon goes to the list
+/sermons-t/u_speaker/nobody-by-this-name/,301,/sermons/,,php,unknown speaker goes to the list
+/sermons-t/category/no-such-series/,301,/sermons/,,php,unknown series goes to the list
+/sermons-t/category/,301,/sermons/,,php,category index goes to the list
+/sermons-t/old-title-with-a-different-slug/,301,/sermons/the-new-title/,,php,found through its recorded legacy slug
+/Events-2/,301,/events/,,nginx,upper case
+/events-2,301,/events/,,nginx,no trailing slash
+/sermons-t,301,/sermons/,,nginx,no trailing slash
+/events-2/?page=2,301,/events/,,nginx,query string is dropped
+/news/2021/01/some-old-post/,301,/blog/,,nginx,deep old news path
+/sermons-tx/,stays,,,page,must NOT match /sermons-t
+/news-and-notes/,stays,,,page,must NOT match /news
+/events-2x/,stays,,,page,must NOT match /events-2
+/small-groups-archive/,stays,,,page,must NOT match /small-groups/
+/sermons/,stays,,,page,the new sermon list
+/events/,stays,,,page,the new events page
+/blog/,stays,,,page,the new blog
+/sermons-t/draft-sermon/,301,/sermons/,,php,an unpublished sermon must never be revealed

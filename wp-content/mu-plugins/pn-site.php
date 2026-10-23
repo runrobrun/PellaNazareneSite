@@ -119,33 +119,123 @@ add_filter(
  * ---------------------------------------------------------------------------
  * Redirects from the old Ministry Designs URLs
  * ---------------------------------------------------------------------------
- * Nginx can do these too; keeping them here means they travel with the code.
+ * The full list and the expected outcome of each URL: deploy/redirects/expected.csv (checked by
+ * scripts/check-redirects.sh). Nginx answers the fixed rules before PHP runs (deploy/nginx/pn-redirects.conf);
+ * the same fixed rules are repeated here as a safety net for local development, and the rules that depend on
+ * what exists (a sermon, a speaker, a series) can only be answered here.
  */
+
+/**
+ * What to do with a request for an old Ministry Designs URL.
+ *
+ * @param string $path The URL path without the leading and trailing slash, e.g. "sermons-t/u_speaker/rob-hammann".
+ * @return array{status:int,url?:string}|null Null if it is not an old URL.
+ */
+function pn_legacy_url_action( string $path ): ?array {
+	// Archives that never had any content: gone for good (HTTP 410), so search engines drop them quickly.
+	if ( preg_match( '#^(?:sermons-t/(?:u_topic|u_scripture)|events-2/(?:category|tag)|small-groups/(?:tag|category|u_group-details))(?:/|$)#i', $path ) ) {
+		return array( 'status' => 410 );
+	}
+
+	// Old sections with a fixed replacement.
+	$fixed = array(
+		'#^events-2(?:/.*)?$#i' => '/events/',
+		'#^news(?:/.*)?$#i'     => '/blog/',
+		'#^sermons-t/?$#i'      => '/sermons/',
+		'#^small-groups/.+$#i'  => '/small-groups/',
+	);
+	foreach ( $fixed as $pattern => $target ) {
+		if ( preg_match( $pattern, $path ) ) {
+			return array(
+				'status' => 301,
+				'url'    => home_url( $target ),
+			);
+		}
+	}
+
+	// Sermons, speakers, and series: go to the new page if it exists, otherwise to the sermons list, so a
+	// visitor is never sent from one missing page to another.
+	$fallback = array(
+		'status' => 301,
+		'url'    => home_url( '/sermons/' ),
+	);
+	$term_url = static function ( string $slug, string $taxonomy ) {
+		$term = get_term_by( 'slug', sanitize_title( $slug ), $taxonomy );
+		$url  = $term ? get_term_link( $term ) : '';
+		return is_string( $url ) ? $url : '';
+	};
+
+	if ( preg_match( '#^sermons-t/u_speaker/([^/]+)/?$#i', $path, $m ) ) {
+		$url = $term_url( $m[1], 'pn_speaker' );
+		return '' !== $url ? array(
+			'status' => 301,
+			'url'    => $url,
+		) : $fallback;
+	}
+	if ( preg_match( '#^sermons-t/category/([^/]+)/?$#i', $path, $m ) ) {
+		$url = $term_url( $m[1], 'pn_series' );
+		return '' !== $url ? array(
+			'status' => 301,
+			'url'    => $url,
+		) : $fallback;
+	}
+	if ( preg_match( '#^sermons-t/category(?:/.*)?$#i', $path ) ) {
+		return $fallback;
+	}
+	if ( preg_match( '#^sermons-t/([^/]+)/?$#i', $path, $m ) ) {
+		$slug  = sanitize_title( $m[1] );
+		$found = get_posts(
+			array(
+				'post_type'      => 'pn_sermon',
+				'post_status'    => 'publish',
+				'name'           => $slug,
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			)
+		);
+		if ( ! $found ) {
+			// The sermon importer records a sermon's old address here when its new slug differs.
+			$found = get_posts(
+				array(
+					'post_type'      => 'pn_sermon',
+					'post_status'    => 'publish',
+					'meta_key'       => 'pn_legacy_slug', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- only runs for a request that is already a 404 for an old URL.
+					'meta_value'     => $slug, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- same.
+					'posts_per_page' => 1,
+					'fields'         => 'ids',
+					'no_found_rows'  => true,
+				)
+			);
+		}
+		return $found ? array(
+			'status' => 301,
+			'url'    => get_permalink( $found[0] ),
+		) : $fallback;
+	}
+	return null;
+}
+
 add_action(
 	'template_redirect',
 	function () {
 		if ( ! is_404() ) {
 			return;
 		}
-		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
-		$path = trim( (string) wp_parse_url( $uri, PHP_URL_PATH ), '/' );
-
-		$map = array(
-			'#^events-2(/.*)?$#'                => '/events/',
-			'#^sermons-t/(u_topic|u_scripture|category)(/.*)?$#' => '/sermons/',
-			'#^sermons-t/u_speaker/([^/]+)/?$#' => '/sermons/speaker/$1/',
-			'#^sermons-t/([^/]+)/?$#'           => '/sermons/$1/',
-			'#^sermons-t/?$#'                   => '/sermons/',
-			'#^news(/.*)?$#'                    => '/blog/',
-			'#^small-groups/.+$#'               => '/small-groups/',
-		);
-
-		foreach ( $map as $pattern => $target ) {
-			if ( preg_match( $pattern, $path ) ) {
-				wp_safe_redirect( home_url( preg_replace( $pattern, $target, $path ) ), 301 );
-				exit;
-			}
+		$uri    = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+		$path   = trim( (string) wp_parse_url( $uri, PHP_URL_PATH ), '/' );
+		$action = pn_legacy_url_action( $path );
+		if ( ! $action ) {
+			return;
 		}
+		if ( 410 === $action['status'] ) {
+			// The theme's friendly "not found" page is shown, with the honest status.
+			status_header( 410 );
+			nocache_headers();
+			return;
+		}
+		wp_safe_redirect( $action['url'], 301 );
+		exit;
 	}
 );
 

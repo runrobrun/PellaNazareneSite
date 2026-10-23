@@ -135,6 +135,7 @@ The old site has only 4 sermons; the YouTube channel (@pellanazarene) is the rea
 Do not migrate: the 4 old blog posts (dated 2021-01-27, one mentions "Omega Church"; the new blog starts empty, see FEAT-7), the News index, the 6 event pages, the 6 group pages, and all empty taxonomy archives. Verify nothing from the filler (demo names, Lorem ipsum, "Omega Church") appears on staging before launch with a grep of the database.
 
 ### MIG-9 Production cutover plan and execution · M · todo · needs everything above
+**Add to the checklist (from MIG-2):** run `scripts/check-redirects.sh https://pellanazarene.org --pages-must-exist` with no `--allow-fallback`; first confirm `/events/`, `/blog/`, and `/small-groups/` exist.
 - Written cutover checklist: content freeze, DNS switch, cache purge, smoke tests, rollback plan.
 - Old site kept intact for a defined period after cutover.
 - Search Console: sitemap submitted, 404s monitored for two weeks.

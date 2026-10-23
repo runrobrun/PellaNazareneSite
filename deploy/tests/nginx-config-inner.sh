@@ -23,9 +23,9 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=$D" \
   -keyout "/etc/letsencrypt/live/$D/privkey.pem" -out "/etc/letsencrypt/live/$D/fullchain.pem" >/dev/null 2>&1
 printf 'church:%s\n' "$(openssl passwd -apr1 secret)" > /etc/nginx/htpasswd-staging
 
-cp /repo/deploy/nginx/pn-performance.conf /repo/deploy/nginx/pn-security.conf /etc/nginx/conf.d/
+cp /repo/deploy/nginx/pn-performance.conf /repo/deploy/nginx/pn-security.conf /repo/deploy/nginx/pn-redirects.conf /etc/nginx/conf.d/
 echo "fastcgi_cache_path /var/cache/nginx/t levels=1:2 keys_zone=PELLA_STG:8m inactive=60m max_size=64m;" > /etc/nginx/conf.d/pn-staging-cache.conf
-cp /repo/deploy/nginx/pn-security-headers.conf /repo/deploy/nginx/pn-fastcgi-cache.conf /etc/nginx/snippets/
+cp /repo/deploy/nginx/pn-security-headers.conf /repo/deploy/nginx/pn-fastcgi-cache.conf /repo/deploy/nginx/pn-redirects-server.conf /etc/nginx/snippets/
 rm -f /etc/nginx/sites-enabled/default
 sed -e "s|@DOMAIN@|$D|g" -e "s|@WEBROOT@|$ROOT|g" /repo/deploy/nginx/staging.conf.template > /etc/nginx/sites-enabled/staging.conf
 
