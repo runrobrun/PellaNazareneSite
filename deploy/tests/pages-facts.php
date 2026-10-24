@@ -95,7 +95,7 @@ foreach ( $pages as $path => list( $title, $h1, $musts ) ) {
 		check( "$path photo $name has srcset and sizes", '' !== $img->getAttribute( 'srcset' ) && '' !== $img->getAttribute( 'sizes' ), 'not responsive' );
 		check( "$path photo $name is from our own site", str_starts_with( $src, $base . '/' ) || str_starts_with( $src, '/' ), $src );
 		// A photo drawn in half a column must not be offered at full-page size: sizes follows the layout.
-		$want = array( 'pn-photo--hero' => '(max-width: 781px) 100vw, 580px', 'pn-photo--col' => '(max-width: 781px) 100vw, 340px', 'pn-photo--avatar' => '(max-width: 781px) 30vw, 216px' );
+		$want = array( 'pn-photo--hero' => '(max-width: 781px) 100vw, 340px', 'pn-photo--col' => '(max-width: 781px) 100vw, 340px', 'pn-photo--avatar' => '(max-width: 781px) 100vw, 216px' );
 		foreach ( $want as $cls => $sizes ) {
 			if ( false !== strpos( (string) $img->parentNode->getAttribute( 'class' ), $cls ) ) {
 				check( "$path photo $name sizes match its layout ($cls)", $sizes === preg_replace( '/^auto,\s*/', '', $img->getAttribute( 'sizes' ) ), "sizes='" . $img->getAttribute( 'sizes' ) . "'" );
@@ -180,12 +180,13 @@ foreach ( $expected_photos as $path => $n ) {
 	$found = dom( $html_of[ $path ] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->length;
 	check( "$path shows $n photo(s)", $n === $found, "$found found" );
 }
-check( 'Home preloads the hero photo with its srcset', (bool) preg_match( '#<link rel="preload" as="image" href="[^"]+home-hero[^"]*" imagesrcset="[^"]+" imagesizes="[^"]+" fetchpriority="high">#', $html_of['/'] ), 'no hero preload' );
+check( 'Home preloads the hero photo with its srcset', (bool) preg_match( '#<link rel="preload" as="image" href="[^"]+" imagesrcset="[^"]+" imagesizes="[^"]+" fetchpriority="high">#', $html_of['/'] ), 'no hero preload' );
 foreach ( array( '/new-here/', '/about-us/', '/kids/' ) as $path ) {
 	check( "$path does not preload an image", false === strpos( $html_of[ $path ], 'rel="preload" as="image"' ), 'preload on a page without the hero' );
 }
 $hero_img = dom( $html_of['/'] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->item( 0 );
 $hero_src = (string) $hero_img?->getAttribute( 'src' );
+$hero_preload = dom( $html_of['/'] )->query( '//head/link[@rel="preload"][@as="image"]' )->item( 0 );
 check( 'Hero is fetched first (fetchpriority high)', 'high' === $hero_img?->getAttribute( 'fetchpriority' ), 'fetchpriority=' . $hero_img?->getAttribute( 'fetchpriority' ) );
 $ctx      = stream_context_create( array( 'http' => array( 'ignore_errors' => true, 'timeout' => 30 ) ) );
 $bytes    = (string) @file_get_contents( $hero_src, false, $ctx );
@@ -198,6 +199,7 @@ foreach ( (array) ( $http_response_header ?? array() ) as $line ) {
 check( 'Hero photo is served as WebP', 'image/webp' === $ctype && 'RIFF' === substr( $bytes, 0, 4 ) && 'WEBP' === substr( $bytes, 8, 4 ), "type '$ctype'" );
 check( 'Hero photo is under 250 KB', strlen( $bytes ) > 0 && strlen( $bytes ) < 250 * 1024, strlen( $bytes ) . ' bytes' );
 $srcset = (string) $hero_img?->getAttribute( 'srcset' );
+check( 'Hero preload matches the rendered hero photo', $hero_preload && $hero_src === $hero_preload->getAttribute( 'href' ) && $srcset === $hero_preload->getAttribute( 'imagesrcset' ), 'preload does not match the hero image' );
 check( 'Hero offers several sizes', substr_count( $srcset, ' ' ) >= 5, $srcset );
 preg_match( '/ (\d+)w/', $srcset, $first_w );
 check( 'Hero has a small size for phones (600px or less)', (bool) preg_match( '/ ([1-5]\d\d|600)w/', $srcset ), 'smallest sizes missing' );

@@ -50,13 +50,27 @@ case "${BREAK:-}" in
 	hardcolor)   break_it $T/patterns/page-kids.php '<p class="is-style-subheading">Your kids' '<p class="is-style-subheading" style="color:#ff0000">Your kids' ;;
 	no-header)   break_it $T/templates/archive-pn_sermon.html '{"slug":"header","tagName":"header"}' '{"slug":"header","theme":"twentytwentyfive"}' ;;
 		no-alt)      break_it $T/assets/images/photos/manifest.json '"alt": "Todd Olson, co-pastor"' '"alt": ""' ;;
+	missing-photo) break_it $T/assets/images/photos/manifest.json '"slug": "home-hero"' '"slug": "missing-photo"' ;;
 	no-photos)   break_it $T/functions.php "require_once get_theme_file_path( 'inc/photos.php' );" "" ;;
 	eager-photos) break_it $T/inc/photos.php 'return is_front_page() ? 1 : 0;' 'return 3;' ;;
-	no-preload)  break_it $T/inc/photos.php "\$id = pn_photo_id( 'home-hero' );" "\$id = pn_photo_id( 'nope' );" ;;
+	no-preload)  break_it $T/inc/photos.php "\$id     = pn_front_page_hero_id();" "\$id     = 0;" ;;
 	big-sizes)   break_it $T/inc/photos.php "'col'    => '(max-width: 781px) 100vw, 340px'," "'col'    => ''," ;;
 	same-words)  break_it $T/patterns/page-home.php '>Upcoming events</a>' '>Give online</a>' ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
+
+if [[ "${BREAK:-}" == missing-photo ]]; then
+	echo "== An incomplete photo import does not create or replace pages"
+	wp post create --post_type=page --post_status=publish --post_name=home --post_title="Existing Home" --post_content="Staff edit" --quiet
+	out="$(create --replace home 2>&1 || true)"
+	expect_contains "the missing photo slug is reported" "$out" "Could not load manifest photos: missing-photo"
+	expect_eq "no pages are created after an incomplete import" "$(pages)" "1"
+	expect_eq "an existing page is not replaced" "$(wp post list --post_type=page --name=home --field=post_content)" "Staff edit"
+	echo
+	echo "Passed: $PASS   Failed: $FAIL"
+	[[ $FAIL -eq 0 ]]
+	exit
+fi
 
 echo "== 1. First run creates the seven pages"
 out="$(create)"
@@ -146,6 +160,7 @@ echo "== 5. The pages as visitors see them"
 wp option update page_on_front "$(wp post list --post_type=page --name=about-us --field=ID)" --quiet
 alternate_front="$(curl -s "$BASE/")"
 expect_contains "a staff-selected front page shows its page title" "$alternate_front" '<h1 class="wp-block-post-title">About Us</h1>'
+expect_lacks "a front page without a hero does not preload an image" "$alternate_front" 'rel="preload" as="image"'
 wp option update page_on_front "$home_id" --quiet
 facts="$(php /repo/deploy/tests/pages-facts.php "$BASE" 2>&1)" || setup_fail "page checks crashed: $facts"
 while IFS='|' read -r kind name detail; do

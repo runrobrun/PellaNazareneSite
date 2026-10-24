@@ -83,9 +83,9 @@ function pn_import_photos(): array {
 /** How wide a photo is drawn at desktop width, so phones are not sent more pixels than they need. */
 function pn_photo_sizes( string $variant ): string {
 	$sizes = array(
-		'hero'   => '(max-width: 781px) 100vw, 580px',
+		'hero'   => '(max-width: 781px) 100vw, 340px',
 		'col'    => '(max-width: 781px) 100vw, 340px',
-		'avatar' => '(max-width: 781px) 30vw, 216px',
+		'avatar' => '(max-width: 781px) 100vw, 216px',
 	);
 	return $sizes[ $variant ] ?? '';
 }
@@ -146,6 +146,33 @@ add_filter(
 	}
 );
 
+/** The attachment ID of the current front page's hero image, or 0 if it has none. */
+function pn_front_page_hero_id(): int {
+	$front_page_id = (int) get_option( 'page_on_front' );
+	if ( ! $front_page_id ) {
+		return 0;
+	}
+	$find_hero = static function ( array $blocks ) use ( &$find_hero ): int {
+		foreach ( $blocks as $block ) {
+			if (
+				'core/image' === ( $block['blockName'] ?? '' )
+				&& ! empty( $block['attrs']['id'] )
+				&& false !== strpos( (string) ( $block['attrs']['className'] ?? '' ), 'pn-photo--hero' )
+			) {
+				return (int) $block['attrs']['id'];
+			}
+			if ( ! empty( $block['innerBlocks'] ) ) {
+				$id = $find_hero( $block['innerBlocks'] );
+				if ( $id ) {
+					return $id;
+				}
+			}
+		}
+		return 0;
+	};
+	return $find_hero( parse_blocks( (string) get_post_field( 'post_content', $front_page_id ) ) );
+}
+
 // WordPress skips lazy-loading for the first three images on every page. Here only the home page's hero loads
 // right away; every other photo waits until it is near the screen.
 add_filter(
@@ -162,14 +189,16 @@ add_action(
 		if ( ! is_front_page() ) {
 			return;
 		}
-		$id = pn_photo_id( 'home-hero' );
-		if ( ! $id ) {
+		$id     = pn_front_page_hero_id();
+		$src    = $id ? wp_get_attachment_image_url( $id, 'large' ) : false;
+		$srcset = $id ? wp_get_attachment_image_srcset( $id, 'large' ) : false;
+		if ( ! $src || ! $srcset ) {
 			return;
 		}
 		printf(
 			'<link rel="preload" as="image" href="%s" imagesrcset="%s" imagesizes="%s" fetchpriority="high">' . "\n",
-			esc_url( (string) wp_get_attachment_image_url( $id, 'large' ) ),
-			esc_attr( (string) wp_get_attachment_image_srcset( $id, 'large' ) ),
+			esc_url( $src ),
+			esc_attr( $srcset ),
 			esc_attr( pn_photo_sizes( 'hero' ) )
 		);
 	},
