@@ -7,7 +7,14 @@
  * Description: The home page. Create the page with scripts/create-pages.sh.
  */
 ?>
-<?php echo pn_photo_block( 'home-hero', 'hero', '21/9' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+<!-- wp:group {"align":"full","className":"pn-hero","layout":{"type":"default"}} -->
+<div class="wp-block-group alignfull pn-hero">
+<?php echo pn_photo_block( 'home-hero', 'hero' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+<!-- wp:heading {"level":1,"className":"pn-hero__title"} -->
+<h1 class="wp-block-heading pn-hero__title">A church in Pella, Iowa</h1>
+<!-- /wp:heading -->
+</div>
+<!-- /wp:group -->
 <!-- wp:group {"align":"wide","backgroundColor":"accent-2","style":{"spacing":{"padding":{"top":"var:preset|spacing|50","bottom":"var:preset|spacing|50","left":"var:preset|spacing|50","right":"var:preset|spacing|50"}}},"layout":{"type":"constrained"}} -->
 <div class="wp-block-group alignwide has-accent-2-background-color has-background" style="padding-top:var(--wp--preset--spacing--50);padding-right:var(--wp--preset--spacing--50);padding-bottom:var(--wp--preset--spacing--50);padding-left:var(--wp--preset--spacing--50)">
 <!-- wp:paragraph {"className":"is-style-subheading"} -->

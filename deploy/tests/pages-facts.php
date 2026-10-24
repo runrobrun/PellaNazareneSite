@@ -95,7 +95,7 @@ foreach ( $pages as $path => list( $title, $h1, $musts ) ) {
 		check( "$path photo $name has srcset and sizes", '' !== $img->getAttribute( 'srcset' ) && '' !== $img->getAttribute( 'sizes' ), 'not responsive' );
 		check( "$path photo $name is from our own site", str_starts_with( $src, $base . '/' ) || str_starts_with( $src, '/' ), $src );
 		// A photo drawn in half a column must not be offered at full-page size: sizes follows the layout.
-		$want = array( 'pn-photo--hero' => '(max-width: 1240px) 100vw, 1200px', 'pn-photo--col' => '(max-width: 781px) 100vw, 340px', 'pn-photo--avatar' => '(max-width: 781px) 100vw, 216px' );
+		$want = array( 'pn-photo--hero' => '100vw', 'pn-photo--col' => '(max-width: 781px) 100vw, 340px', 'pn-photo--avatar' => '(max-width: 781px) 100vw, 216px' );
 		foreach ( $want as $cls => $sizes ) {
 			if ( false !== strpos( (string) $img->parentNode->getAttribute( 'class' ), $cls ) ) {
 				check( "$path photo $name sizes match its layout ($cls)", $sizes === preg_replace( '/^auto,\s*/', '', $img->getAttribute( 'sizes' ) ), "sizes='" . $img->getAttribute( 'sizes' ) . "'" );
@@ -216,4 +216,9 @@ $home = $html_of['/'];
 check( 'Home shows the latest published sermon', false !== strpos( $home, 'Latest published sermon' ), 'sermon title not on home' );
 check( 'Home does not show the draft sermon', false === strpos( $home, 'A draft sermon' ), 'draft leaked onto home' );
 check( 'Home sermon video is a click-to-load facade', false !== strpos( $home, 'class="pn-video"' ) && false === stripos( $home, '<iframe' ), 'no facade or iframe present' );
+$home_x = dom( $html_of['/'] );
+check( 'Home headline is the one h1 and sits on the hero photo', 1 === $home_x->query( '//h1' )->length && 1 === $home_x->query( "//*[contains(@class, 'pn-hero')]//h1[contains(@class, 'pn-hero__title')]" )->length, 'h1 is not inside the hero' );
+check( 'Home headline is drawn (not hidden)', 0 === $home_x->query( "//h1[contains(@class, 'hidden')]" )->length, 'h1 hidden' );
+check( 'Home photo runs edge to edge (alignfull)', $home_x->query( "//main//figure[contains(@class, 'alignfull')][contains(@class, 'pn-photo--hero')]" )->length === 1, 'hero is not full width' );
+check( 'Nothing sits between the header and the hero', (bool) preg_match( '#</header>\s*<main[^>]*style="[^"]*margin-top:0;padding-top:0#', $html_of['/'] ), 'gap above the hero' );
 check( 'Home has its staff-written hero only once', 1 === substr_count( $home, 'A church in Pella, Iowa' ), 'hero repeated' );
