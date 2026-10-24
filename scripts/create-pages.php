@@ -31,6 +31,14 @@ foreach ( $pn_replace as $pn_slug ) {
 	}
 }
 
+// Photos first, so the page patterns can use them. Already-loaded photos are left alone.
+$pn_photos = pn_import_photos();
+WP_CLI::log( count( $pn_photos ) . ' of ' . count( pn_photo_manifest() ) . ' photos are in the media library.' );
+$pn_missing_photos = array_diff( array_keys( pn_photo_manifest() ), array_keys( $pn_photos ) );
+if ( $pn_missing_photos ) {
+	WP_CLI::error( 'Could not load manifest photos: ' . implode( ', ', $pn_missing_photos ) . '. No pages were created or replaced.' );
+}
+
 $pn_ids = array();
 foreach ( $pn_pages as $pn_slug => $pn_title ) {
 	$pn_file = get_theme_file_path( "patterns/page-$pn_slug.php" );

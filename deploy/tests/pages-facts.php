@@ -84,6 +84,27 @@ foreach ( $pages as $path => list( $title, $h1, $musts ) ) {
 		}
 		return true;
 	} )(), 'a heading jumps more than one level' );
+	// Photos: described, sized, responsive, and only the first one on the home page loads eagerly.
+	$imgs = $x->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" );
+	$i    = 0;
+	foreach ( $imgs as $img ) {
+		$src  = $img->getAttribute( 'src' );
+		$name = basename( parse_url( $src, PHP_URL_PATH ) );
+		check( "$path photo $name has alt text", '' !== trim( $img->getAttribute( 'alt' ) ), 'alt is empty' );
+		check( "$path photo $name has width and height", ctype_digit( $img->getAttribute( 'width' ) ) && ctype_digit( $img->getAttribute( 'height' ) ), 'no explicit size' );
+		check( "$path photo $name has srcset and sizes", '' !== $img->getAttribute( 'srcset' ) && '' !== $img->getAttribute( 'sizes' ), 'not responsive' );
+		check( "$path photo $name is from our own site", str_starts_with( $src, $base . '/' ) || str_starts_with( $src, '/' ), $src );
+		// A photo drawn in half a column must not be offered at full-page size: sizes follows the layout.
+		$want = array( 'pn-photo--hero' => '(max-width: 781px) 100vw, 340px', 'pn-photo--col' => '(max-width: 781px) 100vw, 340px', 'pn-photo--avatar' => '(max-width: 781px) 100vw, 216px' );
+		foreach ( $want as $cls => $sizes ) {
+			if ( false !== strpos( (string) $img->parentNode->getAttribute( 'class' ), $cls ) ) {
+				check( "$path photo $name sizes match its layout ($cls)", $sizes === preg_replace( '/^auto,\s*/', '', $img->getAttribute( 'sizes' ) ), "sizes='" . $img->getAttribute( 'sizes' ) . "'" );
+			}
+		}
+		$eager = '/' === $path && 0 === $i;
+		check( "$path photo $name " . ( $eager ? 'is not lazy (it is the hero)' : 'is lazy-loaded' ), $eager ? 'lazy' !== $img->getAttribute( 'loading' ) : 'lazy' === $img->getAttribute( 'loading' ), 'loading=' . $img->getAttribute( 'loading' ) );
+		$i++;
+	}
 	check( "$path has no autoloading iframe", 0 === $x->query( '//main//iframe' )->length, 'iframe in page' );
 	$main_html = $x->query( '//main' )->item( 0 ) ? $x->document->saveHTML( $x->query( '//main' )->item( 0 ) ) : '';
 	preg_match_all( '/#[0-9a-f]{3,8}\b/i', $main_html, $hex );
@@ -153,6 +174,36 @@ foreach ( $give as $h ) {
 // Contact: office hours come from the one shared source and say Central.
 $contact = main_text( dom( $html_of['/contact/'] ) );
 check( 'Contact hours are Mon/Wed 1-4 and Fri 9-12', (bool) preg_match( '/Monday 1.{1,3}4\s*PM, Wednesday 1.{1,3}4\s*PM, Friday 9\s*AM.{1,3}12\s*PM Central/u', $contact ), 'hours text not found' );
+// Photos in total, the hero preload, and that the files really are served as WebP.
+$expected_photos = array( '/' => 1, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0 );
+foreach ( $expected_photos as $path => $n ) {
+	$found = dom( $html_of[ $path ] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->length;
+	check( "$path shows $n photo(s)", $n === $found, "$found found" );
+}
+check( 'Home preloads the hero photo with its srcset', (bool) preg_match( '#<link rel="preload" as="image" href="[^"]+" imagesrcset="[^"]+" imagesizes="[^"]+" fetchpriority="high">#', $html_of['/'] ), 'no hero preload' );
+foreach ( array( '/new-here/', '/about-us/', '/kids/' ) as $path ) {
+	check( "$path does not preload an image", false === strpos( $html_of[ $path ], 'rel="preload" as="image"' ), 'preload on a page without the hero' );
+}
+$hero_img = dom( $html_of['/'] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->item( 0 );
+$hero_src = (string) $hero_img?->getAttribute( 'src' );
+$hero_preload = dom( $html_of['/'] )->query( '//head/link[@rel="preload"][@as="image"]' )->item( 0 );
+check( 'Hero is fetched first (fetchpriority high)', 'high' === $hero_img?->getAttribute( 'fetchpriority' ), 'fetchpriority=' . $hero_img?->getAttribute( 'fetchpriority' ) );
+$ctx      = stream_context_create( array( 'http' => array( 'ignore_errors' => true, 'timeout' => 30 ) ) );
+$bytes    = (string) @file_get_contents( $hero_src, false, $ctx );
+$ctype    = '';
+foreach ( (array) ( $http_response_header ?? array() ) as $line ) {
+	if ( 0 === stripos( $line, 'content-type:' ) ) {
+		$ctype = trim( substr( $line, 13 ) );
+	}
+}
+check( 'Hero photo is served as WebP', 'image/webp' === $ctype && 'RIFF' === substr( $bytes, 0, 4 ) && 'WEBP' === substr( $bytes, 8, 4 ), "type '$ctype'" );
+check( 'Hero photo is under 250 KB', strlen( $bytes ) > 0 && strlen( $bytes ) < 250 * 1024, strlen( $bytes ) . ' bytes' );
+$srcset = (string) $hero_img?->getAttribute( 'srcset' );
+check( 'Hero preload matches the rendered hero photo', $hero_preload && $hero_src === $hero_preload->getAttribute( 'href' ) && $srcset === $hero_preload->getAttribute( 'imagesrcset' ), 'preload does not match the hero image' );
+check( 'Hero offers several sizes', substr_count( $srcset, ' ' ) >= 5, $srcset );
+preg_match( '/ (\d+)w/', $srcset, $first_w );
+check( 'Hero has a small size for phones (600px or less)', (bool) preg_match( '/ ([1-5]\d\d|600)w/', $srcset ), 'smallest sizes missing' );
+
 // The sermon pages use our own templates; they must carry the header and footer too.
 foreach ( array( '/sermons/', '/sermons/latest-published-sermon/' ) as $sp ) {
 	list( $c, $b ) = fetch( $base . $sp );

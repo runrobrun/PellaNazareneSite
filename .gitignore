@@ -43,3 +43,9 @@ node_modules/
 # Dev tooling installed by Composer
 vendor/
 .phpcs.cache
+
+# Original photos from the church (large; the web-sized versions live in the theme)
+/docs/Photos/
+/docs/photos/
+/docs/photos-source/
+*.zip

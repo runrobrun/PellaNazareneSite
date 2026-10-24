@@ -19,6 +19,7 @@
 <!-- wp:paragraph -->
 <p>We value community and create spaces for people of all ages to connect, serve, and belong. Whether you’re exploring faith for the first time or looking for a church to call home, we invite you to join us as we follow Jesus together and live out His love in our community and beyond.</p>
 <!-- /wp:paragraph -->
+<?php echo pn_photo_block( 'about-community', 'full', '3/2' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
 <!-- wp:buttons -->
 <div class="wp-block-buttons">
 <!-- wp:button -->
@@ -32,6 +33,7 @@
 <!-- wp:paragraph -->
 <p>Pella Nazarene exists to love people where they are and to grow together in Jesus.</p>
 <!-- /wp:paragraph -->
+<?php echo pn_photo_block( 'about-worship', 'full', '3/2' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Our core values</h2>
 <!-- /wp:heading -->
@@ -56,6 +58,15 @@
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Our leadership team</h2>
 <!-- /wp:heading -->
+<!-- wp:columns {"verticalAlignment":"top"} -->
+<div class="wp-block-columns are-vertically-aligned-top">
+<!-- wp:column {"verticalAlignment":"top","width":"30%"} -->
+<div class="wp-block-column is-vertically-aligned-top" style="flex-basis:30%">
+<?php echo pn_photo_block( 'staff-todd-olson', 'avatar', '1/1' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+</div>
+<!-- /wp:column -->
+<!-- wp:column {"verticalAlignment":"top","width":"70%"} -->
+<div class="wp-block-column is-vertically-aligned-top" style="flex-basis:70%">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Todd Olson</h3>
 <!-- /wp:heading -->
@@ -71,6 +82,19 @@
 <!-- wp:paragraph {"fontSize":"small"} -->
 <p class="has-small-font-size"><a href="mailto:revtolson@gmail.com">revtolson@gmail.com</a></p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:column -->
+</div>
+<!-- /wp:columns -->
+<!-- wp:columns {"verticalAlignment":"top"} -->
+<div class="wp-block-columns are-vertically-aligned-top">
+<!-- wp:column {"verticalAlignment":"top","width":"30%"} -->
+<div class="wp-block-column is-vertically-aligned-top" style="flex-basis:30%">
+<?php echo pn_photo_block( 'staff-cindy-olson', 'avatar', '1/1' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+</div>
+<!-- /wp:column -->
+<!-- wp:column {"verticalAlignment":"top","width":"70%"} -->
+<div class="wp-block-column is-vertically-aligned-top" style="flex-basis:70%">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Cindy Olson</h3>
 <!-- /wp:heading -->
@@ -83,6 +107,19 @@
 <!-- wp:paragraph {"fontSize":"small"} -->
 <p class="has-small-font-size"><a href="mailto:revcindyolson@gmail.com">revcindyolson@gmail.com</a></p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:column -->
+</div>
+<!-- /wp:columns -->
+<!-- wp:columns {"verticalAlignment":"top"} -->
+<div class="wp-block-columns are-vertically-aligned-top">
+<!-- wp:column {"verticalAlignment":"top","width":"30%"} -->
+<div class="wp-block-column is-vertically-aligned-top" style="flex-basis:30%">
+<?php echo pn_photo_block( 'staff-rob-hammann', 'avatar', '1/1' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+</div>
+<!-- /wp:column -->
+<!-- wp:column {"verticalAlignment":"top","width":"70%"} -->
+<div class="wp-block-column is-vertically-aligned-top" style="flex-basis:70%">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Rob Hammann</h3>
 <!-- /wp:heading -->
@@ -95,6 +132,19 @@
 <!-- wp:paragraph {"fontSize":"small"} -->
 <p class="has-small-font-size"><a href="mailto:runrobrun@gmail.com">runrobrun@gmail.com</a></p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:column -->
+</div>
+<!-- /wp:columns -->
+<!-- wp:columns {"verticalAlignment":"top"} -->
+<div class="wp-block-columns are-vertically-aligned-top">
+<!-- wp:column {"verticalAlignment":"top","width":"30%"} -->
+<div class="wp-block-column is-vertically-aligned-top" style="flex-basis:30%">
+<?php echo pn_photo_block( 'staff-floyd-ware', 'avatar', '1/1' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+</div>
+<!-- /wp:column -->
+<!-- wp:column {"verticalAlignment":"top","width":"70%"} -->
+<div class="wp-block-column is-vertically-aligned-top" style="flex-basis:70%">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Floyd Ware</h3>
 <!-- /wp:heading -->
@@ -107,6 +157,10 @@
 <!-- wp:paragraph {"fontSize":"small"} -->
 <p class="has-small-font-size"><a href="mailto:wareistaz@gmail.com">wareistaz@gmail.com</a></p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:column -->
+</div>
+<!-- /wp:columns -->
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Statement of beliefs</h2>
 <!-- /wp:heading -->

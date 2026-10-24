@@ -23,6 +23,7 @@
 <!-- /wp:button -->
 </div>
 <!-- /wp:buttons -->
+<?php echo pn_photo_block( 'kids-welcome', 'full', '3/2' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Your first visit</h2>
 <!-- /wp:heading -->
@@ -41,6 +42,20 @@
 <!-- wp:paragraph -->
 <p>Your kids will experience an age-appropriate lesson that will teach them about God and His love for them. The teaching is interactive and uses multiple approaches for different learning styles. The goal at Pella Nazarene is for kids to understand who Jesus is and how He can make a difference in their lives. They will also have a lot of fun!</p>
 <!-- /wp:paragraph -->
+<!-- wp:columns -->
+<div class="wp-block-columns">
+<!-- wp:column -->
+<div class="wp-block-column">
+<?php echo pn_photo_block( 'kids-celebrate', 'col', '4/3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+</div>
+<!-- /wp:column -->
+<!-- wp:column -->
+<div class="wp-block-column">
+<?php echo pn_photo_block( 'kids-play', 'col', '4/3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+</div>
+<!-- /wp:column -->
+</div>
+<!-- /wp:columns -->
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Pre-register your kids</h2>
 <!-- /wp:heading -->

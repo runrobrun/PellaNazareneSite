@@ -50,12 +50,31 @@ case "${BREAK:-}" in
 	iframe)      break_it $T/patterns/page-new-here.php '[pn_sermon_video id="EK0MuwDegjI"]' '<iframe src="https://www.youtube.com/embed/EK0MuwDegjI"></iframe>' ;;
 	hardcolor)   break_it $T/patterns/page-kids.php '<p class="is-style-subheading">Your kids' '<p class="is-style-subheading" style="color:#ff0000">Your kids' ;;
 	no-header)   break_it $T/templates/archive-pn_sermon.html '{"slug":"header","tagName":"header"}' '{"slug":"header","theme":"twentytwentyfive"}' ;;
-		plain-links) break_it $S/create-pages.php "'/%postname%/' );
+	no-alt)      break_it $T/assets/images/photos/manifest.json '"alt": "Todd Olson, co-pastor"' '"alt": ""' ;;
+	missing-photo) break_it $T/assets/images/photos/manifest.json '"slug": "home-hero"' '"slug": "missing-photo"' ;;
+	no-photos)   break_it $T/functions.php "require_once get_theme_file_path( 'inc/photos.php' );" "" ;;
+	eager-photos) break_it $T/inc/photos.php 'return is_front_page() ? 1 : 0;' 'return 3;' ;;
+	no-preload)  break_it $T/inc/photos.php "\$id     = pn_front_page_hero_id();" "\$id     = 0;" ;;
+	big-sizes)   break_it $T/inc/photos.php "'col'    => '(max-width: 781px) 100vw, 340px'," "'col'    => ''," ;;
+	plain-links) break_it $S/create-pages.php "'/%postname%/' );
 	WP_CLI::log( 'Permalinks were" "'' );
 	WP_CLI::log( 'Permalinks were" ;;
 	same-words)  break_it $T/patterns/page-home.php '>Upcoming events</a>' '>Give online</a>' ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
+
+if [[ "${BREAK:-}" == missing-photo ]]; then
+	echo "== An incomplete photo import does not create or replace pages"
+	wp post create --post_type=page --post_status=publish --post_name=home --post_title="Existing Home" --post_content="Staff edit" --quiet
+	out="$(create --replace home 2>&1 || true)"
+	expect_contains "the missing photo slug is reported" "$out" "Could not load manifest photos: missing-photo"
+	expect_eq "no pages are created after an incomplete import" "$(pages)" "1"
+	expect_eq "an existing page is not replaced" "$(wp post list --post_type=page --name=home --field=post_content)" "Staff edit"
+	echo
+	echo "Passed: $PASS   Failed: $FAIL"
+	[[ $FAIL -eq 0 ]]
+	exit
+fi
 
 echo "== 1. First run creates the seven pages"
 wp rewrite structure "" --hard --quiet   # a new server starts on Plain permalinks
@@ -73,12 +92,16 @@ expect_eq "seven pages exist" "$(pages)" "7"
 expect_eq "Home is the front page" "$(wp option get show_on_front) $(wp post get "$(wp option get page_on_front)" --field=post_name)" "page home"
 expect_eq "all are published" "$(wp post list --post_type=page --post_status=publish --format=count)" "7"
 
+expect_eq "all 12 photos are in the media library" "$(wp post list --post_type=attachment --format=count)" "12"
+expect_eq "each photo has its alt text from the manifest" "$(wp post meta get "$(wp post list --post_type=attachment --meta_key=_pn_photo --meta_value=staff-floyd-ware --field=ID)" _wp_attachment_image_alt)" "Floyd Ware, associate pastor"
+
 echo "== 2. Running it again changes nothing"
 before="$(wp post list --post_type=page --format=csv --fields=ID,post_modified | md5sum)"
 out="$(create)"
 expect_eq "no new pages" "$(pages)" "7"
 expect_contains "says it kept them" "$out" "Kept 'about-us'"
 expect_lacks "creates nothing the second time" "$out" "Created"
+expect_eq "no photo is added twice" "$(wp post list --post_type=attachment --format=count)" "12"
 expect_eq "no page was modified" "$(wp post list --post_type=page --format=csv --fields=ID,post_modified | md5sum)" "$before"
 echo "   (staff edit a page)"
 id="$(wp post list --post_type=page --name=kids --field=ID)"
@@ -150,6 +173,7 @@ echo "== 5. The pages as visitors see them"
 wp option update page_on_front "$(wp post list --post_type=page --name=about-us --field=ID)" --quiet
 alternate_front="$(curl -s "$BASE/")"
 expect_contains "a staff-selected front page shows its page title" "$alternate_front" '<h1 class="wp-block-post-title">About Us</h1>'
+expect_lacks "a front page without a hero does not preload an image" "$alternate_front" 'rel="preload" as="image"'
 wp option update page_on_front "$home_id" --quiet
 facts="$(php /repo/deploy/tests/pages-facts.php "$BASE" 2>&1)" || setup_fail "page checks crashed: $facts"
 while IFS='|' read -r kind name detail; do
