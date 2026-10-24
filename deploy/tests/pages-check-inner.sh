@@ -68,7 +68,9 @@ if [[ "${BREAK:-}" == missing-photo ]]; then
 	echo "== An incomplete photo import does not create or replace pages"
 	wp post create --post_type=page --post_status=publish --post_name=home --post_title="Existing Home" --post_content="Staff edit" --quiet
 	out="$(create --replace home 2>&1 || true)"
-	expect_contains "the missing photo slug is reported" "$out" "Could not load manifest photos: missing-photo"
+	expect_contains "the missing photo slug is reported" "$out" "Photo 'missing-photo'"
+	expect_contains "the missing photo file is reported" "$out" "assets/images/photos/missing-photo.webp is not in the theme"
+	expect_contains "reports that no pages were created" "$out" "No pages were created or replaced"
 	expect_eq "no pages are created after an incomplete import" "$(pages)" "1"
 	expect_eq "an existing page is not replaced" "$(wp post list --post_type=page --name=home --field=post_content)" "Staff edit"
 	echo
