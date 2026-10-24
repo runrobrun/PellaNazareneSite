@@ -181,6 +181,26 @@ function pn_front_page_hero_id(): int {
 	return $find_hero( parse_blocks( (string) get_post_field( 'post_content', $front_page_id ) ) );
 }
 
+/** Whether the current front page contains a level-one Heading block. */
+function pn_front_page_has_h1(): bool {
+	$front_page_id = (int) get_option( 'page_on_front' );
+	if ( ! $front_page_id ) {
+		return false;
+	}
+	$find_h1 = static function ( array $blocks ) use ( &$find_h1 ): bool {
+		foreach ( $blocks as $block ) {
+			if ( 'core/heading' === ( $block['blockName'] ?? '' ) && 1 === (int) ( $block['attrs']['level'] ?? 2 ) ) {
+				return true;
+			}
+			if ( ! empty( $block['innerBlocks'] ) && $find_h1( $block['innerBlocks'] ) ) {
+				return true;
+			}
+		}
+		return false;
+	};
+	return $find_h1( parse_blocks( (string) get_post_field( 'post_content', $front_page_id ) ) );
+}
+
 // WordPress skips lazy-loading for the first three images on every page. Here only the home page's hero loads
 // right away; every other photo waits until it is near the screen.
 add_filter(
@@ -218,6 +238,6 @@ add_action(
 add_filter(
 	'render_block_core/post-title',
 	function ( $html ) {
-		return ( is_front_page() && pn_front_page_hero_id() ) ? '' : $html;
+		return ( is_front_page() && pn_front_page_has_h1() ) ? '' : $html;
 	}
 );
