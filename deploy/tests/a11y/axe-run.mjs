@@ -57,7 +57,7 @@ async function checkEditor(browser) {
   await page.goto(BASE + '/wp-admin/edit.php?post_type=page', { waitUntil: 'networkidle0' });
   const found = await page.evaluate(() => [...document.querySelectorAll('a.row-title')].map((a) => [a.textContent.trim(), (a.href.match(/post=(\d+)/) || [])[1]]));
   // The Home page's title is the h1 on the home page.
-  const wanted = ['A church in Pella, Iowa', 'New Here', 'About Us', 'Kids', 'Giving', 'Contact', 'Resources'];
+  const wanted = ['A church in Pella, Iowa', 'New Here', 'About Us', 'Kids', 'Giving', 'Contact', 'Resources', 'Events', 'Small Groups'];
   let problems = 0;
   for (const title of wanted) {
     const hit = found.find(([t]) => t === title);
@@ -88,7 +88,7 @@ async function checkEditor(browser) {
     ['home, phone 390, MENU OPEN', '/', 390, 800, true],
     ['brand fixture page, desktop', '/brand-check/', 1280, 900, false],
     ['brand fixture page, phone', '/brand-check/', 390, 800, false],
-    ...['new-here', 'about-us', 'kids', 'giving', 'contact', 'resources'].flatMap((s) => [
+    ...['new-here', 'about-us', 'kids', 'giving', 'contact', 'resources', 'events', 'small-groups'].flatMap((s) => [
       [`${s}, desktop 1280`, `/${s}/`, 1280, 900, false],
       [`${s}, phone 390`, `/${s}/`, 390, 800, false],
     ]),
