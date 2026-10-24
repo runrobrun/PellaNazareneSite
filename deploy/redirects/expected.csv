@@ -14,10 +14,11 @@ path,status,location,fallback,layer,note
 /new-here/,stays,,,page,page kept
 /about-us/,stays,,,page,page kept
 /kids/,stays,,,page,page kept
+/events/,stays,,,page,new page: the five weekly events and the Church Center calendar
 /giving/,stays,,,page,page kept
 /contact/,stays,,,page,page kept
 /resources/,stays,,,page,page kept
-/small-groups/,stays,,,page,page address kept (rebuilt or removed with staff)
+/small-groups/,stays,,,page,short page that links to Church Center Groups
 /events-2/,301,/events/,,nginx,events moved to /events/
 /events-2/kids-event/,301,/events/,,nginx,template filler event
 /events-2/family-event/,301,/events/,,nginx,template filler event

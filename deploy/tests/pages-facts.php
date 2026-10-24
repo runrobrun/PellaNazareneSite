@@ -51,6 +51,8 @@ $pages = array(
 	'/giving/'    => array( 'Giving', 'Giving', array( 'Colossians 3:23-24', 'Building fund', 'World missions' ) ),
 	'/contact/'   => array( 'Contact', 'Contact', array( '(641) 628-1818', 'pellanazarene@gmail.com', 'Monday 1', 'Central' ) ),
 	'/resources/' => array( 'Resources', 'Resources', array( 'Nazarene Discipleship International', 'The Preaching Collaborative' ) ),
+	'/events/'    => array( 'Events', 'Events', array( 'Sunday School', 'Connections Sunday School Class', 'Lighthouse Student Ministry', 'Midweek Prayer Meeting', 'Coffee Time', 'Windmill Cafe', '9:30–10:15 AM', '5:30–7:00 PM', '10:30–11:30 AM', '7:00–8:00 PM', 'Central', 'See the full calendar' ) ),
+	'/small-groups/' => array( 'Small Groups', 'Small Groups', array( 'Find a group', 'Connect card', '9:30' ) ),
 );
 $bad_words = array( 'lorem ipsum', 'omega church', 'brunson', 'will & gloria', 'gloria jackson', 'eastern', '8:30', '8:00 -', 'onine', 'activites', 'link to be added', 'wedensday', 'text-to-give', 'text to give' );
 
@@ -116,7 +118,7 @@ foreach ( $pages as $path => list( $title, $h1, $musts ) ) {
 }
 
 // Links: none empty or "#", every internal link resolves, every in-page anchor exists, phone and email are real.
-$planned = array( '/events/', '/small-groups/' ); // pages other stories build (MIG-7); the menu already points here
+$planned = array(); // addresses that are linked before their page exists (none: every menu and page link resolves)
 foreach ( $all_links as $path => $links ) {
 	foreach ( $links as list( $href, $label ) ) {
 		check( "$path link '$label' has a real target", '' !== $href && '#' !== $href, "href='$href'" );
@@ -165,6 +167,18 @@ check( 'Resources keeps all 11 outside links', 11 === count( $ext ), count( $ext
 foreach ( $ext as $h ) {
 	check( "Resources link $h is on a Nazarene site", (bool) preg_match( '#^https://(nazarene\.org|ncm\.org|usacanadaregion\.org)/#', $h ), $h );
 }
+// Events and small groups: the live calendar, sign-ups, and groups are all in Church Center; no filler from the old site.
+$events_links = array_column( $all_links['/events/'] ?? array(), 0 );
+check( 'Events links to the Church Center calendar', in_array( 'https://pella-nazarene.churchcenter.com/calendar', $events_links, true ), 'no calendar link' );
+check( 'Events links to Church Center sign-ups', in_array( 'https://pella-nazarene.churchcenter.com/registrations/events', $events_links, true ), 'no sign-up link' );
+check( 'Events has a real directions link for Coffee Time', (bool) array_filter( $events_links, fn( $h ) => str_contains( $h, 'google.com/maps' ) && str_contains( $h, 'Windmill' ) ), 'no map link' );
+$events_text = main_text( dom( $html_of['/events/'] ) );
+foreach ( array( 'Kids Event', 'Family Event', 'Youth Event', 'Worship Night', 'Baptism Sunday', 'Movie Night', 'Wedensday' ) as $filler ) {
+	check( "Events has no old filler '$filler'", false === stripos( $events_text, $filler ), 'filler event found' );
+}
+check( 'Events lists Wednesday prayer (spelled correctly)', false !== strpos( $events_text, 'Wednesday, 7:00–8:00 PM' ), 'Wednesday time missing' );
+check( 'Small Groups sends people to Church Center Groups', in_array( 'https://pella-nazarene.churchcenter.com/groups', array_column( $all_links['/small-groups/'] ?? array(), 0 ), true ), 'no groups link' );
+check( 'Small Groups has no old demo group names', false === stripos( main_text( dom( $html_of['/small-groups/'] ) ), 'Brunson' ), 'demo names present' );
 // Giving: every give button goes to Church Center.
 $give = array_filter( array_column( $all_links['/giving/'] ?? array(), 0 ), fn( $h ) => str_contains( $h, 'churchcenter' ) );
 check( 'Giving has 3 give buttons', 3 === count( $give ), count( $give ) . ' found' );
@@ -175,7 +189,7 @@ foreach ( $give as $h ) {
 $contact = main_text( dom( $html_of['/contact/'] ) );
 check( 'Contact hours are Mon/Wed 1-4 and Fri 9-12', (bool) preg_match( '/Monday 1.{1,3}4\s*PM, Wednesday 1.{1,3}4\s*PM, Friday 9\s*AM.{1,3}12\s*PM Central/u', $contact ), 'hours text not found' );
 // Photos in total, the hero preload, and that the files really are served as WebP.
-$expected_photos = array( '/' => 1, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0 );
+$expected_photos = array( '/' => 1, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 0 );
 foreach ( $expected_photos as $path => $n ) {
 	$found = dom( $html_of[ $path ] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->length;
 	check( "$path shows $n photo(s)", $n === $found, "$found found" );

@@ -60,6 +60,8 @@ case "${BREAK:-}" in
 	WP_CLI::log( 'Permalinks were" "'' );
 	WP_CLI::log( 'Permalinks were" ;;
 	silent-photos) break_it $S/create-pages.php 'WP_CLI::warning( "Photo ' 'WP_CLI::warning( "' ;;
+	old-spelling) break_it $T/patterns/page-events.php 'Every Wednesday, 7:00' 'Every Wedensday, 7:00' ;;
+	no-groups)    break_it $T/patterns/page-small-groups.php 'churchcenter.com/groups' 'churchcenter.com/group' ;;
 	same-words)  break_it $T/patterns/page-home.php '>Upcoming events</a>' '>Give online</a>' ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
@@ -90,7 +92,7 @@ expect_contains "stops" "$out" "No pages were created or replaced"
 expect_eq "no page was created" "$(pages)" "0"
 expect_eq "no photo was added" "$(wp post list --post_type=attachment --format=count)" "0"
 
-echo "== 1. First run creates the seven pages"
+echo "== 1. First run creates the nine pages"
 wp rewrite structure "" --hard --quiet   # a new server starts on Plain permalinks
 out="$(create)"
 expect_contains "it fixes Plain permalinks" "$out" "set them to /%postname%/"
@@ -101,10 +103,10 @@ expect_contains "single sermon rewrite rule exists" "$rules" 'index.php?pn_sermo
 expect_contains "sermon series rewrite rule exists" "$rules" 'index.php?pn_series=$matches[1]'
 expect_contains "sermon speaker rewrite rule exists" "$rules" 'index.php?pn_speaker=$matches[1]'
 expect_contains "sermon scripture rewrite rule exists" "$rules" 'index.php?pn_scripture=$matches[1]'
-for s in home new-here about-us kids giving contact resources; do expect_contains "created $s" "$out" "Created '$s'"; done
-expect_eq "seven pages exist" "$(pages)" "7"
+for s in home new-here about-us kids giving contact resources events small-groups; do expect_contains "created $s" "$out" "Created '$s'"; done
+expect_eq "nine pages exist" "$(pages)" "9"
 expect_eq "Home is the front page" "$(wp option get show_on_front) $(wp post get "$(wp option get page_on_front)" --field=post_name)" "page home"
-expect_eq "all are published" "$(wp post list --post_type=page --post_status=publish --format=count)" "7"
+expect_eq "all are published" "$(wp post list --post_type=page --post_status=publish --format=count)" "9"
 
 expect_eq "all 12 photos are in the media library" "$(wp post list --post_type=attachment --format=count)" "12"
 expect_eq "each photo has its alt text from the manifest" "$(wp post meta get "$(wp post list --post_type=attachment --meta_key=_pn_photo --meta_value=staff-floyd-ware --field=ID)" _wp_attachment_image_alt)" "Floyd Ware, associate pastor"
@@ -112,7 +114,7 @@ expect_eq "each photo has its alt text from the manifest" "$(wp post meta get "$
 echo "== 2. Running it again changes nothing"
 before="$(wp post list --post_type=page --format=csv --fields=ID,post_modified | md5sum)"
 out="$(create)"
-expect_eq "no new pages" "$(pages)" "7"
+expect_eq "no new pages" "$(pages)" "9"
 expect_contains "says it kept them" "$out" "Kept 'about-us'"
 expect_lacks "creates nothing the second time" "$out" "Created"
 expect_eq "no photo is added twice" "$(wp post list --post_type=attachment --format=count)" "12"
@@ -131,7 +133,7 @@ res_id="$(wp post list --post_type=page --name=resources --field=ID)"
 wp post update "$res_id" --post_status=trash --quiet
 out="$(create)"
 expect_contains "a trashed page is not recreated" "$out" "'resources' is in the trash"
-expect_eq "still no duplicate (6 live + 1 in the trash)" "$(wp post list --post_type=page --post_status=publish --format=count) $(wp post list --post_type=page --post_status=trash --format=count)" "6 1"
+expect_eq "still no duplicate (8 live + 1 in the trash)" "$(wp post list --post_type=page --post_status=publish --format=count) $(wp post list --post_type=page --post_status=trash --format=count)" "8 1"
 wp post update "$res_id" --post_status=publish --quiet
 echo "   (staff choose a different front page first)"
 wp option update show_on_front posts --quiet; wp option update page_on_front 0 --quiet

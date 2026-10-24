@@ -132,9 +132,10 @@ The old site has only 4 sermons; the YouTube channel (@pellanazarene) is the rea
 - The featured home sermon ("Holiness in the House", Pastor Cindy Olson) is not in the old archive; verify it imports.
 - API key stored as a `wp-config.php` constant, restricted by API and referrer/IP.
 
-### MIG-7 Rebuild events and small groups · M · todo
+### MIG-7 Rebuild events and small groups · M · in review (pages built; staff to confirm the event times, see below)
 - Events: the calendar is managed in Planning Center, which is the source of truth. Confirm these 5 recurring events exist there with correct Central times: Sunday School Sun 9:30-10:15; Connections SS Class Sun 9:30-10:15; Lighthouse Student Ministry Sun 5:30-7:00 PM; Midweek Prayer Tue 10:30-11:30 AM and Wed 7:00-8:00 PM (fix "Wedensday"); Coffee Time Tue 9:30-10:30 AM at Windmill Cafe. Fix the directions links. The website displays them via FEAT-2.
 - Drop all 6 event filler pages (Kids, Family, Youth, Worship Night, Baptism Sunday, Movie Night).
+- **Done in the MIG-7 PR:** `/events/` lists the five regular weekly events with Central times (from the old site) and links to the live Church Center calendar and event sign-ups; "Wedensday" fixed; the Coffee Time directions link is a real map search. `/small-groups/` is a short page that explains groups and links to Church Center Groups (decision with staff: link out, no listings built here). All six filler event pages and all six filler group pages are dropped (old addresses already redirect, MIG-2). `scripts/create-pages.sh` now creates nine pages. The Events Calendar plugin is removed from `plugins.txt`. **Staff to confirm:** the five weekly times are still right in Planning Center (they were copied from the old site, which also lists Sunday School and Small Groups both at 9:30). **On each server:** deactivate and delete The Events Calendar plugin (it claims `/events/`).
 - Small groups: the old page shows 0 groups and all 6 group pages are filler (including demo names Paul & Olivia Brunson and Will & Gloria Jackson). Nothing to migrate; decide with staff whether to build real groups here or link out to Planning Center Groups (see FEAT-4).
 
 ### MIG-8 Drop template filler · S · todo
@@ -179,8 +180,8 @@ Finish `pn-sermons`: archive and single templates, series/speaker/scripture brow
 - Click-to-load video facade (see Performance rules).
 - Companion-post drafts (Anthropic API) behind a setting, off by default, drafts only, never auto-published.
 
-### FEAT-2 Events calendar · M · todo · pairs with MIG-7
-Show Planning Center Calendar events on the site without duplicating data entry. Evaluate (1) Planning Center's embed/public feed, (2) importing its iCal feed into a lightweight WP list, and (3) keeping The Events Calendar plugin. Prefer the lightest option that meets performance targets; if The Events Calendar is not needed, remove `the-events-calendar` from `plugins.txt`. Embeds/feeds are cached and load on demand. Times display in Central.
+### FEAT-2 Events calendar · M · decided (see below) · pairs with MIG-7
+**Decision (MIG-7):** start light: the Events page lists the five regular weekly events by hand and links to the Church Center calendar (Planning Center stays the source of truth for everything else). An automatic upcoming-events list from Planning Center, and an embed, are deferred until the weekly list proves too limited. The Events Calendar plugin is not used and is out of `plugins.txt`. Original brief: Show Planning Center Calendar events on the site without duplicating data entry. Evaluate (1) Planning Center's embed/public feed, (2) importing its iCal feed into a lightweight WP list, and (3) keeping The Events Calendar plugin. Prefer the lightest option that meets performance targets; if The Events Calendar is not needed, remove `the-events-calendar` from `plugins.txt`. Embeds/feeds are cached and load on demand. Times display in Central.
 
 ### FEAT-3 Forms · M · todo
 Fluent Forms: Contact, Connect Card, Plan a Visit, Prayer Request.
@@ -188,8 +189,8 @@ Fluent Forms: Contact, Connect Card, Plan a Visit, Prayer Request.
 - Email via WP Mail SMTP with SPF/DKIM/DMARC set up; delivery tested.
 - Prayer request data handled as sensitive: limited access, retention period decided and documented.
 
-### FEAT-4 Planning Center / Church Center integration · S · todo
-Giving stays linked out to Church Center. Check whether the Planning Center subscription includes Groups, Registrations, or Calendar; if so, use them for small groups, kids pre-registration, and event signups and only link or embed them here. Embeds load on demand, not on every page.
+### FEAT-4 Planning Center / Church Center integration · S · partly done in MIG-7
+Church Center (pella-nazarene.churchcenter.com) already has Calendar, Groups, Registrations and a Connect Card turned on; the Events and Small Groups pages link to them (MIG-7). Still to decide: use the Church Center Connect Card for the online connect card and kids pre-registration (FEAT-3). Giving stays linked out to Church Center. Check whether the Planning Center subscription includes Groups, Registrations, or Calendar; if so, use them for small groups, kids pre-registration, and event signups and only link or embed them here. Embeds load on demand, not on every page.
 
 ### FEAT-5 SEO and sharing · S · todo
 Sitemap, meta titles and descriptions, Open Graph images, `Church` schema.org markup with address, service times, and the office hours (Mon 1-4, Wed 1-4, Fri 9-12 Central).
