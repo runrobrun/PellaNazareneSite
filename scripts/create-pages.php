@@ -18,6 +18,8 @@ $pn_pages = array(
 	'giving'    => 'Giving',
 	'contact'   => 'Contact',
 	'resources' => 'Resources',
+	'events'    => 'Events',
+	'small-groups' => 'Small Groups',
 );
 
 if ( 'pella-nazarene' !== get_stylesheet() ) {

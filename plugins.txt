@@ -2,7 +2,8 @@
 # Format: slug [version]   — omit version to track latest stable.
 # Pin a version when an update breaks something, and note why.
 
-the-events-calendar
+# The Events Calendar was removed in MIG-7: the Events page is hand-written and links to the Church Center
+# calendar. The plugin also claims the /events/ address, so deactivate and delete it on any server that still has it.
 fluentform
 wp-mail-smtp
 redis-cache
