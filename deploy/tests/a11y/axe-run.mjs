@@ -56,7 +56,8 @@ async function checkEditor(browser) {
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('#wp-submit')]);
   await page.goto(BASE + '/wp-admin/edit.php?post_type=page', { waitUntil: 'networkidle0' });
   const found = await page.evaluate(() => [...document.querySelectorAll('a.row-title')].map((a) => [a.textContent.trim(), (a.href.match(/post=(\d+)/) || [])[1]]));
-  const wanted = ['Home', 'New Here', 'About Us', 'Kids', 'Giving', 'Contact', 'Resources'];
+  // The Home page's title is the h1 on the home page.
+  const wanted = ['A church in Pella, Iowa', 'New Here', 'About Us', 'Kids', 'Giving', 'Contact', 'Resources'];
   let problems = 0;
   for (const title of wanted) {
     const hit = found.find(([t]) => t === title);

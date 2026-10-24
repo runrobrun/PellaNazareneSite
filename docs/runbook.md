@@ -32,7 +32,7 @@ wp --path=/var/www/pellanazarene/public two-factor disable <username> --yes
 - Add or remove a staff login
 - Check that backups ran
 - Renew the domain
-- Edit page text in **Pages** in the admin (Home, New Here, About Us, Kids, Giving, Contact, Resources); nothing else is needed. Office hours, address and Sunday times on the Contact and New Here pages come from one shared block, **Appearance → Editor → Patterns → Template parts → Service info**
+- Edit page text in **Pages** in the admin (the Home page is titled "A church in Pella, Iowa"; also New Here, About Us, Kids, Giving, Contact, Resources); nothing else is needed. Office hours, address and Sunday times on the Contact and New Here pages come from one shared block, **Appearance → Editor → Patterns → Template parts → Service info**
 - Review new sermon drafts each week (Sermons in the admin) and publish them; how the import works and how to import the history: `docs/sermons.md`
 
 ## If something breaks
