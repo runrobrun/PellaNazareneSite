@@ -43,9 +43,10 @@ function pn_photo_id( string $slug ): int {
  * Loads every manifest photo that is not in the media library yet. Safe to repeat; a photo that is already
  * there is left alone, so staff changes to its title, caption or alt text are kept.
  *
+ * @param array<string,string> $errors Filled with slug => the reason, for each photo that could not be loaded.
  * @return array<string,int> slug => media ID
  */
-function pn_import_photos(): array {
+function pn_import_photos( array &$errors = array() ): array {
 	require_once ABSPATH . 'wp-admin/includes/file.php';
 	require_once ABSPATH . 'wp-admin/includes/media.php';
 	require_once ABSPATH . 'wp-admin/includes/image.php';
@@ -56,6 +57,7 @@ function pn_import_photos(): array {
 		if ( ! $id ) {
 			$file = get_theme_file_path( "assets/images/photos/$slug.webp" );
 			if ( ! is_file( $file ) ) {
+				$errors[ $slug ] = "the file assets/images/photos/$slug.webp is not in the theme";
 				continue;
 			}
 			$tmp = wp_tempnam( $file );
@@ -70,6 +72,7 @@ function pn_import_photos(): array {
 			);
 			if ( is_wp_error( $id ) ) {
 				wp_delete_file( $tmp );
+				$errors[ $slug ] = $id->get_error_message();
 				continue;
 			}
 			update_post_meta( $id, '_pn_photo', $slug );
@@ -83,7 +86,7 @@ function pn_import_photos(): array {
 /** How wide a photo is drawn at desktop width, so phones are not sent more pixels than they need. */
 function pn_photo_sizes( string $variant ): string {
 	$sizes = array(
-		'hero'   => '(max-width: 781px) 100vw, 340px',
+		'hero'   => '(max-width: 1240px) 100vw, 1200px',
 		'col'    => '(max-width: 781px) 100vw, 340px',
 		'avatar' => '(max-width: 781px) 100vw, 216px',
 	);
@@ -110,14 +113,19 @@ function pn_photo_block( string $slug, string $variant = 'full', string $ratio =
 		'className'       => $class,
 	);
 	$style = '';
+	$align = 'hero' === $variant ? 'wide' : '';
+	if ( '' !== $align ) {
+		$attrs['align'] = $align;
+	}
 	if ( '' !== $ratio ) {
 		$attrs['aspectRatio'] = $ratio;
 		$attrs['scale']       = 'cover';
 		$style                = sprintf( ' style="aspect-ratio:%s;object-fit:cover"', esc_attr( $ratio ) );
 	}
 	return sprintf(
-		"<!-- wp:image %s -->\n<figure class=\"wp-block-image size-large %s\"><img src=\"%s\" alt=\"%s\" class=\"wp-image-%d\"%s/></figure>\n<!-- /wp:image -->\n",
+		"<!-- wp:image %s -->\n<figure class=\"wp-block-image%s size-large %s\"><img src=\"%s\" alt=\"%s\" class=\"wp-image-%d\"%s/></figure>\n<!-- /wp:image -->\n",
 		wp_json_encode( $attrs ),
+		'' !== $align ? ' align' . esc_attr( $align ) : '',
 		esc_attr( $class ),
 		esc_url( (string) wp_get_attachment_image_url( $id, 'large' ) ),
 		esc_attr( (string) get_post_meta( $id, '_wp_attachment_image_alt', true ) ),

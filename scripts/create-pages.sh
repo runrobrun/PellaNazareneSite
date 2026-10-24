@@ -6,6 +6,7 @@
 # Usage:
 #   create-pages.sh WP_PATH                     # e.g. /var/www/staging/public
 #   create-pages.sh WP_PATH --replace about-us  # also reset one page to the pattern's current text
+# Set PN_WP_USER=www-data (on the server) to run WordPress as the web user, so the photos can be saved to uploads.
 # Set PN_NGINX_CACHE_DIR (staging: /var/cache/nginx/pellanazarene-staging) to clear the Nginx page cache too.
 # It also sets pretty permalinks (/%postname%/) when WordPress is still on "Plain", or no menu link would work.
 set -euo pipefail
@@ -22,8 +23,13 @@ elif [[ $# -gt 0 ]]; then
 fi
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-wp --path="$WP_PATH" eval-file "$here/create-pages.php" "${replace[@]}"
-wp --path="$WP_PATH" rewrite flush
+# The photos are saved into wp-content/uploads, which belongs to the web user, so run WordPress as that user.
+wp_cmd=(wp)
+if [[ -n "${PN_WP_USER:-}" ]]; then
+	wp_cmd=(sudo -n -u "$PN_WP_USER" env "WP_CLI_CACHE_DIR=/tmp/wpcli-$PN_WP_USER" wp)
+fi
+"${wp_cmd[@]}" --path="$WP_PATH" eval-file "$here/create-pages.php" "${replace[@]}"
+"${wp_cmd[@]}" --path="$WP_PATH" rewrite flush
 
 # The Nginx page cache can keep serving the old pages for up to an hour. Name its folder to clear it now.
 if [[ -n "${PN_NGINX_CACHE_DIR:-}" ]]; then
