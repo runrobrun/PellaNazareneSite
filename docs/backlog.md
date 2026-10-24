@@ -91,16 +91,20 @@ Implement the redirects from the inventory as 301s in Nginx (config kept in `dep
 - About 200 empty taxonomy archives (`u_topic`, `u_scripture`, `u_group-details`, event and group tags/categories) return 410 or redirect to `/sermons/`.
 - Redirect test script runs against staging and production.
 
-### MIG-3 Migrate the 7 pages · M · todo · needs INF-2, FE-2
+### MIG-3 Migrate the 7 pages · M · in review (content in; staff sign-off, photos and the forms are still open, see below) · needs INF-2, FE-2
 Home, New Here, About Us, Kids, Giving, Contact, Resources (about 3,100 words). Move by hand into block patterns.
 - Home: replace the hero slider that repeats one slide six times with a single hero; drop the FAQ block that duplicates New Here; featured sermon comes from the sermon plugin, not hard-coded.
 - Giving: keep the Church Center link `pella-nazarene.churchcenter.com/giving`; add the missing text-to-give link or remove the mention.
 - Contact: rebuild the form in Fluent Forms (see FEAT-3).
 - Resources: re-check the 11 outbound links (nazarene.org, usacanadaregion.org, ncm.org).
 - Staff review and sign-off on each page.
+- **Done in the MIG-3 PR:** all seven pages are block patterns in the theme (`patterns/page-*.php`) and are created with `scripts/create-pages.sh` (see `docs/setup.md`). Home has one hero, no FAQ block, and the latest published sermon from the sermon plugin (`[pn_latest_sermon]`, click-to-load video). A front-page template makes the hero the page's only h1. Giving's "text-to-give" mention is removed (there was no link). Contact has no form yet (FEAT-3); Kids "pre-register" points to Contact until FEAT-3. All 11 Resources links kept. `deploy/tests/pages-check.sh` checks the pages; the accessibility run covers all seven pages and opens each in the block editor to confirm every block is valid.
+- **Also fixed:** the sermon list and single-sermon templates were missing the site header and footer (they referenced the parent theme's template parts); the sermon video play button had no visible keyboard focus ring.
+- **Staff to confirm:** (1) parking and kids-age wording: the old Home FAQ and New Here FAQ disagreed (south lot via University/Prairie Street vs a 50-car lot; kids classrooms birth to 12 vs "children 8 and up attend worship"); the newer Home wording was used. (2) The New Here welcome video (YouTube EK0MuwDegjI) is the right one. (3) Staff emails shown on About Us are the ones that were public on the old site.
+- **No photos yet:** pages have no images until MIG-5.
 
-### MIG-4 Fix known content problems · S · todo · needs MIG-3
-Needs input from the church staff.
+### MIG-4 Fix known content problems · S · partly done in MIG-3 · needs MIG-3
+Needs input from the church staff. **Done with the pages (MIG-3):** office hours (Contact and New Here use `parts/service-info.html`, Central), `tel:+16416281818` and `mailto:` links, every "Plan a Visit" and map button has a real target (`/new-here/#plan-your-visit`, Google Maps), the "Connect" card now says to fill out a Connect card on Sunday or talk to staff, Todd's, Rob's and Cindy's full bios, typos ("Giving online", "activities"). **Still open:** Floyd Ware's bio is cut off on the old site too (it ends after he began formal studies; ask staff for the rest), online Connect card and Plan a Visit forms (FEAT-3), Kids pre-register form (FEAT-3), alt text once photos arrive (MIG-5). The original list follows.
 - Office hours: Contact says 8:30-5 and footer says 8:00-5, both labeled Eastern Time. Confirmed: Central time; office hours are Monday 1-4 PM, Wednesday 1-4 PM, Friday 9 AM-12 PM. Use these everywhere (Contact page, footer, Google/schema markup) from one source, `parts/service-info.html`, which already has them.
 - Phone link `tel:641628-1818` to `tel:+16416281818`; email address as a `mailto:` link.
 - Every "Plan a Visit" button, map link, and Kids pre-register button currently goes to `#`; point each to a real destination.
@@ -117,7 +121,8 @@ Bring over only the ~35 images needed, from `pellanazarene.org/mt-content/upload
 - Logo: **received 2026-10-23** (primary and symbol in navy and white as PNG masters, plus Lighthouse Student Ministry); web SVGs built under FE-1b. Black versions of the primary and Lighthouse logos followed (FE-1c).
 - Record the licensing status of each stock photo kept.
 
-### MIG-6 Sermons: import from YouTube instead of the old site · M · in review (code and tests done; the real import waits for the YouTube API key, see docs/sermons.md) · needs INF-2
+### MIG-6 Sermons: import from YouTube instead of the old site · M · done · needs INF-2
+Done: importer merged (PRs #21, #22); staging imported from the "Sunday sermons" playlist as drafts and staff reviewed them. Decision: sermons older than that playlist are not imported; they stay on the YouTube channel. Thumbnails (featured images) were not attached and can be added later. Original brief:
 The old site has only 4 sermons; the YouTube channel (@pellanazarene) is the real archive. Do not migrate sermon posts from the old site.
 - Backfill with the YouTube Data API `playlistItems.list` on the uploads playlist (the RSS feed returns only the latest 15). Idempotent; no duplicates on re-run.
 - Create speaker terms: Todd Olson, Cindy Olson, Rob Hammann, Floyd Ware (link each to a WP user where applicable).
