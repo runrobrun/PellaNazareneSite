@@ -32,11 +32,18 @@ foreach ( $pn_replace as $pn_slug ) {
 }
 
 // Photos first, so the page patterns can use them. Already-loaded photos are left alone.
-$pn_photos = pn_import_photos();
+$pn_photo_errors = array();
+$pn_photos       = pn_import_photos( $pn_photo_errors );
 WP_CLI::log( count( $pn_photos ) . ' of ' . count( pn_photo_manifest() ) . ' photos are in the media library.' );
-$pn_missing_photos = array_diff( array_keys( pn_photo_manifest() ), array_keys( $pn_photos ) );
-if ( $pn_missing_photos ) {
-	WP_CLI::error( 'Could not load manifest photos: ' . implode( ', ', $pn_missing_photos ) . '. No pages were created or replaced.' );
+if ( $pn_photo_errors ) {
+	foreach ( $pn_photo_errors as $pn_slug => $pn_reason ) {
+		WP_CLI::warning( "Photo '$pn_slug': $pn_reason" );
+	}
+	$pn_hint = '';
+	if ( false !== stripos( implode( ' ', $pn_photo_errors ), 'writable' ) || false !== stripos( implode( ' ', $pn_photo_errors ), 'permission' ) ) {
+		$pn_hint = ' The uploads folder is probably owned by the web user: run this as that user, for example PN_WP_USER=www-data scripts/create-pages.sh ...';
+	}
+	WP_CLI::error( 'Could not load ' . count( $pn_photo_errors ) . ' photo(s). No pages were created or replaced.' . $pn_hint );
 }
 
 $pn_ids = array();

@@ -95,7 +95,7 @@ foreach ( $pages as $path => list( $title, $h1, $musts ) ) {
 		check( "$path photo $name has srcset and sizes", '' !== $img->getAttribute( 'srcset' ) && '' !== $img->getAttribute( 'sizes' ), 'not responsive' );
 		check( "$path photo $name is from our own site", str_starts_with( $src, $base . '/' ) || str_starts_with( $src, '/' ), $src );
 		// A photo drawn in half a column must not be offered at full-page size: sizes follows the layout.
-		$want = array( 'pn-photo--hero' => '(max-width: 781px) 100vw, 340px', 'pn-photo--col' => '(max-width: 781px) 100vw, 340px', 'pn-photo--avatar' => '(max-width: 781px) 100vw, 216px' );
+		$want = array( 'pn-photo--hero' => '(max-width: 1240px) 100vw, 1200px', 'pn-photo--col' => '(max-width: 781px) 100vw, 340px', 'pn-photo--avatar' => '(max-width: 781px) 100vw, 216px' );
 		foreach ( $want as $cls => $sizes ) {
 			if ( false !== strpos( (string) $img->parentNode->getAttribute( 'class' ), $cls ) ) {
 				check( "$path photo $name sizes match its layout ($cls)", $sizes === preg_replace( '/^auto,\s*/', '', $img->getAttribute( 'sizes' ) ), "sizes='" . $img->getAttribute( 'sizes' ) . "'" );

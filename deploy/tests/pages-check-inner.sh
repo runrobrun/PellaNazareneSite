@@ -59,6 +59,7 @@ case "${BREAK:-}" in
 	plain-links) break_it $S/create-pages.php "'/%postname%/' );
 	WP_CLI::log( 'Permalinks were" "'' );
 	WP_CLI::log( 'Permalinks were" ;;
+	silent-photos) break_it $S/create-pages.php 'WP_CLI::warning( "Photo ' 'WP_CLI::warning( "' ;;
 	same-words)  break_it $T/patterns/page-home.php '>Upcoming events</a>' '>Give online</a>' ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
@@ -67,7 +68,9 @@ if [[ "${BREAK:-}" == missing-photo ]]; then
 	echo "== An incomplete photo import does not create or replace pages"
 	wp post create --post_type=page --post_status=publish --post_name=home --post_title="Existing Home" --post_content="Staff edit" --quiet
 	out="$(create --replace home 2>&1 || true)"
-	expect_contains "the missing photo slug is reported" "$out" "Could not load manifest photos: missing-photo"
+	expect_contains "the missing photo slug is reported" "$out" "Photo 'missing-photo'"
+	expect_contains "the missing photo file is reported" "$out" "assets/images/photos/missing-photo.webp is not in the theme"
+	expect_contains "reports that no pages were created" "$out" "No pages were created or replaced"
 	expect_eq "no pages are created after an incomplete import" "$(pages)" "1"
 	expect_eq "an existing page is not replaced" "$(wp post list --post_type=page --name=home --field=post_content)" "Staff edit"
 	echo
@@ -75,6 +78,17 @@ if [[ "${BREAK:-}" == missing-photo ]]; then
 	[[ $FAIL -eq 0 ]]
 	exit
 fi
+
+echo "== 0. A photo that cannot be saved is explained, and nothing is half-done"
+rm -rf wp-content/uploads && touch wp-content/uploads   # a file where the folder should be: nothing can be saved, whoever runs this
+out="$(create)"
+rm -f wp-content/uploads && mkdir -p wp-content/uploads
+expect_contains "names the photo that failed" "$out" "Photo 'home-hero'"
+expect_contains "gives the real reason" "$out" "writable"
+expect_contains "points at the web user" "$out" "PN_WP_USER"
+expect_contains "stops" "$out" "No pages were created or replaced"
+expect_eq "no page was created" "$(pages)" "0"
+expect_eq "no photo was added" "$(wp post list --post_type=attachment --format=count)" "0"
 
 echo "== 1. First run creates the seven pages"
 wp rewrite structure "" --hard --quiet   # a new server starts on Plain permalinks

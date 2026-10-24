@@ -7,12 +7,9 @@
  * Description: The home page. Create the page with scripts/create-pages.sh.
  */
 ?>
+<?php echo pn_photo_block( 'home-hero', 'hero', '21/9' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
 <!-- wp:group {"align":"wide","backgroundColor":"accent-2","style":{"spacing":{"padding":{"top":"var:preset|spacing|50","bottom":"var:preset|spacing|50","left":"var:preset|spacing|50","right":"var:preset|spacing|50"}}},"layout":{"type":"constrained"}} -->
 <div class="wp-block-group alignwide has-accent-2-background-color has-background" style="padding-top:var(--wp--preset--spacing--50);padding-right:var(--wp--preset--spacing--50);padding-bottom:var(--wp--preset--spacing--50);padding-left:var(--wp--preset--spacing--50)">
-<!-- wp:columns {"verticalAlignment":"center"} -->
-<div class="wp-block-columns are-vertically-aligned-center">
-<!-- wp:column {"verticalAlignment":"center"} -->
-<div class="wp-block-column is-vertically-aligned-center">
 <!-- wp:paragraph {"className":"is-style-subheading"} -->
 <p class="is-style-subheading">Small Groups 9:30&nbsp;AM · Sunday Worship 10:30&nbsp;AM</p>
 <!-- /wp:paragraph -->
@@ -32,15 +29,6 @@
 <!-- /wp:button -->
 </div>
 <!-- /wp:buttons -->
-</div>
-<!-- /wp:column -->
-<!-- wp:column {"verticalAlignment":"center"} -->
-<div class="wp-block-column is-vertically-aligned-center">
-<?php echo pn_photo_block( 'home-hero', 'hero', '4/3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
-</div>
-<!-- /wp:column -->
-</div>
-<!-- /wp:columns -->
 </div>
 <!-- /wp:group -->
 <!-- wp:columns -->
