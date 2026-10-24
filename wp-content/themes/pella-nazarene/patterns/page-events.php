@@ -6,6 +6,8 @@
  * Inserter: false
  * Description: The five regular weekly events, and a link to the live calendar in Church Center.
  */
+
+defined( 'ABSPATH' ) || exit;
 ?>
 <!-- wp:paragraph {"className":"is-style-subheading"} -->
 <p class="is-style-subheading">Here’s what happens every week at Pella Nazarene. All times are Central.</p>

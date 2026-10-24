@@ -6,6 +6,8 @@
  * Inserter: false
  * Description: Short page that explains small groups and sends people to Church Center Groups.
  */
+
+defined( 'ABSPATH' ) || exit;
 ?>
 <!-- wp:paragraph {"className":"is-style-subheading"} -->
 <p class="is-style-subheading">Life is better when we don’t do it alone.</p>
