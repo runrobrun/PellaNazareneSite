@@ -9,9 +9,6 @@
 ?>
 <!-- wp:group {"backgroundColor":"accent-2","style":{"spacing":{"padding":{"top":"var:preset|spacing|50","bottom":"var:preset|spacing|50","left":"var:preset|spacing|50","right":"var:preset|spacing|50"}}},"layout":{"type":"constrained"}} -->
 <div class="wp-block-group has-accent-2-background-color has-background" style="padding-top:var(--wp--preset--spacing--50);padding-right:var(--wp--preset--spacing--50);padding-bottom:var(--wp--preset--spacing--50);padding-left:var(--wp--preset--spacing--50)">
-<!-- wp:heading {"level":1} -->
-<h1 class="wp-block-heading">A church in Pella, Iowa</h1>
-<!-- /wp:heading -->
 <!-- wp:paragraph {"className":"is-style-subheading"} -->
 <p class="is-style-subheading">Small Groups 9:30&nbsp;AM · Sunday Worship 10:30&nbsp;AM</p>
 <!-- /wp:paragraph -->

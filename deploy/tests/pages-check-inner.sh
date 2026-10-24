@@ -91,6 +91,25 @@ wp option update page_on_front "$(wp post list --post_type=page --name=about-us 
 create >/dev/null
 expect_eq "a front page staff chose is not overridden" "$(wp post get "$(wp option get page_on_front)" --field=post_name)" "about-us"
 wp option update page_on_front "$(wp post list --post_type=page --name=home --field=ID)" --quiet
+wp option update show_on_front posts --quiet; wp option update page_on_front 0 --quiet
+home_id="$(wp post list --post_type=page --name=home --field=ID)"
+wp post update "$home_id" --post_status=draft --quiet
+create >/dev/null
+expect_eq "an unpublished Home leaves the current front-page setting alone" "$(wp option get show_on_front) $(wp option get page_on_front)" "posts 0"
+wp post update "$home_id" --post_status=publish --quiet
+create >/dev/null
+expect_eq "a published Home can become the front page" "$(wp option get show_on_front) $(wp post get "$(wp option get page_on_front)" --field=post_name)" "page home"
+
+echo "   (media slug conflicts with a page)"
+kids_id="$(wp post list --post_type=page --name=kids --field=ID)"
+wp post delete "$kids_id" --force --quiet
+media_id="$(wp post create --post_type=attachment --post_status=inherit --post_title="Media collision" --post_name=kids --post_content="Keep this description." --porcelain)"
+out="$(create --replace kids 2>&1 || true)"
+expect_contains "an attachment slug conflict is reported" "$out" "conflicts with an attachment"
+expect_eq "the attachment description is preserved" "$(wp post get "$media_id" --field=post_content)" "Keep this description."
+wp post delete "$media_id" --force --quiet
+out="$(create)"
+expect_contains "Kids is created after the attachment is removed" "$out" "Created 'kids'"
 
 echo "== 3. Block markup is clean"
 bad_blocks="$(wp eval '
@@ -115,9 +134,14 @@ wp post create --post_type=pn_sermon --post_status=draft --post_title="A draft s
 for _ in $(seq 1 30); do curl -s -o /dev/null "$BASE/" && break; sleep 1; done
 
 echo "== 5. The pages as visitors see them"
+wp option update page_on_front "$(wp post list --post_type=page --name=about-us --field=ID)" --quiet
+alternate_front="$(curl -s "$BASE/")"
+expect_contains "a staff-selected front page shows its page title" "$alternate_front" '<h1 class="wp-block-post-title">About Us</h1>'
+wp option update page_on_front "$home_id" --quiet
+facts="$(php /repo/deploy/tests/pages-facts.php "$BASE" 2>&1)" || setup_fail "page checks crashed: $facts"
 while IFS='|' read -r kind name detail; do
 	case "$kind" in ok) ok "$name" ;; FAIL) bad "$name ($detail)" ;; *) [[ -n "$kind" ]] && echo "   $kind|$name|$detail" ;; esac
-done < <(php /repo/deploy/tests/pages-facts.php "$BASE" 2>&1)
+done <<< "$facts"
 
 echo
 echo "Passed: $PASS   Failed: $FAIL"

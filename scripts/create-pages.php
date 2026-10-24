@@ -11,7 +11,7 @@
 defined( 'ABSPATH' ) || exit;
 
 $pn_pages = array(
-	'home'      => 'Home',
+	'home'      => 'A church in Pella, Iowa',
 	'new-here'  => 'New Here',
 	'about-us'  => 'About Us',
 	'kids'      => 'Kids',
@@ -48,14 +48,21 @@ foreach ( $pn_pages as $pn_slug => $pn_title ) {
 	}
 	$pn_existing = get_page_by_path( $pn_slug, OBJECT, 'page' );
 	if ( $pn_existing ) {
+		if ( 'page' !== $pn_existing->post_type ) {
+			WP_CLI::error( "'$pn_slug' conflicts with an attachment; rename or delete the media item first." );
+		}
 		$pn_ids[ $pn_slug ] = $pn_existing->ID;
 		if ( in_array( $pn_slug, $pn_replace, true ) ) {
-			wp_update_post(
+			$pn_updated = wp_update_post(
 				array(
 					'ID'           => $pn_existing->ID,
 					'post_content' => wp_slash( $pn_content ),
-				)
+				),
+				true
 			);
+			if ( is_wp_error( $pn_updated ) ) {
+				WP_CLI::error( "Could not replace '$pn_slug': " . $pn_updated->get_error_message() );
+			}
 			WP_CLI::log( "Replaced the text of '$pn_slug'." );
 		} else {
 			WP_CLI::log( "Kept '$pn_slug' (already exists)." );
@@ -80,7 +87,11 @@ foreach ( $pn_pages as $pn_slug => $pn_title ) {
 }
 
 // Make Home the front page, unless staff have already chosen one.
-if ( isset( $pn_ids['home'] ) && 'page' !== get_option( 'show_on_front' ) ) {
+if (
+	isset( $pn_ids['home'] )
+	&& 'publish' === get_post_status( $pn_ids['home'] )
+	&& 'page' !== get_option( 'show_on_front' )
+) {
 	update_option( 'show_on_front', 'page' );
 	update_option( 'page_on_front', $pn_ids['home'] );
 	WP_CLI::log( 'Home is now the front page.' );

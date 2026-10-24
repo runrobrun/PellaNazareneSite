@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Pella Nazarene Sermons
  * Description:       Sermons with series, speakers, and scripture; imports sermons from YouTube (new ones automatically, the whole history with a command) as drafts for review; drafts companion blog posts.
- * Version:           0.1.0
+ * Version:           0.1.1
  * Requires at least: 6.6
  * Requires PHP:      8.1
  * Author:            Pella Nazarene
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PN_SERMONS_VERSION', '0.1.0' );
+define( 'PN_SERMONS_VERSION', '0.1.1' );
 define( 'PN_SERMONS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PN_SERMONS_URL', plugin_dir_url( __FILE__ ) );
 
