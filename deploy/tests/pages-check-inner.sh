@@ -192,6 +192,9 @@ echo "== 4b. The blog starts empty, shows only published posts, and has a feed"
 empty_blog="$(curl -s "$BASE/blog/")"
 expect_contains "an empty blog says so" "$empty_blog" "No posts yet"
 wp post create --post_type=post --post_status=publish --post_title="Welcome to our new website" --post_content="We are glad you are here." --post_author=1 --quiet
+blog_post="$(wp post list --post_type=post --name=welcome-to-our-new-website --field=ID)"
+hero_id="$(wp post list --post_type=attachment --meta_key=_pn_photo --meta_value=home-hero --field=ID)"
+PN_POST_ID="$blog_post" PN_IMAGE_ID="$hero_id" wp eval 'set_post_thumbnail( (int) getenv("PN_POST_ID"), (int) getenv("PN_IMAGE_ID") );'
 wp post create --post_type=post --post_status=draft --post_title="A draft post" --post_content="Not ready." --post_author=1 --quiet
 
 echo "== 5. The pages as visitors see them"

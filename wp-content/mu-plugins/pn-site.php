@@ -64,7 +64,8 @@ add_filter(
 	'user_has_cap',
 	static function ( $allcaps ) {
 		if ( empty( $allcaps['publish_pages'] ) ) { // Only Editors and administrators have this.
-			$allcaps['publish_posts'] = false;
+			$allcaps['publish_posts']        = false;
+			$allcaps['edit_published_posts'] = false;
 		}
 		return $allcaps;
 	}

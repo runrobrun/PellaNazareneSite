@@ -201,12 +201,12 @@ function pn_front_page_has_h1(): bool {
 	return $find_h1( parse_blocks( (string) get_post_field( 'post_content', $front_page_id ) ) );
 }
 
-// WordPress skips lazy-loading for the first three images on every page. Here only the home page's hero loads
-// right away; every other photo waits until it is near the screen.
+// WordPress skips lazy-loading for the first three images on every page. Here only the home page's hero and a
+// blog post's featured image load right away; every other photo waits until it is near the screen.
 add_filter(
 	'wp_omit_loading_attr_threshold',
 	function () {
-		return is_front_page() ? 1 : 0;
+		return is_front_page() || ( is_singular( 'post' ) && has_post_thumbnail() ) ? 1 : 0;
 	}
 );
 

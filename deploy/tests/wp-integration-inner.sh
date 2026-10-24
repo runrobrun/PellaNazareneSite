@@ -222,9 +222,22 @@ echo "== 11. Pastors write, an Editor publishes"
 can() { wp eval "echo user_can( get_user_by('login','$1'), '$2' ) ? 'yes' : 'no';"; }
 expect_eq "a pastor (Author) cannot publish posts" "$(can pastor publish_posts)" "no"
 expect_eq "a pastor can still write and save drafts" "$(can pastor edit_posts)" "yes"
+expect_eq "a pastor cannot edit published posts" "$(can pastor edit_published_posts)" "no"
 expect_eq "an Editor can publish posts" "$(can ed publish_posts)" "yes"
 expect_eq "an administrator can publish posts" "$(can boss publish_posts)" "yes"
 expect_eq "a subscriber cannot publish posts" "$(can reader publish_posts)" "no"
+pastor_id="$(wp user get pastor --field=ID)"
+published_post="$(wp post create --post_status=publish --post_title="Pastor's published post" --post_content="Original published content." --post_author="$pastor_id" --porcelain)"
+response="$(PN_POST_ID="$published_post" wp --skip-plugins=two-factor eval '
+$post_id = (int) getenv("PN_POST_ID");
+wp_set_current_user( get_user_by( "login", "pastor" )->ID );
+$request = new WP_REST_Request( "POST", "/wp/v2/posts/$post_id" );
+$request->set_header( "X-WP-Nonce", wp_create_nonce( "wp_rest" ) );
+$request->set_param( "content", "Unreviewed content change." );
+$response = rest_do_request( $request );
+echo $response->get_status(), "|", get_post_field( "post_content", $post_id );
+')"
+expect_eq "REST cannot update a pastor's already-published post" "$response" "403|Original published content."
 
 echo
 echo "Passed: $PASS   Failed: $FAIL"
