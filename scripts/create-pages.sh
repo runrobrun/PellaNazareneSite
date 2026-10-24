@@ -23,6 +23,7 @@ fi
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 wp --path="$WP_PATH" eval-file "$here/create-pages.php" "${replace[@]}"
+wp --path="$WP_PATH" rewrite flush
 
 # The Nginx page cache can keep serving the old pages for up to an hour. Name its folder to clear it now.
 if [[ -n "${PN_NGINX_CACHE_DIR:-}" ]]; then

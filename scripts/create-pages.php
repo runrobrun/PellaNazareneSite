@@ -104,6 +104,5 @@ if ( '' === (string) get_option( 'permalink_structure' ) ) {
 	$wp_rewrite->set_permalink_structure( '/%postname%/' );
 	WP_CLI::log( 'Permalinks were "Plain"; set them to /%postname%/.' );
 }
-flush_rewrite_rules();
 wp_cache_flush();
 WP_CLI::success( 'Pages are in place.' );

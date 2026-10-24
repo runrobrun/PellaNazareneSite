@@ -62,6 +62,12 @@ wp rewrite structure "" --hard --quiet   # a new server starts on Plain permalin
 out="$(create)"
 expect_contains "it fixes Plain permalinks" "$out" "set them to /%postname%/"
 expect_eq "pretty permalinks are on" "$(wp option get permalink_structure)" "/%postname%/"
+rules="$(wp rewrite list --format=csv)"
+expect_contains "sermon archive rewrite rule exists" "$rules" "index.php?post_type=pn_sermon"
+expect_contains "single sermon rewrite rule exists" "$rules" 'index.php?pn_sermon=$matches[1]'
+expect_contains "sermon series rewrite rule exists" "$rules" 'index.php?pn_series=$matches[1]'
+expect_contains "sermon speaker rewrite rule exists" "$rules" 'index.php?pn_speaker=$matches[1]'
+expect_contains "sermon scripture rewrite rule exists" "$rules" 'index.php?pn_scripture=$matches[1]'
 for s in home new-here about-us kids giving contact resources; do expect_contains "created $s" "$out" "Created '$s'"; done
 expect_eq "seven pages exist" "$(pages)" "7"
 expect_eq "Home is the front page" "$(wp option get show_on_front) $(wp post get "$(wp option get page_on_front)" --field=post_name)" "page home"
