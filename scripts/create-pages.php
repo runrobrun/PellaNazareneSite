@@ -96,4 +96,13 @@ if (
 	update_option( 'page_on_front', $pn_ids['home'] );
 	WP_CLI::log( 'Home is now the front page.' );
 }
+
+// The menu and every link use addresses like /new-here/. With WordPress's "Plain" permalinks every one of them
+// shows the home page, so set pretty links if none are set (a choice staff already made is left alone).
+if ( '' === (string) get_option( 'permalink_structure' ) ) {
+	global $wp_rewrite;
+	$wp_rewrite->set_permalink_structure( '/%postname%/' );
+	WP_CLI::log( 'Permalinks were "Plain"; set them to /%postname%/.' );
+}
+wp_cache_flush();
 WP_CLI::success( 'Pages are in place.' );
