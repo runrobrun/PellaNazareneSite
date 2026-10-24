@@ -23,6 +23,11 @@ wp config create --dbname=wp --dbuser=root --dbpass=root --dbhost=pn-test-db --s
 for _ in $(seq 1 45); do mysql -h pn-test-db -uroot -proot -e 'select 1' wp >/dev/null 2>&1 && break; sleep 2; done
 wp core install --url="$BASE" --title=Test --admin_user=boss --admin_password='Admin-pass-1!' --admin_email=boss@example.test --skip-email --quiet || setup_fail "core install"
 mkdir -p wp-content/mu-plugins && cp /repo/wp-content/mu-plugins/pn-*.php wp-content/mu-plugins/
+# BREAK=authors-publish damages the copy under test; the checks must then fail.
+if [[ "${BREAK:-}" == authors-publish ]]; then
+	sed -i "s/if ( empty( \$allcaps\['publish_pages'\] ) ) {/if ( false ) {/" wp-content/mu-plugins/pn-site.php
+	grep -q "if ( false ) {" wp-content/mu-plugins/pn-site.php || setup_fail "break did not apply"
+fi
 wp plugin install two-factor --version=0.17.0 --activate --quiet || setup_fail "installing Two Factor"
 wp user create ed ed@example.test --role=editor --user_pass='Editor-pass-1!' --quiet
 wp user create pastor pastor@example.test --role=author --user_pass='Pastor-pass-1!' --quiet
@@ -212,6 +217,14 @@ expect_eq "no fatal error: the admin still loads (fails open)" "$(get_code "$BAS
 rm -f wp-content/mu-plugins/aa-fake-two-factor.php
 wp plugin activate two-factor --quiet
 expect_eq "real plugin back: API check passes again" "$(wp eval 'echo pn_two_factor_api_ready() ? "yes" : "no";')" "yes"
+
+echo "== 11. Pastors write, an Editor publishes"
+can() { wp eval "echo user_can( get_user_by('login','$1'), '$2' ) ? 'yes' : 'no';"; }
+expect_eq "a pastor (Author) cannot publish posts" "$(can pastor publish_posts)" "no"
+expect_eq "a pastor can still write and save drafts" "$(can pastor edit_posts)" "yes"
+expect_eq "an Editor can publish posts" "$(can ed publish_posts)" "yes"
+expect_eq "an administrator can publish posts" "$(can boss publish_posts)" "yes"
+expect_eq "a subscriber cannot publish posts" "$(can reader publish_posts)" "no"
 
 echo
 echo "Passed: $PASS   Failed: $FAIL"

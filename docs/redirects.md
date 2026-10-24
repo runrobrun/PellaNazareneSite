@@ -35,7 +35,7 @@ Never use `--allow-fallback` at cutover: it would pass while old sermon links st
 
 ## Before cutover (MIG-9), these must be true
 
-1. **The targets exist:** `/events/` and `/small-groups/` (MIG-7, built), the seven kept pages (MIG-3), and `/blog/` (FEAT-7, still to build).
+1. **The targets exist:** `/events/` and `/small-groups/` (MIG-7, built), the seven kept pages (MIG-3), and `/blog/` (FEAT-7, built; write a first real post before launch).
 2. **The sermon import (MIG-6) sets two things the redirects rely on:**
    - speakers with the slugs `todd-olson`, `cindy-olson`, `rob-hammann`, `floyd-ware`, and a series with the slug `holiness-in-the-house-a-study-in-titus`;
    - for any sermon whose new address differs from its old one, a post meta value `pn_legacy_slug` holding the old slug (for example `gods-messenger-malachi-31-4`). The redirect finds the sermon by its new slug first, then by `pn_legacy_slug`.

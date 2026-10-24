@@ -53,6 +53,7 @@ $pages = array(
 	'/resources/' => array( 'Resources', 'Resources', array( 'Nazarene Discipleship International', 'The Preaching Collaborative' ) ),
 	'/events/'    => array( 'Events', 'Events', array( 'Sunday School', 'Connections Sunday School Class', 'Lighthouse Student Ministry', 'Midweek Prayer Meeting', 'Coffee Time', 'Windmill Cafe', '9:30–10:15 AM', '5:30–7:00 PM', '10:30–11:30 AM', '7:00–8:00 PM', 'Central', 'See the full calendar' ) ),
 	'/small-groups/' => array( 'Small Groups', 'Small Groups', array( 'Find a group', 'Connect card', '9:30' ) ),
+	'/blog/'      => array( 'Blog', 'Blog', array( 'News and encouragement', 'Welcome to our new website' ) ),
 );
 $bad_words = array( 'lorem ipsum', 'omega church', 'brunson', 'will & gloria', 'gloria jackson', 'eastern', '8:30', '8:00 -', 'onine', 'activites', 'link to be added', 'wedensday', 'text-to-give', 'text to give' );
 
@@ -189,7 +190,7 @@ foreach ( $give as $h ) {
 $contact = main_text( dom( $html_of['/contact/'] ) );
 check( 'Contact hours are Mon/Wed 1-4 and Fri 9-12', (bool) preg_match( '/Monday 1.{1,3}4\s*PM, Wednesday 1.{1,3}4\s*PM, Friday 9\s*AM.{1,3}12\s*PM Central/u', $contact ), 'hours text not found' );
 // Photos in total, the hero preload, and that the files really are served as WebP.
-$expected_photos = array( '/' => 1, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 0 );
+$expected_photos = array( '/' => 1, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 0, '/blog/' => 0 );
 foreach ( $expected_photos as $path => $n ) {
 	$found = dom( $html_of[ $path ] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->length;
 	check( "$path shows $n photo(s)", $n === $found, "$found found" );
@@ -217,6 +218,26 @@ check( 'Hero preload matches the rendered hero photo', $hero_preload && $hero_sr
 check( 'Hero offers several sizes', substr_count( $srcset, ' ' ) >= 5, $srcset );
 preg_match( '/ (\d+)w/', $srcset, $first_w );
 check( 'Hero has a small size for phones (600px or less)', (bool) preg_match( '/ ([1-5]\d\d|600)w/', $srcset ), 'smallest sizes missing' );
+
+// The blog: published posts only, a readable post page, an RSS feed, and a menu link on every page.
+$blog_x = dom( $html_of['/blog/'] );
+check( 'Blog index does not show the draft post', false === strpos( $html_of['/blog/'], 'A draft post' ), 'draft leaked onto the blog' );
+$post_link = (string) $blog_x->query( "//main//h2//a[contains(., 'Welcome to our new website')]" )->item( 0 )?->getAttribute( 'href' );
+check( 'Blog index links to the post', '' !== $post_link, 'no link to the post' );
+list( $pc, $post_html ) = fetch( $post_link );
+$post_x = dom( $post_html );
+check( 'Blog post answers 200', 200 === $pc, "got $pc" );
+check( 'Blog post has one h1: its title', 1 === $post_x->query( '//h1' )->length && 'Welcome to our new website' === trim( (string) $post_x->query( '//h1' )->item( 0 )?->textContent ), 'title is not the h1' );
+check( 'Blog post shows its text, a date, and a way back', false !== strpos( $post_html, 'We are glad you are here.' ) && $post_x->query( '//main//time' )->length >= 1 && false !== strpos( $post_html, 'All posts' ), 'post page is incomplete' );
+check( 'Blog post has the site header and footer', has_class( $post_x, 'pn-header' ) && has_class( $post_x, 'pn-footer' ), 'header or footer missing' );
+check( 'Blog post has comments off', false === strpos( $post_html, 'comment-form' ), 'comment form shown' );
+list( $fc, $feed ) = fetch( $base . '/feed/' );
+check( 'RSS feed answers 200', 200 === $fc, "got $fc" );
+check( 'RSS feed lists the published post and not the draft', false !== strpos( $feed, 'Welcome to our new website' ) && false === strpos( $feed, 'A draft post' ), 'feed content wrong' );
+check( 'RSS feed is advertised in the page head', (bool) preg_match( '#<link rel="alternate" type="application/rss\+xml"#', $html_of['/blog/'] ), 'no feed link' );
+foreach ( array_keys( $pages ) as $path ) {
+	check( "$path has a Blog link in the menu", dom( $html_of[ $path ] )->query( "//header//a[contains(@href, '/blog/')]" )->length >= 1, 'no Blog in the header' );
+}
 
 // The sermon pages use our own templates; they must carry the header and footer too.
 foreach ( array( '/sermons/', '/sermons/latest-published-sermon/' ) as $sp ) {

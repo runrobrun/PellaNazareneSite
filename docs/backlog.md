@@ -195,12 +195,13 @@ Church Center (pella-nazarene.churchcenter.com) already has Calendar, Groups, Re
 ### FEAT-5 SEO and sharing · S · todo
 Sitemap, meta titles and descriptions, Open Graph images, `Church` schema.org markup with address, service times, and the office hours (Mon 1-4, Wed 1-4, Fri 9-12 Central).
 
-### FEAT-7 Blog · S · todo
+### FEAT-7 Blog · S · in review (built; staff to write the first real post before launch)
 Set up a blog at `/blog/` starting empty (old posts are not migrated).
 - Blog index and single-post templates in the theme, matching the design system; categories only if staff want them.
 - Pastors (Author) can draft and Editor publishes; RSS feed works.
 - Linked from the main nav; `/news/*` redirects here (MIG-2).
 - Add a first real post before launch so the page is not empty.
+- **Done in the FEAT-7 PR:** the Blog page at `/blog/` is the posts page (`create-pages.sh` creates it and sets it); blog index (`templates/home.html`) and post (`templates/single.html`) templates in the design system, with an empty-state message; "Blog" in the main menu (footer already had it); RSS feed at `/feed/` (advertised in every page's head); comments stay off. Pastors (Authors) can write and save drafts or submit for review but cannot publish; Editors and administrators publish (enforced in `pn-site.php`, and the same applies to sermons). `/news/` still redirects to `/blog/`. **Still open:** staff write the first real post before launch; categories only if staff ask.
 
 ### FEAT-8 Google Analytics on production · S · todo
 Include the Google Analytics 4 tag, measurement ID **`G-3E45KJPG3G`** (a public identifier that appears in page source; not a secret), on the **production** site only.

@@ -79,7 +79,7 @@ The mission icons also come as a white glyph on a navy rounded square (`docs/bra
 
 ## Not done yet
 
-- **Page templates beyond the 404** (home page layout, About, New Here, Kids...) are built with the content (MIG-3). Single pages and posts still use the parent theme's layout. Its footer links (Blog, Shop, Patterns...) are placeholders.
+- **Page templates beyond the 404** (home page layout, About, New Here, Kids...) are built with the content (MIG-3). Blog posts and the blog index have their own templates (FEAT-7); other single pages use the page template. Its footer links (Blog, Shop, Patterns...) are placeholders.
 - **Parent theme's block styles** ("Display", "Subtitle", "Annotation", "Pill shaped", "Style 1 to 5") are still in the editor. They pick up the brand colors, but "Subtitle" overlaps with our "Subheading". Review in FE-2.
 - **Font fallback metrics.** When the brand font swaps in over the fallback there can be a small layout shift. Measure in PERF-1 and, if needed, add size-adjusted fallback faces (PERF-3).
 
