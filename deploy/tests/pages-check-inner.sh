@@ -14,7 +14,8 @@ expect_contains() { grep -qF -- "$3" <<<"$2" && ok "$1" || bad "$1 (missing: $3)
 expect_lacks()    { grep -qF -- "$3" <<<"$2" && bad "$1 (should not contain: $3)" || ok "$1"; }
 setup_fail() { echo "SETUP FAILED: $1"; exit 1; }
 pages() { wp post list --post_type=page --post_status=any --format=count; }
-create() { bash /repo/scripts/create-pages.sh "$W" "$@" 2>&1; }
+S=/tmp/scripts; cp -R /repo/scripts "$S"   # a copy, so BREAK can damage it
+create() { bash "$S/create-pages.sh" "$W" "$@" 2>&1; }
 
 echo "== Setup: real WordPress, Twenty Twenty-Five, our theme, the sermon plugin"
 wp core download --quiet >/dev/null || setup_fail "core download"
@@ -49,12 +50,15 @@ case "${BREAK:-}" in
 	iframe)      break_it $T/patterns/page-new-here.php '[pn_sermon_video id="EK0MuwDegjI"]' '<iframe src="https://www.youtube.com/embed/EK0MuwDegjI"></iframe>' ;;
 	hardcolor)   break_it $T/patterns/page-kids.php '<p class="is-style-subheading">Your kids' '<p class="is-style-subheading" style="color:#ff0000">Your kids' ;;
 	no-header)   break_it $T/templates/archive-pn_sermon.html '{"slug":"header","tagName":"header"}' '{"slug":"header","theme":"twentytwentyfive"}' ;;
-		no-alt)      break_it $T/assets/images/photos/manifest.json '"alt": "Todd Olson, co-pastor"' '"alt": ""' ;;
+	no-alt)      break_it $T/assets/images/photos/manifest.json '"alt": "Todd Olson, co-pastor"' '"alt": ""' ;;
 	missing-photo) break_it $T/assets/images/photos/manifest.json '"slug": "home-hero"' '"slug": "missing-photo"' ;;
 	no-photos)   break_it $T/functions.php "require_once get_theme_file_path( 'inc/photos.php' );" "" ;;
 	eager-photos) break_it $T/inc/photos.php 'return is_front_page() ? 1 : 0;' 'return 3;' ;;
 	no-preload)  break_it $T/inc/photos.php "\$id     = pn_front_page_hero_id();" "\$id     = 0;" ;;
 	big-sizes)   break_it $T/inc/photos.php "'col'    => '(max-width: 781px) 100vw, 340px'," "'col'    => ''," ;;
+	plain-links) break_it $S/create-pages.php "'/%postname%/' );
+	WP_CLI::log( 'Permalinks were" "'' );
+	WP_CLI::log( 'Permalinks were" ;;
 	same-words)  break_it $T/patterns/page-home.php '>Upcoming events</a>' '>Give online</a>' ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
@@ -73,7 +77,16 @@ if [[ "${BREAK:-}" == missing-photo ]]; then
 fi
 
 echo "== 1. First run creates the seven pages"
+wp rewrite structure "" --hard --quiet   # a new server starts on Plain permalinks
 out="$(create)"
+expect_contains "it fixes Plain permalinks" "$out" "set them to /%postname%/"
+expect_eq "pretty permalinks are on" "$(wp option get permalink_structure)" "/%postname%/"
+rules="$(wp rewrite list --format=csv)"
+expect_contains "sermon archive rewrite rule exists" "$rules" "index.php?post_type=pn_sermon"
+expect_contains "single sermon rewrite rule exists" "$rules" 'index.php?pn_sermon=$matches[1]'
+expect_contains "sermon series rewrite rule exists" "$rules" 'index.php?pn_series=$matches[1]'
+expect_contains "sermon speaker rewrite rule exists" "$rules" 'index.php?pn_speaker=$matches[1]'
+expect_contains "sermon scripture rewrite rule exists" "$rules" 'index.php?pn_scripture=$matches[1]'
 for s in home new-here about-us kids giving contact resources; do expect_contains "created $s" "$out" "Created '$s'"; done
 expect_eq "seven pages exist" "$(pages)" "7"
 expect_eq "Home is the front page" "$(wp option get show_on_front) $(wp post get "$(wp option get page_on_front)" --field=post_name)" "page home"
