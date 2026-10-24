@@ -192,11 +192,11 @@ wp option update page_on_front "$home_id" --quiet
 home_content="$(wp post get "$home_id" --field=post_content)"
 wp post update "$home_id" --post_content='<!-- wp:image {"id":123,"className":"pn-photo--hero"} --><figure class="wp-block-image pn-photo--hero"><img src="/missing.webp" alt=""></figure><!-- /wp:image -->' --quiet
 home_without_h1="$(curl -s "$BASE/")"
-expect_contains "a hero without a replacement h1 keeps the template title" "$home_without_h1" '<h1 class="wp-block-post-title">Home</h1>'
+expect_contains "a hero without a replacement h1 keeps the template title" "$home_without_h1" '<h1 class="wp-block-post-title">A church in Pella, Iowa</h1>'
 wp post update "$home_id" --post_content='<!-- wp:heading {"level":1} --><h1 class="wp-block-heading">A staff-written home headline</h1><!-- /wp:heading -->' --quiet
 home_without_photo="$(curl -s "$BASE/")"
 expect_contains "a replacement h1 without a hero renders" "$home_without_photo" '<h1 class="wp-block-heading">A staff-written home headline</h1>'
-expect_lacks "a replacement h1 without a hero suppresses the template title" "$home_without_photo" '<h1 class="wp-block-post-title">Home</h1>'
+expect_lacks "a replacement h1 without a hero suppresses the template title" "$home_without_photo" '<h1 class="wp-block-post-title">A church in Pella, Iowa</h1>'
 wp post update "$home_id" --post_content="$home_content" --quiet
 facts="$(php /repo/deploy/tests/pages-facts.php "$BASE" 2>&1)" || setup_fail "page checks crashed: $facts"
 while IFS='|' read -r kind name detail; do
