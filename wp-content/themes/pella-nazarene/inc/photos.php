@@ -86,7 +86,7 @@ function pn_import_photos( array &$errors = array() ): array {
 /** How wide a photo is drawn at desktop width, so phones are not sent more pixels than they need. */
 function pn_photo_sizes( string $variant ): string {
 	$sizes = array(
-		'hero'   => '(max-width: 1240px) 100vw, 1200px',
+		'hero'   => '100vw',
 		'col'    => '(max-width: 781px) 100vw, 340px',
 		'avatar' => '(max-width: 781px) 100vw, 216px',
 	);
@@ -113,7 +113,7 @@ function pn_photo_block( string $slug, string $variant = 'full', string $ratio =
 		'className'       => $class,
 	);
 	$style = '';
-	$align = 'hero' === $variant ? 'wide' : '';
+	$align = 'hero' === $variant ? 'full' : '';
 	if ( '' !== $align ) {
 		$attrs['align'] = $align;
 	}
@@ -181,6 +181,26 @@ function pn_front_page_hero_id(): int {
 	return $find_hero( parse_blocks( (string) get_post_field( 'post_content', $front_page_id ) ) );
 }
 
+/** Whether the current front page contains a level-one Heading block. */
+function pn_front_page_has_h1(): bool {
+	$front_page_id = (int) get_option( 'page_on_front' );
+	if ( ! $front_page_id ) {
+		return false;
+	}
+	$find_h1 = static function ( array $blocks ) use ( &$find_h1 ): bool {
+		foreach ( $blocks as $block ) {
+			if ( 'core/heading' === ( $block['blockName'] ?? '' ) && 1 === (int) ( $block['attrs']['level'] ?? 2 ) ) {
+				return true;
+			}
+			if ( ! empty( $block['innerBlocks'] ) && $find_h1( $block['innerBlocks'] ) ) {
+				return true;
+			}
+		}
+		return false;
+	};
+	return $find_h1( parse_blocks( (string) get_post_field( 'post_content', $front_page_id ) ) );
+}
+
 // WordPress skips lazy-loading for the first three images on every page. Here only the home page's hero loads
 // right away; every other photo waits until it is near the screen.
 add_filter(
@@ -211,4 +231,13 @@ add_action(
 		);
 	},
 	2
+);
+
+// The hero carries the home page's h1 itself (over the photo), so the template's title block is not shown a second
+// time. A front page without the hero shows its title as usual.
+add_filter(
+	'render_block_core/post-title',
+	function ( $html ) {
+		return ( is_front_page() && pn_front_page_has_h1() ) ? '' : $html;
+	}
 );

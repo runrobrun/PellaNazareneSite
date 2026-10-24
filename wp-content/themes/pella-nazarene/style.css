@@ -2,12 +2,57 @@
 Theme Name:   Pella Nazarene
 Description:  Child theme of Twenty Twenty-Five for pellanazarene.org.
 Template:     twentytwentyfive
-Version:      0.1.0
+Version:      0.1.1
 Requires PHP: 8.1
 Text Domain:  pella-nazarene
 */
 
 /* Most styling lives in theme.json. Keep this file small. */
+
+/* The home photo runs edge to edge under the menu. Wide and short on a desktop, taller on a phone, and the
+   speaker (lower right of the picture) stays in view. */
+.pn-photo--hero {
+	margin: 0;
+}
+
+.pn-photo--hero img {
+	display: block;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 21 / 9;
+	max-height: 640px;
+	object-fit: cover;
+	object-position: 62% 62%;
+	border-radius: 0;
+}
+
+@media (max-width: 781px) {
+	.pn-photo--hero img {
+		aspect-ratio: 4 / 3;
+	}
+}
+
+/* The headline sits on the photo, bottom left, on a navy fade so the white text is readable on any picture
+   (navy at 85% over even a white photo still gives about 7:1 with white text). */
+.pn-hero {
+	display: grid;
+}
+
+.pn-hero > * {
+	grid-area: 1 / 1;
+	margin: 0;
+}
+
+.pn-hero .pn-hero__title {
+	align-self: end;
+	z-index: 1;
+	margin: 0;
+	padding: 6rem max(1.25rem, calc((100vw - var(--wp--style--global--wide-size, 1200px)) / 2)) clamp(1rem, 3vw, 2.5rem);
+	color: var(--wp--preset--color--base);
+	background: linear-gradient(to bottom, transparent 0, color-mix(in srgb, var(--wp--preset--color--accent-3) 85%, transparent) 5rem);
+	font-size: var(--wp--preset--font-size--xx-large);
+	line-height: 1.1;
+}
 
 .pn-service-info {
 	font-size: var(--wp--preset--font-size--small);
