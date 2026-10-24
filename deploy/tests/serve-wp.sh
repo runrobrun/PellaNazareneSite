@@ -12,9 +12,14 @@ wp core install --url="http://${SITE_HOST:-pn-wp}:8080" --title="Pella Nazarene"
 wp theme install twentytwentyfive --quiet
 cp -R /repo/wp-content/themes/pella-nazarene wp-content/themes/
 wp theme activate pella-nazarene --quiet
+mkdir -p wp-content/plugins; cp -R /repo/wp-content/plugins/pn-sermons wp-content/plugins/
+wp plugin activate pn-sermons --quiet
 wp rewrite structure '/%postname%/' --hard --quiet
+# The brand fixture page uses every brand element; it lives at /brand-check/. The real pages come from the theme's patterns.
 wp post create --post_type=page --post_title="Brand check" --post_name=brand-check --post_status=publish --post_content="$(cat /repo/deploy/tests/fixtures/brand-check-page.html)" --quiet
-wp option update show_on_front page --quiet
-wp option update page_on_front "$(wp post list --post_type=page --name=brand-check --field=ID)" --quiet
+bash /repo/scripts/create-pages.sh "$W" >/dev/null
+# BREAK_BLOCK=1 (a test of the test) puts markup the editor rejects on the Kids page.
+[[ -z "${BREAK_BLOCK:-}" ]] || wp post update "$(wp post list --post_type=page --name=kids --field=ID)" --post_content='<!-- wp:separator --><div class="wp-block-separator">not a separator</div><!-- /wp:separator -->' --quiet
+wp post create --post_type=pn_sermon --post_status=publish --post_title="Pentecost Promised, Proclaimed, and Practiced" --post_date="2026-05-24 12:00:00" --meta_input='{"pn_youtube_id":"Nll1UzWZHQA"}' --quiet
 touch /tmp/ready
 exec php -d memory_limit=512M /usr/local/bin/wp server --host=0.0.0.0 --port=8080

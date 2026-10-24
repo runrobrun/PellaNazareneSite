@@ -43,3 +43,10 @@
 .pn-video__play:focus-visible {
 	background: #c00;
 }
+
+/* Keyboard focus must be clearly visible against any thumbnail: a white ring with a dark halo. */
+.pn-video__play:focus-visible {
+	outline: 3px solid #fff;
+	outline-offset: 3px;
+	box-shadow: 0 0 0 6px rgba(0, 0, 0, 0.85);
+}

@@ -45,6 +45,39 @@ async function checkFocus(page, name) {
   return problems;
 }
 
+// Staff edit these pages in the block editor. Open each one as an administrator and require that the editor
+// accepts every block as valid (no "this block contains unexpected content" recovery prompts).
+async function checkEditor(browser) {
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1400, height: 900 });
+  await page.goto(BASE + '/wp-login.php', { waitUntil: 'networkidle0' });
+  await page.type('#user_login', 'boss');
+  await page.type('#user_pass', 'x-Pass-1!');
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('#wp-submit')]);
+  await page.goto(BASE + '/wp-admin/edit.php?post_type=page', { waitUntil: 'networkidle0' });
+  const found = await page.evaluate(() => [...document.querySelectorAll('a.row-title')].map((a) => [a.textContent.trim(), (a.href.match(/post=(\d+)/) || [])[1]]));
+  const wanted = ['Home', 'New Here', 'About Us', 'Kids', 'Giving', 'Contact', 'Resources'];
+  let problems = 0;
+  for (const title of wanted) {
+    const hit = found.find(([t]) => t === title);
+    if (!hit) { console.log(`   [editor] page '${title}' not found in the admin list`); problems++; continue; }
+    await page.goto(`${BASE}/wp-admin/post.php?post=${hit[1]}&action=edit`, { waitUntil: 'networkidle0' });
+    try {
+      await page.waitForFunction(() => window.wp && wp.data && wp.data.select('core/block-editor') && wp.data.select('core/block-editor').getBlocks().length > 0, { timeout: 30000 });
+    } catch (e) { console.log(`   [editor] ${title}: the editor did not load any blocks`); problems++; continue; }
+    const r = await page.evaluate(() => {
+      const bad = []; let n = 0;
+      const walk = (blocks) => blocks.forEach((b) => { n++; if (!b.isValid) bad.push(b.name); walk(b.innerBlocks); });
+      walk(wp.data.select('core/block-editor').getBlocks());
+      return { n, bad };
+    });
+    console.log(`== editor: ${title}: ${r.n} blocks, ${r.bad.length} invalid${r.bad.length ? ' (' + [...new Set(r.bad)].join(', ') + ')' : ''}`);
+    problems += r.bad.length;
+  }
+  await page.close();
+  return problems;
+}
+
 (async () => {
   const browser = await puppeteer.launch({ executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser', args: ['--no-sandbox', '--disable-gpu'] });
   let total = 0;
@@ -52,6 +85,12 @@ async function checkFocus(page, name) {
     ['home, desktop 1280', '/', 1280, 900, false],
     ['home, phone 390', '/', 390, 800, false],
     ['home, phone 390, MENU OPEN', '/', 390, 800, true],
+    ['brand fixture page, desktop', '/brand-check/', 1280, 900, false],
+    ['brand fixture page, phone', '/brand-check/', 390, 800, false],
+    ...['new-here', 'about-us', 'kids', 'giving', 'contact', 'resources'].flatMap((s) => [
+      [`${s}, desktop 1280`, `/${s}/`, 1280, 900, false],
+      [`${s}, phone 390`, `/${s}/`, 390, 800, false],
+    ]),
     ['404 page, desktop', '/does-not-exist/', 1280, 900, false],
     ['search results, desktop', '/?s=love', 1280, 900, false],
   ];
@@ -60,6 +99,7 @@ async function checkFocus(page, name) {
     await page.setViewport({ width: w, height: h });
     await page.goto(BASE + path, { waitUntil: 'networkidle0' });
     if (openMenu) {
+      if (!(await page.$('.wp-block-navigation__responsive-container-open'))) console.log('   [menu] open button missing; header is: ' + (await page.evaluate(() => (document.querySelector('header') || document.body).outerHTML.replace(/\s+/g, ' ').slice(0, 1200))));
       await page.click('.wp-block-navigation__responsive-container-open');
       await page.waitForSelector('.wp-block-navigation__responsive-container.is-menu-open', { visible: true, timeout: 5000 });
       console.log('   (menu overlay opened: true)');
@@ -77,6 +117,7 @@ async function checkFocus(page, name) {
     total += await checkFocus(page, `${name}: focus`);
     await page.close();
   }
+  total += await checkEditor(browser);
   await browser.close();
   console.log(`\nTOTAL violating elements: ${total}`);
   process.exit(total ? 1 : 0);

@@ -103,6 +103,11 @@ jobs:
       - name: Brand colors, fonts, and contrast
         run: deploy/tests/theme-check.sh
 
+      # The seven migrated pages: the create-pages script (safe to re-run, never overwrites staff edits), every
+      # link, heading, brand color, header and footer, and no filler or old wrong hours.
+      - name: Page tests
+        run: deploy/tests/pages-check.sh
+
       # Logos and icons: exact brand colors, plain safe SVGs (no scripts or external references), each still
       # matches the designer's master, favicon set valid.
       - name: Logos, icons, and favicons

@@ -10,7 +10,7 @@ trap cleanup EXIT
 cleanup
 docker network create "$NET" >/dev/null
 docker run -d --name "$DB" --network "$NET" --network-alias pn-test-db -e MARIADB_ROOT_PASSWORD=root -e MARIADB_DATABASE=wp mariadb:11 >/dev/null
-docker run -d --name "$WP" --network "$NET" --network-alias pn-wp -v "$PWD":/repo:ro --entrypoint bash wordpress:cli /repo/deploy/tests/serve-wp.sh >/dev/null
+docker run -d --name "$WP" --network "$NET" --network-alias pn-wp -e BREAK_BLOCK="${BREAK_BLOCK:-}" -v "$PWD":/repo:ro --entrypoint bash wordpress:cli /repo/deploy/tests/serve-wp.sh >/dev/null
 for _ in $(seq 1 90); do docker exec "$WP" test -f /tmp/ready 2>/dev/null && break; sleep 3; done
 docker exec "$WP" test -f /tmp/ready || { echo "SETUP FAILED: the test site did not start"; docker logs "$WP" 2>&1 | tail -5; exit 1; }
 sleep 2
