@@ -44,7 +44,7 @@ npx @wordpress/env stop
 
 ## Checks
 
-CI (`.github/workflows/ci.yml`) runs on every push and pull request: PHP syntax, WordPress coding standards (PHPCS, config in `phpcs.xml.dist`), ShellCheck on `scripts/` and `deploy/`, tests of the CI deploy wrapper (stubbed, no server), a real-WordPress test of the security plugin, a brand-theme test, an accessibility test (axe), a redirect test of every old URL, a page test (links, headings, brand colors, no filler), sermon-import tests (parser and backfill against a fake YouTube), an Nginx config test, and a gitleaks secret scan. Run the same checks locally with Docker (nothing to install):
+CI (`.github/workflows/ci.yml`) runs on every push and pull request: PHP syntax, WordPress coding standards (PHPCS, config in `phpcs.xml.dist`), ShellCheck on `scripts/` and `deploy/`, tests of the CI deploy wrapper (stubbed, no server), a real-WordPress test of the security plugin, a brand-theme test, an accessibility test (axe), a redirect test of every old URL, a page test (links, headings, brand colors, photos, no filler), a photo-file test, sermon-import tests (parser and backfill against a fake YouTube), an Nginx config test, and a gitleaks secret scan. Run the same checks locally with Docker (nothing to install):
 
 ```bash
 docker run --rm -v "$PWD":/app -w /app composer:2 install            # once; tooling comes from composer.lock

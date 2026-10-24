@@ -113,8 +113,9 @@ Needs input from the church staff. **Done with the pages (MIG-3):** office hours
 - Typos: "Giving Onine", "activites", "Wedensday".
 - Alt text on all images.
 
-### MIG-5 Media and branding assets · M · todo · needs MIG-3
+### MIG-5 Media and branding assets · M · in review (page photos done; see docs/photos.md) · needs MIG-3
 Bring over only the ~35 images needed, from `pellanazarene.org/mt-content/uploads/`.
+- **Done in the MIG-5 photos PR:** 12 photos on the pages (church photos from `docs/Photos`, the four staff headshots and three kids photos from the old site), built into WebP by `scripts/build-photos.sh`, loaded into the media library by `scripts/create-pages.sh`, with alt text and a rights note for each. Details: `docs/photos.md`. **Still open:** the welcome video (poster/click-to-play), kids photos of our own to replace the old template stock (licence not confirmed), and the remaining old-site images only if wanted.
 - Keep: staff headshots (toddoweb, cindyoweb, robhweb, floydwweb, floydpreach), congregation photos, kids ministry photos, communion/preaching photos, and the welcome video (see list in the PDF).
 - Confirm with staff before reusing likely stock photos (kids-1..4, family-2, photography.church41..., 2025/10 prayer/baptism/youth/etc., numbered About Us images).
 - Re-compress and convert to WebP/AVIF at sensible sizes; welcome video re-encoded and served via a poster/click-to-play, not autoplaying.

@@ -49,7 +49,12 @@ case "${BREAK:-}" in
 	iframe)      break_it $T/patterns/page-new-here.php '[pn_sermon_video id="EK0MuwDegjI"]' '<iframe src="https://www.youtube.com/embed/EK0MuwDegjI"></iframe>' ;;
 	hardcolor)   break_it $T/patterns/page-kids.php '<p class="is-style-subheading">Your kids' '<p class="is-style-subheading" style="color:#ff0000">Your kids' ;;
 	no-header)   break_it $T/templates/archive-pn_sermon.html '{"slug":"header","tagName":"header"}' '{"slug":"header","theme":"twentytwentyfive"}' ;;
-		same-words)  break_it $T/patterns/page-home.php '>Upcoming events</a>' '>Give online</a>' ;;
+		no-alt)      break_it $T/assets/images/photos/manifest.json '"alt": "Todd Olson, co-pastor"' '"alt": ""' ;;
+	no-photos)   break_it $T/functions.php "require_once get_theme_file_path( 'inc/photos.php' );" "" ;;
+	eager-photos) break_it $T/inc/photos.php 'return is_front_page() ? 1 : 0;' 'return 3;' ;;
+	no-preload)  break_it $T/inc/photos.php "\$id = pn_photo_id( 'home-hero' );" "\$id = pn_photo_id( 'nope' );" ;;
+	big-sizes)   break_it $T/inc/photos.php "'col'    => '(max-width: 781px) 100vw, 340px'," "'col'    => ''," ;;
+	same-words)  break_it $T/patterns/page-home.php '>Upcoming events</a>' '>Give online</a>' ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
 
@@ -60,12 +65,16 @@ expect_eq "seven pages exist" "$(pages)" "7"
 expect_eq "Home is the front page" "$(wp option get show_on_front) $(wp post get "$(wp option get page_on_front)" --field=post_name)" "page home"
 expect_eq "all are published" "$(wp post list --post_type=page --post_status=publish --format=count)" "7"
 
+expect_eq "all 12 photos are in the media library" "$(wp post list --post_type=attachment --format=count)" "12"
+expect_eq "each photo has its alt text from the manifest" "$(wp post meta get "$(wp post list --post_type=attachment --meta_key=_pn_photo --meta_value=staff-floyd-ware --field=ID)" _wp_attachment_image_alt)" "Floyd Ware, associate pastor"
+
 echo "== 2. Running it again changes nothing"
 before="$(wp post list --post_type=page --format=csv --fields=ID,post_modified | md5sum)"
 out="$(create)"
 expect_eq "no new pages" "$(pages)" "7"
 expect_contains "says it kept them" "$out" "Kept 'about-us'"
 expect_lacks "creates nothing the second time" "$out" "Created"
+expect_eq "no photo is added twice" "$(wp post list --post_type=attachment --format=count)" "12"
 expect_eq "no page was modified" "$(wp post list --post_type=page --format=csv --fields=ID,post_modified | md5sum)" "$before"
 echo "   (staff edit a page)"
 id="$(wp post list --post_type=page --name=kids --field=ID)"

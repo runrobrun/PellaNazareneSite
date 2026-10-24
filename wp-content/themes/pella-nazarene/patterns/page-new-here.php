@@ -48,6 +48,7 @@
 <div class="wp-block-columns">
 <!-- wp:column -->
 <div class="wp-block-column">
+<?php echo pn_photo_block( 'new-here-welcome', 'col', '4/3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">In person</h3>
 <!-- /wp:heading -->
@@ -65,6 +66,7 @@
 <!-- /wp:column -->
 <!-- wp:column -->
 <div class="wp-block-column">
+<?php echo pn_photo_block( 'new-here-online', 'col', '4/3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Online</h3>
 <!-- /wp:heading -->

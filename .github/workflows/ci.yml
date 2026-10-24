@@ -103,6 +103,10 @@ jobs:
       - name: Brand colors, fonts, and contrast
         run: deploy/tests/theme-check.sh
 
+      # The page photos: real WebP, small, no hidden camera or location data, every one described.
+      - name: Photo files
+        run: deploy/tests/photos-check.sh
+
       # The seven migrated pages: the create-pages script (safe to re-run, never overwrites staff edits), every
       # link, heading, brand color, header and footer, and no filler or old wrong hours.
       - name: Page tests

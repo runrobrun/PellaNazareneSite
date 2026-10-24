@@ -100,7 +100,7 @@ Credentials are written to `/root/pella-secrets/` (root-only) and never printed:
 
 ## 6. Site configuration
 
-- **Create the pages:** `scripts/create-pages.sh /var/www/staging/public` (as `deploy`) creates Home, New Here, About Us, Kids, Giving, Contact, and Resources from the theme's page patterns and makes Home the front page. Safe to re-run: pages that exist are left alone, so staff edits are never overwritten. To reset one page to the pattern's current text: `scripts/create-pages.sh /var/www/staging/public --replace about-us`. CI deploys never create or change page content; run this by hand after the first deploy that contains the patterns. Staff edit pages in the normal WordPress editor afterwards.
+- **Create the pages:** `scripts/create-pages.sh /var/www/staging/public` (as `deploy`) creates Home, New Here, About Us, Kids, Giving, Contact, and Resources from the theme's page patterns and makes Home the front page. Safe to re-run: pages that exist are left alone, so staff edits are never overwritten. To reset one page to the pattern's current text: `scripts/create-pages.sh /var/www/staging/public --replace about-us`. It also loads the page photos into the media library (`docs/photos.md`). CI deploys never create or change page content; run this by hand after the first deploy that contains the patterns. Staff edit pages in the normal WordPress editor afterwards.
 - **Settings → Sermons:** confirm the channel ID, click **Check YouTube now**.
 - **Sermons → Speakers:** create the four pastors and link each to their WordPress user.
 - **Users:** pastors as **Author**, office admin as **Editor**.
