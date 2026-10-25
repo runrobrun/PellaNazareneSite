@@ -58,11 +58,15 @@ async function checkForms(browser) {
     await page.setViewport({ width: 1000, height: 900 });
     await page.goto(BASE + path, { waitUntil: 'networkidle0' });
     const formId = await page.$eval('form.frm-fluent-form', (f) => f.getAttribute('data-form_id'));
-    const loaded = await page.$eval('input[name="pn_loaded"]', (i) => i.value);
-    if (!/^\d{13}$/.test(loaded)) { console.log(`   [forms] ${path}: the page did not note when it loaded (got '${loaded}')`); problems++; }
     for (const [selector, text] of fields) await page.type(selector.replace('%ID%', formId), text);
     await new Promise((r) => setTimeout(r, 3500));
+    const loaded = page.evaluate(() => new Promise((resolve) => {
+      const formElement = document.querySelector('form.frm-fluent-form');
+      formElement.addEventListener('submit', () => resolve(formElement.querySelector('input[name="pn_loaded"]').value), { once: true });
+    }));
     await page.click('form.frm-fluent-form button[type="submit"]');
+    const elapsed = await loaded;
+    if (!/^\d+$/.test(elapsed) || Number(elapsed) < 3000) { console.log(`   [forms] ${path}: did not record enough elapsed page-load time on submit (got '${elapsed}')`); problems++; }
     try {
       await page.waitForFunction((t) => document.body.innerText.includes(t), { timeout: 15000 }, thanks);
       console.log(`== forms: ${path}: filled in, sent, and saw "${thanks}"`);
