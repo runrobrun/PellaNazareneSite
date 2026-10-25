@@ -41,6 +41,7 @@ $pn_link = static function ( string $label, string $path, string $class_name = '
 			echo $pn_link( __( 'About Us', 'pella-nazarene' ), '/about-us/' ), "\n\t\t\t";
 			echo $pn_link( __( 'Sermons', 'pella-nazarene' ), '/sermons/' ), "\n\t\t\t";
 			echo $pn_link( __( 'Events', 'pella-nazarene' ), '/events/' ), "\n\t\t\t";
+			echo $pn_link( __( 'Blog', 'pella-nazarene' ), '/blog/' ), "\n\t\t\t";
 			echo $pn_link( __( 'Kids', 'pella-nazarene' ), '/kids/' ), "\n\t\t\t";
 			echo $pn_link( __( 'Giving', 'pella-nazarene' ), '/giving/' ), "\n\t\t\t";
 			echo $pn_link( __( 'Contact', 'pella-nazarene' ), '/contact/' ), "\n\t\t\t";

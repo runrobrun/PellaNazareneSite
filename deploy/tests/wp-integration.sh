@@ -12,4 +12,4 @@ trap cleanup EXIT
 cleanup
 docker network create "$NET" >/dev/null
 docker run -d --name "$DB" --network "$NET" -e MARIADB_ROOT_PASSWORD=root -e MARIADB_DATABASE=wp mariadb:11 >/dev/null
-docker run --rm --network "$NET" -e DEBUG="${DEBUG:-}" -v "$PWD":/repo:ro --entrypoint bash wordpress:cli /repo/deploy/tests/wp-integration-inner.sh
+docker run --rm --network "$NET" -e DEBUG="${DEBUG:-}" -e BREAK="${BREAK:-}" -v "$PWD":/repo:ro --entrypoint bash wordpress:cli /repo/deploy/tests/wp-integration-inner.sh

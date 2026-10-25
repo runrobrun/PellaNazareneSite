@@ -15,6 +15,7 @@ path,status,location,fallback,layer,note
 /about-us/,stays,,,page,page kept
 /kids/,stays,,,page,page kept
 /events/,stays,,,page,new page: the five weekly events and the Church Center calendar
+/blog/,stays,,,page,the blog (starts empty; old posts are not carried over)
 /giving/,stays,,,page,page kept
 /contact/,stays,,,page,page kept
 /resources/,stays,,,page,page kept

@@ -23,6 +23,11 @@ wp config create --dbname=wp --dbuser=root --dbpass=root --dbhost=pn-test-db --s
 for _ in $(seq 1 45); do mysql -h pn-test-db -uroot -proot -e 'select 1' wp >/dev/null 2>&1 && break; sleep 2; done
 wp core install --url="$BASE" --title=Test --admin_user=boss --admin_password='Admin-pass-1!' --admin_email=boss@example.test --skip-email --quiet || setup_fail "core install"
 mkdir -p wp-content/mu-plugins && cp /repo/wp-content/mu-plugins/pn-*.php wp-content/mu-plugins/
+# BREAK=authors-publish damages the copy under test; the checks must then fail.
+if [[ "${BREAK:-}" == authors-publish ]]; then
+	sed -i "s/if ( empty( \$allcaps\['publish_pages'\] ) ) {/if ( false ) {/" wp-content/mu-plugins/pn-site.php
+	grep -q "if ( false ) {" wp-content/mu-plugins/pn-site.php || setup_fail "break did not apply"
+fi
 wp plugin install two-factor --version=0.17.0 --activate --quiet || setup_fail "installing Two Factor"
 wp user create ed ed@example.test --role=editor --user_pass='Editor-pass-1!' --quiet
 wp user create pastor pastor@example.test --role=author --user_pass='Pastor-pass-1!' --quiet
@@ -212,6 +217,27 @@ expect_eq "no fatal error: the admin still loads (fails open)" "$(get_code "$BAS
 rm -f wp-content/mu-plugins/aa-fake-two-factor.php
 wp plugin activate two-factor --quiet
 expect_eq "real plugin back: API check passes again" "$(wp eval 'echo pn_two_factor_api_ready() ? "yes" : "no";')" "yes"
+
+echo "== 11. Pastors write, an Editor publishes"
+can() { wp eval "echo user_can( get_user_by('login','$1'), '$2' ) ? 'yes' : 'no';"; }
+expect_eq "a pastor (Author) cannot publish posts" "$(can pastor publish_posts)" "no"
+expect_eq "a pastor can still write and save drafts" "$(can pastor edit_posts)" "yes"
+expect_eq "a pastor cannot edit published posts" "$(can pastor edit_published_posts)" "no"
+expect_eq "an Editor can publish posts" "$(can ed publish_posts)" "yes"
+expect_eq "an administrator can publish posts" "$(can boss publish_posts)" "yes"
+expect_eq "a subscriber cannot publish posts" "$(can reader publish_posts)" "no"
+pastor_id="$(wp user get pastor --field=ID)"
+published_post="$(wp post create --post_status=publish --post_title="Pastor's published post" --post_content="Original published content." --post_author="$pastor_id" --porcelain)"
+response="$(PN_POST_ID="$published_post" wp --skip-plugins=two-factor eval '
+$post_id = (int) getenv("PN_POST_ID");
+wp_set_current_user( get_user_by( "login", "pastor" )->ID );
+$request = new WP_REST_Request( "POST", "/wp/v2/posts/$post_id" );
+$request->set_header( "X-WP-Nonce", wp_create_nonce( "wp_rest" ) );
+$request->set_param( "content", "Unreviewed content change." );
+$response = rest_do_request( $request );
+echo $response->get_status(), "|", get_post_field( "post_content", $post_id );
+')"
+expect_eq "REST cannot update a pastor's already-published post" "$response" "403|Original published content."
 
 echo
 echo "Passed: $PASS   Failed: $FAIL"

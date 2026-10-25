@@ -55,6 +55,24 @@ add_filter( 'should_load_remote_block_patterns', '__return_false' );
 
 /*
  * ---------------------------------------------------------------------------
+ * Pastors write, an Editor publishes
+ * ---------------------------------------------------------------------------
+ * WordPress lets an Author publish their own posts. Here an Author can write and save posts and sermons but
+ * cannot publish them (they are submitted for review); Editors and administrators publish.
+ */
+add_filter(
+	'user_has_cap',
+	static function ( $allcaps ) {
+		if ( empty( $allcaps['publish_pages'] ) ) { // Only Editors and administrators have this.
+			$allcaps['publish_posts']        = false;
+			$allcaps['edit_published_posts'] = false;
+		}
+		return $allcaps;
+	}
+);
+
+/*
+ * ---------------------------------------------------------------------------
  * Comments off site-wide (the church doesn't moderate blog comments)
  * ---------------------------------------------------------------------------
  */

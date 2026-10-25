@@ -20,6 +20,7 @@ $pn_pages = array(
 	'resources' => 'Resources',
 	'events'    => 'Events',
 	'small-groups' => 'Small Groups',
+	'blog'      => 'Blog',
 );
 
 if ( 'pella-nazarene' !== get_stylesheet() ) {
@@ -112,6 +113,12 @@ if (
 	update_option( 'show_on_front', 'page' );
 	update_option( 'page_on_front', $pn_ids['home'] );
 	WP_CLI::log( 'Home is now the front page.' );
+}
+
+// The blog lives at /blog/: make that page the posts page, unless staff have already chosen one.
+if ( isset( $pn_ids['blog'] ) && 'publish' === get_post_status( $pn_ids['blog'] ) && ! (int) get_option( 'page_for_posts' ) ) {
+	update_option( 'page_for_posts', $pn_ids['blog'] );
+	WP_CLI::log( 'The Blog page is now the posts page.' );
 }
 
 // The menu and every link use addresses like /new-here/. With WordPress's "Plain" permalinks every one of them

@@ -20,6 +20,7 @@ wp post create --post_type=page --post_title="Brand check" --post_name=brand-che
 bash /repo/scripts/create-pages.sh "$W" >/dev/null
 # BREAK_BLOCK=1 (a test of the test) puts markup the editor rejects on the Kids page.
 [[ -z "${BREAK_BLOCK:-}" ]] || wp post update "$(wp post list --post_type=page --name=kids --field=ID)" --post_content='<!-- wp:separator --><div class="wp-block-separator">not a separator</div><!-- /wp:separator -->' --quiet
+wp post create --post_type=post --post_status=publish --post_title='Welcome to our new website' --post_content='<!-- wp:paragraph --><p>We are glad you are here. Come and see what is happening at Pella Nazarene.</p><!-- /wp:paragraph -->' --post_author=1 --quiet
 wp post create --post_type=pn_sermon --post_status=publish --post_title="Pentecost Promised, Proclaimed, and Practiced" --post_date="2026-05-24 12:00:00" --meta_input='{"pn_youtube_id":"Nll1UzWZHQA"}' --quiet
 touch /tmp/ready
 exec php -d memory_limit=512M /usr/local/bin/wp server --host=0.0.0.0 --port=8080

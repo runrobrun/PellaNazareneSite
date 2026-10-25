@@ -34,6 +34,7 @@ wp --path=/var/www/pellanazarene/public two-factor disable <username> --yes
 - Renew the domain
 - Edit page text in **Pages** in the admin (the Home page is titled "A church in Pella, Iowa"; also New Here, About Us, Kids, Giving, Contact, Resources, Events, Small Groups); nothing else is needed. Office hours, address and Sunday times on the Contact and New Here pages come from one shared block, **Appearance → Editor → Patterns → Template parts → Service info**
 - Events: the regular weekly events are on the **Events** page (edit them there if a time changes); everything else, including one-time events and sign-ups, goes in Planning Center, and the page links to that calendar. Small groups are managed in Church Center Groups.
+- Blog: a pastor writes under **Posts → Add New** and uses **Submit for Review**; the office admin (Editor) reads it and clicks **Publish**. The blog is at `/blog/` and its feed at `/feed/`. Pastors cannot publish on their own.
 - Review new sermon drafts each week (Sermons in the admin) and publish them; how the import works and how to import the history: `docs/sermons.md`
 
 ## If something breaks
