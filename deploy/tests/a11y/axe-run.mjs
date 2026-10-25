@@ -17,6 +17,18 @@ function luminance([r, g, b]) {
 function contrast(a, b) { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); }
 const rgbOf = (s) => { const m = (s || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/); return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null; };
 
+async function createTestPage(browser, contacted = null) {
+  const page = await browser.newPage();
+  await page.setRequestInterception(true);
+  page.on('request', (r) => {
+    if (/googletagmanager\.com|google-analytics\.com/.test(r.url())) {
+      if (contacted) contacted.push(r.url());
+      r.abort();
+    } else r.continue();
+  });
+  return page;
+}
+
 async function checkFocus(page, name) {
   let problems = 0, stops = 0;
   await page.evaluate(() => { document.activeElement && document.activeElement.blur(); window.scrollTo(0, 0); });
@@ -56,10 +68,8 @@ async function checkAnalytics(browser) {
     ['Do Not Track switched on', () => Object.defineProperty(navigator, 'doNotTrack', { value: '1' }), false],
   ];
   for (const [who, setup, expectTag] of cases) {
-    const page = await browser.newPage();
     const contacted = [];
-    await page.setRequestInterception(true);
-    page.on('request', (r) => { if (/googletagmanager\.com|google-analytics\.com/.test(r.url())) { contacted.push(r.url()); r.abort(); } else r.continue(); });
+    const page = await createTestPage(browser, contacted);
     if (setup) await page.evaluateOnNewDocument(setup);
     await page.goto(BASE + '/', { waitUntil: 'networkidle0' });
     const hasTag = (await page.$('script[src*="googletagmanager.com/gtag/js?id=G-TEST000000"]')) !== null;
@@ -80,7 +90,7 @@ async function checkForms(browser) {
     ['/prayer/', [['#ff_%ID%_request', 'Please pray for our town.']], 'Your request has gone to our pastors'],
   ];
   for (const [path, fields, thanks] of cases) {
-    const page = await browser.newPage();
+    const page = await createTestPage(browser);
     await page.setViewport({ width: 1000, height: 900 });
     await page.goto(BASE + path, { waitUntil: 'networkidle0' });
     const formId = await page.$eval('form.frm-fluent-form', (f) => f.getAttribute('data-form_id'));
@@ -108,7 +118,7 @@ async function checkForms(browser) {
 // Staff edit these pages in the block editor. Open each one as an administrator and require that the editor
 // accepts every block as valid (no "this block contains unexpected content" recovery prompts).
 async function checkEditor(browser) {
-  const page = await browser.newPage();
+  const page = await createTestPage(browser);
   await page.setViewport({ width: 1400, height: 900 });
   await page.goto(BASE + '/wp-login.php', { waitUntil: 'networkidle0' });
   await page.type('#user_login', 'boss');
@@ -156,7 +166,7 @@ async function checkEditor(browser) {
     ['search results, desktop', '/?s=love', 1280, 900, false],
   ];
   for (const [name, path, w, h, openMenu] of scenarios) {
-    const page = await browser.newPage();
+    const page = await createTestPage(browser);
     await page.setViewport({ width: w, height: h });
     await page.goto(BASE + path, { waitUntil: 'networkidle0' });
     if (openMenu) {
