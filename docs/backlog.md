@@ -105,7 +105,7 @@ Home, New Here, About Us, Kids, Giving, Contact, Resources (about 3,100 words). 
 
 ### MIG-4 Fix known content problems · S · partly done in MIG-3 · needs MIG-3
 Needs input from the church staff. **Done with the pages (MIG-3):** office hours (Contact and New Here use `parts/service-info.html`, Central), `tel:+16416281818` and `mailto:` links, every "Plan a Visit" and map button has a real target (`/new-here/#plan-your-visit`, Google Maps), the "Connect" card now says to fill out a Connect card on Sunday or talk to staff, Todd's, Rob's and Cindy's full bios, typos ("Giving online", "activities"). **Still open:** Floyd Ware's bio is cut off on the old site too (it ends after he began formal studies; ask staff for the rest), online Connect card and Plan a Visit forms (FEAT-3), Kids pre-register form (FEAT-3), alt text once photos arrive (MIG-5). The original list follows.
-- Office hours: Contact says 8:30-5 and footer says 8:00-5, both labeled Eastern Time. Confirmed: Central time; office hours are Monday 1-4 PM, Wednesday 1-4 PM, Friday 9 AM-12 PM. Use these everywhere (Contact page, footer, Google/schema markup) from one source, `parts/service-info.html`, which already has them.
+- Office hours: Contact says 8:30-5 and footer says 8:00-5, both labeled Eastern Time. Confirmed: Central time; office hours are Monday 1-4 PM, Wednesday 9 AM-12 PM (changed from 1-4 PM in October 2026), Friday 9 AM-12 PM. Use these everywhere (Contact page, footer, Google/schema markup) from one source, `parts/service-info.html`, which already has them.
 - Phone link `tel:641628-1818` to `tel:+16416281818`; email address as a `mailto:` link.
 - Every "Plan a Visit" button, map link, and Kids pre-register button currently goes to `#`; point each to a real destination.
 - New Here's "Connect" card says "Link to be added"; wire it to the Connect Card form.
@@ -195,7 +195,7 @@ Fluent Forms: Contact, Connect Card, Plan a Visit, Prayer Request.
 Church Center (pella-nazarene.churchcenter.com) already has Calendar, Groups, Registrations and a Connect Card turned on; the Events and Small Groups pages link to them (MIG-7). Still to decide: use the Church Center Connect Card for the online connect card and kids pre-registration (FEAT-3). Giving stays linked out to Church Center. Check whether the Planning Center subscription includes Groups, Registrations, or Calendar; if so, use them for small groups, kids pre-registration, and event signups and only link or embed them here. Embeds load on demand, not on every page.
 
 ### FEAT-5 SEO and sharing · S · todo
-Sitemap, meta titles and descriptions, Open Graph images, `Church` schema.org markup with address, service times, and the office hours (Mon 1-4, Wed 1-4, Fri 9-12 Central).
+Sitemap, meta titles and descriptions, Open Graph images, `Church` schema.org markup with address, service times, and the office hours (Mon 1-4, Wed 9-12, Fri 9-12 Central).
 
 ### FEAT-7 Blog · S · in review (built; staff to write the first real post before launch)
 Set up a blog at `/blog/` starting empty (old posts are not migrated).

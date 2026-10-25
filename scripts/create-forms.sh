@@ -25,4 +25,4 @@ wp_cmd=(wp)
 if [[ -n "${PN_WP_USER:-}" ]]; then
 	wp_cmd=(sudo -n -u "$PN_WP_USER" env "WP_CLI_CACHE_DIR=/tmp/wpcli-$PN_WP_USER" "PN_CONTACT_TO=${PN_CONTACT_TO:-}" "PN_PRAYER_TO=${PN_PRAYER_TO:-}" wp)
 fi
-"${wp_cmd[@]}" --path="$WP_PATH" eval-file "$here/create-forms.php" "${replace[@]}"
+"${wp_cmd[@]}" --path="$WP_PATH" eval-file "$here/create-forms.php" ${replace[@]+"${replace[@]}"}   # (this form also works in the older bash on a Mac)
