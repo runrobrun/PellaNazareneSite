@@ -1,0 +1,160 @@
+{
+ "title": "Contact",
+ "fields": {
+  "fields": [
+   {
+    "index": 0,
+    "element": "input_text",
+    "attributes": {
+     "type": "text",
+     "name": "name",
+     "value": "",
+     "id": "",
+     "class": "",
+     "placeholder": "",
+     "autocomplete": "name"
+    },
+    "settings": {
+     "container_class": "",
+     "label": "Your name",
+     "label_placement": "",
+     "help_message": "",
+     "admin_field_label": "Your name",
+     "validation_rules": {
+      "required": {
+       "value": true,
+       "message": "This field is required"
+      }
+     },
+     "conditional_logics": []
+    },
+    "editor_options": {
+     "title": "Simple Text",
+     "icon_class": "ff-edit-text",
+     "template": "inputText"
+    },
+    "uniqElKey": "el_pn_name"
+   },
+   {
+    "index": 1,
+    "element": "input_email",
+    "attributes": {
+     "type": "email",
+     "name": "email",
+     "value": "",
+     "id": "",
+     "class": "",
+     "placeholder": "",
+     "autocomplete": "email"
+    },
+    "settings": {
+     "container_class": "",
+     "label": "Your email",
+     "label_placement": "",
+     "help_message": "",
+     "admin_field_label": "Your email",
+     "validation_rules": {
+      "required": {
+       "value": true,
+       "message": "This field is required"
+      },
+      "email": {
+       "value": true,
+       "message": "Please enter a valid email address"
+      }
+     },
+     "conditional_logics": []
+    },
+    "editor_options": {
+     "title": "Email Address",
+     "icon_class": "ff-edit-email",
+     "template": "inputText"
+    },
+    "uniqElKey": "el_pn_email"
+   },
+   {
+    "index": 2,
+    "element": "textarea",
+    "attributes": {
+     "name": "message",
+     "value": "",
+     "id": "",
+     "class": "",
+     "placeholder": "",
+     "rows": 6,
+     "cols": 2
+    },
+    "settings": {
+     "container_class": "",
+     "label": "Your message",
+     "admin_field_label": "Your message",
+     "label_placement": "",
+     "help_message": "",
+     "validation_rules": {
+      "required": {
+       "value": true,
+       "message": "This field is required"
+      }
+     },
+     "conditional_logics": []
+    },
+    "editor_options": {
+     "title": "Text Area",
+     "icon_class": "ff-edit-textarea",
+     "template": "inputTextarea"
+    },
+    "uniqElKey": "el_pn_message"
+   },
+   {
+    "index": 3,
+    "element": "input_hidden",
+    "attributes": {
+     "type": "hidden",
+     "name": "pn_loaded",
+     "value": ""
+    },
+    "settings": {
+     "admin_field_label": "pn_loaded",
+     "conditional_logics": []
+    },
+    "editor_options": {
+     "title": "Hidden Field",
+     "icon_class": "ff-edit-hidden",
+     "template": "inputHidden"
+    },
+    "uniqElKey": "el_pn_pn_loaded"
+   }
+  ],
+  "submitButton": {
+   "uniqElKey": "el_pn_submit",
+   "element": "button",
+   "attributes": {
+    "type": "submit",
+    "class": ""
+   },
+   "settings": {
+    "align": "left",
+    "button_style": "default",
+    "container_class": "",
+    "help_message": "",
+    "background_color": "#2D3D54",
+    "button_size": "md",
+    "color": "#FFFFFF",
+    "button_ui": {
+     "type": "default",
+     "text": "Send message",
+     "img_url": ""
+    }
+   },
+   "editor_options": {
+    "title": "Submit Button"
+   }
+  }
+ },
+ "confirmation": "Thank you! We got your message and will get back to you soon.",
+ "delete_entry_on_submission": "no",
+ "notification": {
+  "name": "Message to the church",
+  "subject": "Website message from {inputs.name}"
+ }
+}

@@ -26,6 +26,7 @@ wp theme install twentytwentyfive --quiet || setup_fail "installing Twenty Twent
 cp -R /repo/wp-content/themes/pella-nazarene wp-content/themes/
 mkdir -p wp-content/plugins; cp -R /repo/wp-content/plugins/pn-sermons wp-content/plugins/
 wp theme activate pella-nazarene --quiet || setup_fail "activating our theme"
+mkdir -p wp-content/mu-plugins && cp /repo/wp-content/mu-plugins/pn-forms.php wp-content/mu-plugins/   # Fluent Forms is not installed in this test: [pn_form] must quietly show nothing
 wp plugin activate pn-sermons --quiet || setup_fail "activating the sermon plugin"
 wp rewrite structure '/%postname%/' --hard --quiet
 wp post delete 1 2 3 --force --quiet >/dev/null 2>&1   # WordPress's sample post, sample page, and privacy-policy draft
@@ -105,11 +106,11 @@ expect_contains "single sermon rewrite rule exists" "$rules" 'index.php?pn_sermo
 expect_contains "sermon series rewrite rule exists" "$rules" 'index.php?pn_series=$matches[1]'
 expect_contains "sermon speaker rewrite rule exists" "$rules" 'index.php?pn_speaker=$matches[1]'
 expect_contains "sermon scripture rewrite rule exists" "$rules" 'index.php?pn_scripture=$matches[1]'
-for s in home new-here about-us kids giving contact resources events small-groups blog; do expect_contains "created $s" "$out" "Created '$s'"; done
-expect_eq "ten pages exist" "$(pages)" "10"
+for s in home new-here about-us kids giving contact resources events small-groups blog prayer; do expect_contains "created $s" "$out" "Created '$s'"; done
+expect_eq "eleven pages exist" "$(pages)" "11"
 expect_eq "the Blog page is the posts page" "$(wp post get "$(wp option get page_for_posts)" --field=post_name)" "blog"
 expect_eq "Home is the front page" "$(wp option get show_on_front) $(wp post get "$(wp option get page_on_front)" --field=post_name)" "page home"
-expect_eq "all are published" "$(wp post list --post_type=page --post_status=publish --format=count)" "10"
+expect_eq "all are published" "$(wp post list --post_type=page --post_status=publish --format=count)" "11"
 
 expect_eq "all 12 photos are in the media library" "$(wp post list --post_type=attachment --format=count)" "12"
 expect_eq "each photo has its alt text from the manifest" "$(wp post meta get "$(wp post list --post_type=attachment --meta_key=_pn_photo --meta_value=staff-floyd-ware --field=ID)" _wp_attachment_image_alt)" "Floyd Ware, associate pastor"
@@ -117,7 +118,7 @@ expect_eq "each photo has its alt text from the manifest" "$(wp post meta get "$
 echo "== 2. Running it again changes nothing"
 before="$(wp post list --post_type=page --format=csv --fields=ID,post_modified | md5sum)"
 out="$(create)"
-expect_eq "no new pages" "$(pages)" "10"
+expect_eq "no new pages" "$(pages)" "11"
 expect_contains "says it kept them" "$out" "Kept 'about-us'"
 expect_lacks "creates nothing the second time" "$out" "Created"
 expect_eq "no photo is added twice" "$(wp post list --post_type=attachment --format=count)" "12"
@@ -136,7 +137,7 @@ res_id="$(wp post list --post_type=page --name=resources --field=ID)"
 wp post update "$res_id" --post_status=trash --quiet
 out="$(create)"
 expect_contains "a trashed page is not recreated" "$out" "'resources' is in the trash"
-expect_eq "still no duplicate (9 live + 1 in the trash)" "$(wp post list --post_type=page --post_status=publish --format=count) $(wp post list --post_type=page --post_status=trash --format=count)" "9 1"
+expect_eq "still no duplicate (10 live + 1 in the trash)" "$(wp post list --post_type=page --post_status=publish --format=count) $(wp post list --post_type=page --post_status=trash --format=count)" "10 1"
 wp post update "$res_id" --post_status=publish --quiet
 echo "   (staff choose a different front page first)"
 wp option update show_on_front posts --quiet; wp option update page_on_front 0 --quiet

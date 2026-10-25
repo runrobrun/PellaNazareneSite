@@ -11,6 +11,18 @@
 <p class="is-style-subheading">We would love to hear from you!</p>
 <!-- /wp:paragraph -->
 <!-- wp:heading -->
+<h2 class="wp-block-heading">Send us a message</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p>We read every message and will get back to you as soon as we can. We keep messages for a year, then delete them.</p>
+<!-- /wp:paragraph -->
+<!-- wp:shortcode -->
+[pn_form name="contact"]
+<!-- /wp:shortcode -->
+<!-- wp:paragraph -->
+<p>Need prayer? <a href="/prayer/">Send a prayer request</a>.</p>
+<!-- /wp:paragraph -->
+<!-- wp:heading -->
 <h2 class="wp-block-heading">Contact info</h2>
 <!-- /wp:heading -->
 <!-- wp:paragraph -->

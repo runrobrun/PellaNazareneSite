@@ -95,7 +95,7 @@ Implement the redirects from the inventory as 301s in Nginx (config kept in `dep
 Home, New Here, About Us, Kids, Giving, Contact, Resources (about 3,100 words). Move by hand into block patterns.
 - Home: replace the hero slider that repeats one slide six times with a single hero; drop the FAQ block that duplicates New Here; featured sermon comes from the sermon plugin, not hard-coded.
 - Giving: keep the Church Center link `pella-nazarene.churchcenter.com/giving`; add the missing text-to-give link or remove the mention.
-- Contact: rebuild the form in Fluent Forms (see FEAT-3).
+- Contact: rebuild the form in Fluent Forms (see FEAT-3; done there).
 - Resources: re-check the 11 outbound links (nazarene.org, usacanadaregion.org, ncm.org).
 - Staff review and sign-off on each page.
 - **Done in the MIG-3 PR:** all seven pages are block patterns in the theme (`patterns/page-*.php`) and are created with `scripts/create-pages.sh` (see `docs/setup.md`). Home has one hero, no FAQ block, and the latest published sermon from the sermon plugin (`[pn_latest_sermon]`, click-to-load video). A front-page template makes the hero the page's only h1. Giving's "text-to-give" mention is removed (there was no link). Contact has no form yet (FEAT-3); Kids "pre-register" points to Contact until FEAT-3. All 11 Resources links kept. `deploy/tests/pages-check.sh` checks the pages; the accessibility run covers all seven pages and opens each in the block editor to confirm every block is valid.
@@ -183,11 +183,13 @@ Finish `pn-sermons`: archive and single templates, series/speaker/scripture brow
 ### FEAT-2 Events calendar · M · decided (see below) · pairs with MIG-7
 **Decision (MIG-7):** start light: the Events page lists the five regular weekly events by hand and links to the Church Center calendar (Planning Center stays the source of truth for everything else). An automatic upcoming-events list from Planning Center, and an embed, are deferred until the weekly list proves too limited. The Events Calendar plugin is not used and is out of `plugins.txt`. Original brief: Show Planning Center Calendar events on the site without duplicating data entry. Evaluate (1) Planning Center's embed/public feed, (2) importing its iCal feed into a lightweight WP list, and (3) keeping The Events Calendar plugin. Prefer the lightest option that meets performance targets; if The Events Calendar is not needed, remove `the-events-calendar` from `plugins.txt`. Embeds/feeds are cached and load on demand. Times display in Central.
 
-### FEAT-3 Forms · M · todo
+### FEAT-3 Forms · M · in review (built; the live email delivery test happens at launch)
 Fluent Forms: Contact, Connect Card, Plan a Visit, Prayer Request.
 - Spam protection (honeypot plus Cloudflare Turnstile), rate limiting, server-side validation.
 - Email via WP Mail SMTP with SPF/DKIM/DMARC set up; delivery tested.
 - Prayer request data handled as sensitive: limited access, retention period decided and documented.
+- **Decisions with staff:** Fluent Forms for the Contact and Prayer Request forms; the Connect Card and Plan a Visit use the Church Center Connect Card (Planning Center People), not forms on this site; prayer requests are emailed to the pastors and never stored; spam: hidden trap + timing + rate limit (Turnstile later only if needed).
+- **Done in the FEAT-3 PR:** `scripts/create-forms.sh` creates both forms from `deploy/forms/*.json` (recipients from `PN_CONTACT_TO` / `PN_PRAYER_TO`); `pn-forms.php` adds `[pn_form]`, the "too fast" and hourly-limit checks, erases each prayer entry right after the email (the free plugin's own delete setting does not), and deletes Contact messages after 12 months; Contact and new Prayer Request pages; Connect Card button on New Here; Fluent Forms pinned to 6.2.16. `deploy/tests/forms-check.sh` (real plugin, real submissions, 6 deliberate breaks) and a browser test of both forms in the accessibility run. Docs: `docs/forms.md`. **Still to do before launch:** set the real recipient addresses, the live `WPMS_*` Gmail settings, and send a test message through each form on the live site.
 
 ### FEAT-4 Planning Center / Church Center integration · S · partly done in MIG-7
 Church Center (pella-nazarene.churchcenter.com) already has Calendar, Groups, Registrations and a Connect Card turned on; the Events and Small Groups pages link to them (MIG-7). Still to decide: use the Church Center Connect Card for the online connect card and kids pre-registration (FEAT-3). Giving stays linked out to Church Center. Check whether the Planning Center subscription includes Groups, Registrations, or Calendar; if so, use them for small groups, kids pre-registration, and event signups and only link or embed them here. Embeds load on demand, not on every page.

@@ -78,4 +78,4 @@ Kept in `wp-config.php` on the server only (never committed):
 | `PN_YOUTUBE_CHANNEL_ID` | Sermon import (optional; can also be set in Settings → Sermons) |
 | `PN_YOUTUBE_API_KEY` | Sermon backfill (`wp pn-sermons backfill`); restricted to the YouTube Data API and the server's IP. See `docs/sermons.md` |
 | `PN_ANTHROPIC_API_KEY` | Companion-post drafts |
-| `WPMS_*` | WP Mail SMTP |
+| `WPMS_*` | WP Mail SMTP (live site only; the Gmail app password, see `docs/forms.md`) |

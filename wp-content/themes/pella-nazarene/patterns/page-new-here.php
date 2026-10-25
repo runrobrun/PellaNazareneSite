@@ -94,7 +94,10 @@
 <!-- wp:buttons -->
 <div class="wp-block-buttons">
 <!-- wp:button -->
-<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://www.google.com/maps/search/?api=1&amp;query=303+University+Street+Pella+IA+50219">View map &amp; directions</a></div>
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://pella-nazarene.churchcenter.com/people/forms/962834">Tell us you’re coming</a></div>
+<!-- /wp:button -->
+<!-- wp:button {"className":"is-style-outline"} -->
+<div class="wp-block-button is-style-outline"><a class="wp-block-button__link wp-element-button" href="https://www.google.com/maps/search/?api=1&amp;query=303+University+Street+Pella+IA+50219">View map &amp; directions</a></div>
 <!-- /wp:button -->
 </div>
 <!-- /wp:buttons -->

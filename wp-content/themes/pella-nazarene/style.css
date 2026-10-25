@@ -57,3 +57,13 @@ Text Domain:  pella-nazarene
 .pn-service-info {
 	font-size: var(--wp--preset--font-size--small);
 }
+
+/* Fluent Forms switches off the keyboard focus ring on its fields. Put it back, in the brand navy (well over 3:1
+   against the white page), so someone using the Tab key can see which field they are in. */
+.frm-fluent-form input:focus-visible,
+.frm-fluent-form textarea:focus-visible,
+.frm-fluent-form select:focus-visible,
+.frm-fluent-form button:focus-visible {
+	outline: 3px solid var(--wp--preset--color--accent-3) !important;
+	outline-offset: 2px;
+}
