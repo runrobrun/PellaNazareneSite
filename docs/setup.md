@@ -86,7 +86,7 @@ HSTS and a Content-Security-Policy are deliberately not set yet; they are added 
 
 ## Staging site
 
-Staging runs on the same Linode as production, fully separate: its own directory (`/var/www/staging`), database (`pellanazarene_staging`), `wp-config.php` and salts, Redis database and key prefix, Nginx cache zone, and a Let's Encrypt certificate for `staging.pellanazarene.org`. It sits behind HTTP basic auth, sends `X-Robots-Tag: noindex`, and `WP_ENVIRONMENT_TYPE=staging` makes `pn-site.php` block all outgoing email.
+Staging runs on the same Linode as production, fully separate: its own directory (`/var/www/staging`), database (`pellanazarene_staging`), `wp-config.php` and salts, Redis database and key prefix, Nginx cache zone, and a Let's Encrypt certificate for `staging.pellanazarene.org`. It sits behind HTTP basic auth, sends `X-Robots-Tag: noindex`, and `WP_ENVIRONMENT_TYPE=staging` makes `pn-site.php` block all outgoing email and keeps Google Analytics off (`docs/analytics.md`).
 
 ```bash
 # as the deploy user, from a checkout of this repo
