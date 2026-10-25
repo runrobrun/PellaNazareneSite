@@ -54,6 +54,7 @@ $pages = array(
 	'/events/'    => array( 'Events', 'Events', array( 'Sunday School', 'Connections Sunday School Class', 'Lighthouse Student Ministry', 'Midweek Prayer Meeting', 'Coffee Time', 'Windmill Cafe', '9:30–10:15 AM', '5:30–7:00 PM', '10:30–11:30 AM', '7:00–8:00 PM', 'Central', 'See the full calendar' ) ),
 	'/small-groups/' => array( 'Small Groups', 'Small Groups', array( 'Find a group', 'Connect card', '9:30' ) ),
 	'/blog/'      => array( 'Blog', 'Blog', array( 'News and encouragement', 'Welcome to our new website' ) ),
+	'/privacy/'   => array( 'Privacy', 'Privacy', array( 'Google Analytics', 'Global Privacy Control', 'not</strong> kept', 'Prayer requests', '12 months', 'opt out' ) ),
 	'/prayer/'    => array( 'Prayer Request', 'Prayer Request', array( 'honored to pray', 'not kept on this website', 'call 911', '628-1818' ) ),
 );
 $bad_words = array( 'lorem ipsum', 'omega church', 'brunson', 'will & gloria', 'gloria jackson', 'eastern', '8:30', '8:00 -', 'onine', 'activites', 'link to be added', 'wedensday', 'text-to-give', 'text to give' );
@@ -192,7 +193,7 @@ foreach ( $give as $h ) {
 $contact = main_text( dom( $html_of['/contact/'] ) );
 check( 'Contact hours are Mon/Wed 1-4 and Fri 9-12', (bool) preg_match( '/Monday 1.{1,3}4\s*PM, Wednesday 1.{1,3}4\s*PM, Friday 9\s*AM.{1,3}12\s*PM Central/u', $contact ), 'hours text not found' );
 // Photos in total, the hero preload, and that the files really are served as WebP.
-$expected_photos = array( '/' => 1, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 0, '/blog/' => 0, '/prayer/' => 0 );
+$expected_photos = array( '/' => 1, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 0, '/blog/' => 0, '/prayer/' => 0, '/privacy/' => 0 );
 foreach ( $expected_photos as $path => $n ) {
 	$found = dom( $html_of[ $path ] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->length;
 	check( "$path shows $n photo(s)", $n === $found, "$found found" );
@@ -241,6 +242,7 @@ check( 'RSS feed answers 200', 200 === $fc, "got $fc" );
 check( 'RSS feed lists the published post and not the draft', false !== strpos( $feed, 'Welcome to our new website' ) && false === strpos( $feed, 'A draft post' ), 'feed content wrong' );
 check( 'RSS feed is advertised in the page head', (bool) preg_match( '#<link rel="alternate" type="application/rss\+xml"#', $html_of['/blog/'] ), 'no feed link' );
 foreach ( array_keys( $pages ) as $path ) {
+	check( "$path links to the Privacy page in the footer", dom( $html_of[ $path ] )->query( "//footer//a[contains(@href, '/privacy/')]" )->length >= 1, 'no Privacy link in the footer' );
 	check( "$path has a Blog link in the menu", dom( $html_of[ $path ] )->query( "//header//a[contains(@href, '/blog/')]" )->length >= 1, 'no Blog in the header' );
 }
 

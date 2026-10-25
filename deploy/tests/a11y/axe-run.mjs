@@ -45,6 +45,32 @@ async function checkFocus(page, name) {
   return problems;
 }
 
+// Google Analytics in a real browser: an ordinary visitor gets the tag; a visitor whose browser says Global Privacy
+// Control or Do Not Track never contacts Google. Every request to Google is stopped here, and the test site uses a
+// made-up measurement ID, so a test can never record a visit in the church's real account.
+async function checkAnalytics(browser) {
+  let problems = 0;
+  const cases = [
+    ['an ordinary visitor', null, true],
+    ['Global Privacy Control switched on', () => Object.defineProperty(navigator, 'globalPrivacyControl', { value: true }), false],
+    ['Do Not Track switched on', () => Object.defineProperty(navigator, 'doNotTrack', { value: '1' }), false],
+  ];
+  for (const [who, setup, expectTag] of cases) {
+    const page = await browser.newPage();
+    const contacted = [];
+    await page.setRequestInterception(true);
+    page.on('request', (r) => { if (/googletagmanager\.com|google-analytics\.com/.test(r.url())) { contacted.push(r.url()); r.abort(); } else r.continue(); });
+    if (setup) await page.evaluateOnNewDocument(setup);
+    await page.goto(BASE + '/', { waitUntil: 'networkidle0' });
+    const hasTag = (await page.$('script[src*="googletagmanager.com/gtag/js?id=G-TEST000000"]')) !== null;
+    const ok = hasTag === expectTag && (contacted.length > 0) === expectTag;
+    console.log(`== analytics: ${who}: ${expectTag ? 'tag added, Google asked' : 'no tag, Google never contacted'}${ok ? '' : '  <-- WRONG'}`);
+    if (!ok) { problems++; console.log(`   [analytics] ${who}: tag in page = ${hasTag}, requests to Google = ${contacted.length}`); }
+    await page.close();
+  }
+  return problems;
+}
+
 // A real browser fills in and sends each form, the way a visitor would: the page must note when it loaded, wait a few
 // seconds like a person does, and show the thank-you message.
 async function checkForms(browser) {
@@ -91,7 +117,7 @@ async function checkEditor(browser) {
   await page.goto(BASE + '/wp-admin/edit.php?post_type=page', { waitUntil: 'networkidle0' });
   const found = await page.evaluate(() => [...document.querySelectorAll('a.row-title')].map((a) => [a.textContent.trim(), (a.href.match(/post=(\d+)/) || [])[1]]));
   // The Home page's title is the h1 on the home page.
-  const wanted = ['A church in Pella, Iowa', 'New Here', 'About Us', 'Kids', 'Giving', 'Contact', 'Resources', 'Events', 'Small Groups', 'Blog', 'Prayer Request'];
+  const wanted = ['A church in Pella, Iowa', 'New Here', 'About Us', 'Kids', 'Giving', 'Contact', 'Resources', 'Events', 'Small Groups', 'Blog', 'Prayer Request', 'Privacy'];
   let problems = 0;
   for (const title of wanted) {
     const hit = found.find(([t]) => t === title);
@@ -122,7 +148,7 @@ async function checkEditor(browser) {
     ['home, phone 390, MENU OPEN', '/', 390, 800, true],
     ['brand fixture page, desktop', '/brand-check/', 1280, 900, false],
     ['brand fixture page, phone', '/brand-check/', 390, 800, false],
-    ...['new-here', 'about-us', 'kids', 'giving', 'contact', 'resources', 'events', 'small-groups', 'blog', 'welcome-to-our-new-website', 'prayer'].flatMap((s) => [
+    ...['new-here', 'about-us', 'kids', 'giving', 'contact', 'resources', 'events', 'small-groups', 'blog', 'welcome-to-our-new-website', 'prayer', 'privacy'].flatMap((s) => [
       [`${s}, desktop 1280`, `/${s}/`, 1280, 900, false],
       [`${s}, phone 390`, `/${s}/`, 390, 800, false],
     ]),
@@ -153,6 +179,7 @@ async function checkEditor(browser) {
     await page.close();
   }
   total += await checkForms(browser);
+  total += await checkAnalytics(browser);
   total += await checkEditor(browser);
   await browser.close();
   console.log(`\nTOTAL violating elements: ${total}`);

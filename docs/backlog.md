@@ -205,15 +205,16 @@ Set up a blog at `/blog/` starting empty (old posts are not migrated).
 - Add a first real post before launch so the page is not empty.
 - **Done in the FEAT-7 PR:** the Blog page at `/blog/` is the posts page (`create-pages.sh` creates it and sets it); blog index (`templates/home.html`) and post (`templates/single.html`) templates in the design system, with an empty-state message; "Blog" in the main menu (footer already had it); RSS feed at `/feed/` (advertised in every page's head); comments stay off. Pastors (Authors) can write and save drafts or submit for review but cannot publish; Editors and administrators publish (enforced in `pn-site.php`, and the same applies to sermons). `/news/` still redirects to `/blog/`. **Still open:** staff write the first real post before launch; categories only if staff ask.
 
-### FEAT-8 Google Analytics on production · S · todo
+### FEAT-8 Google Analytics on production · S · in review (built; check Google Analytics Realtime after the live cutover)
 Include the Google Analytics 4 tag, measurement ID **`G-3E45KJPG3G`** (a public identifier that appears in page source; not a secret), on the **production** site only.
 - Loaded only when `wp_get_environment_type() === 'production'`, so staging, local, and CI never send data. Test on staging by temporarily forcing the condition, and confirm in GA (Realtime) that production traffic shows up after cutover.
 - Not loaded for logged-in staff (pastors and the office would skew the numbers) or in the admin, previews, or the block editor.
 - Performance: `async` script, loaded after the page's critical content, with no layout shift; the Lighthouse budget in PERF-1 must still pass with the tag on.
-- Privacy: decide with the church whether a cookie notice or consent banner is wanted, and write the decision here. Update the site's privacy statement to mention analytics. IP anonymization is on by default in GA4.
+- Privacy: decide with the church whether a cookie notice or consent banner is wanted, and write the decision here. Update the site's privacy statement to mention analytics. IP anonymization is on by default in GA4. **Decision (October 2026): no banner; an honest Privacy page (`/privacy/`, linked in every footer); the tag also stays off for visitors who send Global Privacy Control or Do Not Track.** Details: `docs/analytics.md`.
 - Security headers: when the Content-Security-Policy is added (INF-4 follow-up), allow `googletagmanager.com` and `google-analytics.com`.
 - Implemented in `pn-site.php` (or a small mu-plugin) so it travels with the code. The ID is kept in one constant, not scattered through templates.
 - Done when: the tag appears in production page source once, not on staging, and GA Realtime shows a test visit.
+- **Done in the FEAT-8 PR:** `pn-analytics.php` (live site only, anonymous visitors only, at the end of the page, async, quiet for GPC/DNT), the Privacy page and footer link, `docs/analytics.md`. Tests prove it is on once on production and off on staging/local/development, for staff, in the admin, on the login page and in the feed, and (in a real browser) off for GPC and Do Not Track. **Still to do at launch:** the live check in `docs/analytics.md` (source once, Realtime shows a visit) and the Content-Security-Policy allowance when that is added.
 
 ### FEAT-6 Staff roles and editing experience · S · todo
 Verify the `pn-site.php` role setup: pastors as Author, office admin as Editor. Short editor guide in `docs/runbook.md`.

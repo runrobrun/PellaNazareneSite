@@ -88,6 +88,7 @@ $pn_link = static function ( string $label, string $path ): string {
 			/* translators: %s: the current year. */
 			echo esc_html( sprintf( __( '© %s Pella Church of the Nazarene', 'pella-nazarene' ), wp_date( 'Y' ) ) );
 			?>
+			· <a href="<?php echo esc_url( home_url( '/privacy/' ) ); ?>"><?php esc_html_e( 'Privacy', 'pella-nazarene' ); ?></a>
 		</p>
 		<!-- /wp:paragraph -->
 	</div>
