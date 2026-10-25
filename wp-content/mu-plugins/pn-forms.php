@@ -32,7 +32,7 @@ add_shortcode(
 		// A person takes a few seconds to write a message; a bot does not. Note when the page loaded.
 		wp_register_script( 'pn-forms', false, array(), '0.1.0', true );
 		wp_enqueue_script( 'pn-forms' );
-		wp_add_inline_script( 'pn-forms', 'document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll(\'input[name="pn_loaded"]\').forEach(function(i){i.value=String(Date.now());});});' );
+		wp_add_inline_script( 'pn-forms', 'document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll(\'input[name="pn_loaded"]\').forEach(function(i){var started=performance.now();if(i.form){i.form.addEventListener("submit",function(){i.value=String(Math.round(performance.now()-started));});}});});' );
 		return do_shortcode( '[fluentform id="' . $id . '"]' );
 	}
 );
@@ -56,7 +56,7 @@ add_filter(
 		$field = 'prayer' === $name ? 'request' : 'message';
 
 		$loaded = isset( $form_data['pn_loaded'] ) ? (string) $form_data['pn_loaded'] : '';
-		$age_ms = ctype_digit( $loaded ) ? ( (int) round( microtime( true ) * 1000 ) - (int) $loaded ) : -1;
+		$age_ms = ctype_digit( $loaded ) ? (int) $loaded : -1;
 		if ( $age_ms < (int) apply_filters( 'pn_forms_min_milliseconds', 3000 ) ) {
 			$errors[ $field ] = array( 'pn_fast' => __( 'That was a little quick. Please wait a moment and press send again.', 'pella-nazarene' ) );
 			return $errors;
@@ -64,17 +64,41 @@ add_filter(
 
 		$limit = (int) apply_filters( 'pn_forms_rate_limit', 5 );
 		$key   = 'pn_rl_' . md5( $name . '|' . (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- hashed, never output.
-		$count = (int) get_transient( $key );
-		if ( $count >= $limit ) {
+		if ( ! pn_forms_reserve_rate_limit_slot( $key, $limit ) ) {
 			$errors[ $field ] = array( 'pn_rate' => __( 'We have received several messages from your connection already. Please try again in an hour, or call the church office at (641) 628-1818.', 'pella-nazarene' ) );
 			return $errors;
 		}
-		set_transient( $key, $count + 1, HOUR_IN_SECONDS );
 		return $errors;
 	},
 	10,
 	3
 );
+
+/**
+ * Reserves one hourly submission slot while holding a database-wide lock.
+ */
+function pn_forms_reserve_rate_limit_slot( string $key, int $limit ): bool {
+	global $wpdb;
+
+	$lock = 'pn_forms_' . md5( $key );
+	if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK( %s, 5 )', $lock ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- database advisory lock must be shared between workers.
+		return false;
+	}
+
+	try {
+		$count = (int) get_transient( $key );
+		if ( $count >= $limit ) {
+			return false;
+		}
+
+		if ( ! set_transient( $key, $count + 1, HOUR_IN_SECONDS ) ) {
+			return false;
+		}
+		return true;
+	} finally {
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK( %s )', $lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- release the lock on the same connection.
+	}
+}
 
 /**
  * Removes one saved form entry completely: the entry, its field values, its notes and its log lines.
@@ -139,7 +163,13 @@ add_action(
 			return;
 		}
 		$months = max( 1, (int) apply_filters( 'pn_forms_keep_months', 12 ) );
-		$before = gmdate( 'Y-m-d H:i:s', time() - $months * 30 * DAY_IN_SECONDS );
+		$now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+		$month  = $now->modify( 'first day of this month' )->modify( "-{$months} months" );
+		$before = $month->setDate(
+			(int) $month->format( 'Y' ),
+			(int) $month->format( 'n' ),
+			min( (int) $now->format( 'j' ), (int) $month->format( 't' ) )
+		)->format( 'Y-m-d H:i:s' );
 		$subs   = $wpdb->prefix . 'fluentform_submissions';
 		$old    = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$subs} WHERE form_id = %d AND created_at < %s", $contact, $before ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- the plugin's own table, read once a day.
 		foreach ( array_map( 'intval', $old ) as $id ) {

@@ -23,6 +23,14 @@ The **Connect Card** and **Plan a Visit** are not on this site: those buttons op
    Several addresses are separated by commas. Re-running is safe: forms that exist are left alone, so staff edits are kept. `--replace contact` (or `prayer`) resets one form to the file in `deploy/forms/`.
 3. Create the pages: `scripts/create-pages.sh` (see `docs/setup.md`). Pages show a form with `[pn_form name="contact"]` or `[pn_form name="prayer"]`, so the same page text works on staging and the live site.
 
+On an existing site, this command leaves existing page content unchanged. After reviewing and preserving any staff edits, update the Contact and New Here pages once with:
+
+```bash
+PN_WP_USER=www-data scripts/create-pages.sh /var/www/staging/public --replace contact new-here
+```
+
+This replaces the full content of both pages with their current patterns, including the Contact form and prayer link and the New Here Connect Card button. Save or merge any staff changes before running it; use the live site's public path for a live-site update.
+
 The script also deletes Fluent Forms' two sample forms and turns on its hidden spam trap (which is off until switched on).
 
 **Staging never sends email** (by design), so on staging the forms accept messages but nothing is delivered; the test suite checks the emails. Do the real delivery test on the live site (see below).

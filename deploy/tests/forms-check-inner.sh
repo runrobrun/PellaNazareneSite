@@ -97,15 +97,14 @@ done
 expect_contains "New Here has the Connect Card button" "$(curl -s "$BASE/new-here/")" "churchcenter.com/people/forms/962834"
 
 # --- submitting, the way the page does it
-ff_submit() {  # name page "fields" age_ms honeypot(value or __missing__) -> the JSON answer
-	local name="$1" page="$2" fields="$3" age="$4" trap="$5" id html nonce post now data
+ff_submit() {  # name page "fields" elapsed_ms honeypot(value or __missing__) -> the JSON answer
+	local name="$1" page="$2" fields="$3" age="$4" trap="$5" id html nonce post data
 	id="$([[ $name == contact ]] && echo "$CONTACT_ID" || echo "$PRAYER_ID")"
 	html="$(curl -s "$BASE/$page/")"
 	nonce="$(grep -o "name=\"_fluentform_${id}_fluentformnonce\" value=\"[a-z0-9]*\"" <<<"$html" | sed 's/.*value="//;s/"//')"
 	post="$(grep -o "name='__fluent_form_embded_post_id' value='[0-9]*'" <<<"$html" | sed "s/.*value='//;s/'//")"
-	now="$(php -r 'echo (int) (microtime(true) * 1000);')"
 	data="__fluent_form_embded_post_id=$post&_fluentform_${id}_fluentformnonce=$nonce&_wp_http_referer=%2F$page%2F&$fields"
-	[[ "$age" == __missing__ ]] || data="$data&pn_loaded=$((now - age))"
+	[[ "$age" == __missing__ ]] || data="$data&pn_loaded=$age"
 	[[ "$trap" == __missing__ ]] || data="$data&item_${id}__fluent_sf=$trap"
 	curl -s -X POST "$BASE/wp-admin/admin-ajax.php" --data-urlencode "action=fluentform_submit" --data-urlencode "form_id=$id" --data-urlencode "data=$data"
 }
@@ -166,15 +165,25 @@ expect_contains "...that gives the office phone number" "$out" "628-1818"
 out="$(ff_submit prayer prayer "$PGOOD" 10000 "")"; expect_contains "the prayer form has its own count" "$out" "Your request has gone to our pastors"
 wp option delete pn_test_rate_limit --quiet; wp transient delete --all --quiet >/dev/null 2>&1
 
+echo "== 6b. Concurrent submissions reserve no more than the hourly limit"
+rm -f /tmp/pn-rate-results
+for _ in $(seq 1 8); do
+	(wp eval 'echo pn_forms_reserve_rate_limit_slot( "pn_test_concurrent", 3 ) ? "1\n" : "0\n";' >> /tmp/pn-rate-results) &
+done
+wait
+expect_eq "only three concurrent requests reserve a slot" "$(grep -c '^1$' /tmp/pn-rate-results)" "3"
+wp transient delete pn_test_concurrent --quiet >/dev/null 2>&1
+
 echo "== 7. Contact messages are deleted after a year"
-sql "insert into wp_fluentform_submissions (form_id, response, status, created_at, updated_at) values ($CONTACT_ID, '{}', 'unread', date_sub(now(), interval 400 day), now()), ($CONTACT_ID, '{}', 'unread', date_sub(now(), interval 100 day), now())"
-old_id="$(sql "select max(id) - 1 from wp_fluentform_submissions")"
+sql "insert into wp_fluentform_submissions (form_id, response, status, created_at, updated_at) values ($CONTACT_ID, '{}', 'unread', date_sub(now(), interval 400 day), now()), ($CONTACT_ID, '{}', 'unread', date_sub(now(), interval 100 day), now()), ($CONTACT_ID, '{}', 'unread', date_sub(now(), interval 364 day), now())"
+old_id="$(sql "select id from wp_fluentform_submissions where form_id=$CONTACT_ID and created_at < date_sub(now(), interval 399 day) order by id desc limit 1")"
 sql "insert into wp_fluentform_entry_details (form_id, submission_id, field_name, field_value) values ($CONTACT_ID, $old_id, 'message', 'old message')"
 total_before="$(entries "$CONTACT_ID")"
 wp cron event run pn_forms_cleanup >/dev/null 2>&1
 expect_eq "exactly the old message was deleted" "$(entries "$CONTACT_ID")" "$((total_before - 1))"
 expect_eq "its field values went too" "$(sql "select count(*) from wp_fluentform_entry_details where submission_id=$old_id")" "0"
 expect_eq "a 100-day-old message is kept" "$(sql "select count(*) from wp_fluentform_submissions where form_id=$CONTACT_ID and created_at < date_sub(now(), interval 90 day) and created_at > date_sub(now(), interval 110 day)")" "1"
+expect_eq "a message less than 12 calendar months old is kept" "$(sql "select count(*) from wp_fluentform_submissions where form_id=$CONTACT_ID and created_at > date_sub(now(), interval 365 day) and created_at < date_sub(now(), interval 360 day)")" "1"
 
 echo
 echo "Passed: $PASS   Failed: $FAIL"
