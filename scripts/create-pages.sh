@@ -28,7 +28,7 @@ wp_cmd=(wp)
 if [[ -n "${PN_WP_USER:-}" ]]; then
 	wp_cmd=(sudo -n -u "$PN_WP_USER" env "WP_CLI_CACHE_DIR=/tmp/wpcli-$PN_WP_USER" wp)
 fi
-"${wp_cmd[@]}" --path="$WP_PATH" eval-file "$here/create-pages.php" "${replace[@]}"
+"${wp_cmd[@]}" --path="$WP_PATH" eval-file "$here/create-pages.php" ${replace[@]+"${replace[@]}"}   # (this form also works in the older bash on a Mac)
 "${wp_cmd[@]}" --path="$WP_PATH" rewrite flush
 
 # The Nginx page cache can keep serving the old pages for up to an hour. Name its folder to clear it now.

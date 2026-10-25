@@ -58,6 +58,10 @@ jobs:
       - name: CI deploy wrapper tests
         run: docker run --rm -v "$PWD":/work:ro ubuntu:24.04 bash /work/deploy/tests/ci-deploy-harness.sh
 
+      # The setup scripts must also work in the old bash that comes with a Mac (3.2).
+      - name: Setup scripts in old bash
+        run: deploy/tests/script-args-check.sh
+
   wordpress:
     name: WordPress security tests
     runs-on: ubuntu-24.04
