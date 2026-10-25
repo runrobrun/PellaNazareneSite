@@ -81,7 +81,7 @@ The old site is WordPress on the Ministry Designs theme (uploads under `/mt-cont
 
 - Migrate by hand: 7 pages, 5 recurring events, about 35 images. Do not migrate sermons from the old site; import them from the YouTube channel (@pellanazarene).
 - Never carry over filler: Lorem ipsum, "Omega Church", or the demo names Paul & Olivia Brunson and Will & Gloria Jackson.
-- Timezone is **Central** (America/Chicago). The old site wrongly says Eastern; never copy that. Office hours are Mon 1-4 PM, Wed 1-4 PM, Fri 9 AM-12 PM Central; the old site's 8:00/8:30-5 hours are wrong.
+- Timezone is **Central** (America/Chicago). The old site wrongly says Eastern; never copy that. Office hours are Mon 1-4 PM, Wed 9 AM-12 PM, Fri 9 AM-12 PM Central (Wednesday changed from 1-4 PM in October 2026); the old site's 8:00/8:30-5 hours are wrong.
 - Events are managed in Planning Center, which is the source of truth for the calendar. The blog starts fresh; old posts are not migrated.
 - Old URLs: every address on the old site has a defined outcome in `deploy/redirects/expected.csv` (explained in `docs/redirects.md`; check a live site with `scripts/check-redirects.sh`). Never use `--allow-fallback` at production cutover.
 - Giving stays on Church Center (`pella-nazarene.churchcenter.com/giving`); the old site's buttons that go to `#` must get real targets or be removed.

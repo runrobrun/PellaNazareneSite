@@ -68,6 +68,7 @@ case "${BREAK:-}" in
 	ga-everywhere) break_it wp-content/mu-plugins/pn-analytics.php "'production' === wp_get_environment_type()" "true" ;;
 	ga-for-staff)  break_it wp-content/mu-plugins/pn-analytics.php "&& ! is_user_logged_in()" "" ;;
 	ga-ignores-gpc) break_it wp-content/mu-plugins/pn-analytics.php "navigator.globalPrivacyControl === true || " "" ;;
+	wrong-hours)  break_it $T/parts/service-info.html 'Wednesday 9&nbsp;AM–&#8288;12&nbsp;PM' 'Wednesday 1–&#8288;4&nbsp;PM' ;;
 	same-words)  break_it $T/patterns/page-home.php '>Upcoming events</a>' '>Give online</a>' ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
