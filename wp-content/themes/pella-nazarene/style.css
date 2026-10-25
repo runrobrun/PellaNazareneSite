@@ -67,3 +67,21 @@ Text Domain:  pella-nazarene
 	outline: 3px solid var(--wp--preset--color--accent-3) !important;
 	outline-offset: 2px;
 }
+
+/* Fluent Forms brings its own fonts and colors. Bring them in line with the brand guide: Plus Jakarta Sans on the
+   fields and button, and navy (not the plugin's blue) for its accents. A real error message stays red so it still
+   looks like an error. */
+.fluentform {
+	--fluentform-primary: var(--wp--preset--color--accent-3);
+}
+
+.frm-fluent-form input,
+.frm-fluent-form textarea,
+.frm-fluent-form select,
+.frm-fluent-form button {
+	font-family: inherit;
+}
+
+.fluentform .ff-el-input--label.ff-el-is-required.asterisk-right label::after {
+	color: var(--wp--preset--color--accent-3);
+}
