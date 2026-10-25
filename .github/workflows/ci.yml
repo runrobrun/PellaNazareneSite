@@ -71,6 +71,12 @@ jobs:
       - name: Two-factor enforcement and username-leak tests
         run: deploy/tests/wp-integration.sh
 
+      # Real WordPress + the pinned Fluent Forms: the Contact and Prayer Request forms are created from the repo
+      # files, real submissions are sent, spam is turned away, the right people get the email, and prayer
+      # requests are not kept. (Part of this job so it is already a required check.)
+      - name: Contact and Prayer Request form tests
+        run: deploy/tests/forms-check.sh
+
   sermons:
     name: Sermon import tests
     runs-on: ubuntu-24.04

@@ -39,7 +39,7 @@ wp --path=/var/www/pellanazarene/public two-factor disable <username> --yes
 
 ## If something breaks
 - Site is down
-- Forms stopped sending email
+- Forms stopped sending email: `docs/forms.md` (the usual cause is the Gmail app password)
 - Sermons stopped importing
 - Restore from last night's backup
 

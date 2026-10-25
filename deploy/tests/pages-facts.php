@@ -54,6 +54,7 @@ $pages = array(
 	'/events/'    => array( 'Events', 'Events', array( 'Sunday School', 'Connections Sunday School Class', 'Lighthouse Student Ministry', 'Midweek Prayer Meeting', 'Coffee Time', 'Windmill Cafe', '9:30–10:15 AM', '5:30–7:00 PM', '10:30–11:30 AM', '7:00–8:00 PM', 'Central', 'See the full calendar' ) ),
 	'/small-groups/' => array( 'Small Groups', 'Small Groups', array( 'Find a group', 'Connect card', '9:30' ) ),
 	'/blog/'      => array( 'Blog', 'Blog', array( 'News and encouragement', 'Welcome to our new website' ) ),
+	'/prayer/'    => array( 'Prayer Request', 'Prayer Request', array( 'honored to pray', 'not kept on this website', 'call 911', '628-1818' ) ),
 );
 $bad_words = array( 'lorem ipsum', 'omega church', 'brunson', 'will & gloria', 'gloria jackson', 'eastern', '8:30', '8:00 -', 'onine', 'activites', 'link to be added', 'wedensday', 'text-to-give', 'text to give' );
 
@@ -108,6 +109,7 @@ foreach ( $pages as $path => list( $title, $h1, $musts ) ) {
 		check( "$path photo $name " . ( $eager ? 'is not lazy (it is the hero)' : 'is lazy-loaded' ), $eager ? 'lazy' !== $img->getAttribute( 'loading' ) : 'lazy' === $img->getAttribute( 'loading' ), 'loading=' . $img->getAttribute( 'loading' ) );
 		$i++;
 	}
+	check( "$path shows no raw [shortcode] text", 0 === preg_match( '/\[(pn_form|fluentform|pn_sermon_video|pn_latest_sermon)[^\]]*\]/', $text ), 'a shortcode is showing as text' );
 	check( "$path has no autoloading iframe", 0 === $x->query( '//main//iframe' )->length, 'iframe in page' );
 	$main_html = $x->query( '//main' )->item( 0 ) ? $x->document->saveHTML( $x->query( '//main' )->item( 0 ) ) : '';
 	preg_match_all( '/#[0-9a-f]{3,8}\b/i', $main_html, $hex );
@@ -190,7 +192,7 @@ foreach ( $give as $h ) {
 $contact = main_text( dom( $html_of['/contact/'] ) );
 check( 'Contact hours are Mon/Wed 1-4 and Fri 9-12', (bool) preg_match( '/Monday 1.{1,3}4\s*PM, Wednesday 1.{1,3}4\s*PM, Friday 9\s*AM.{1,3}12\s*PM Central/u', $contact ), 'hours text not found' );
 // Photos in total, the hero preload, and that the files really are served as WebP.
-$expected_photos = array( '/' => 1, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 0, '/blog/' => 0 );
+$expected_photos = array( '/' => 1, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 0, '/blog/' => 0, '/prayer/' => 0 );
 foreach ( $expected_photos as $path => $n ) {
 	$found = dom( $html_of[ $path ] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->length;
 	check( "$path shows $n photo(s)", $n === $found, "$found found" );

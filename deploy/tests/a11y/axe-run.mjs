@@ -45,6 +45,36 @@ async function checkFocus(page, name) {
   return problems;
 }
 
+// A real browser fills in and sends each form, the way a visitor would: the page must note when it loaded, wait a few
+// seconds like a person does, and show the thank-you message.
+async function checkForms(browser) {
+  let problems = 0;
+  const cases = [
+    ['/contact/', [['#ff_%ID%_name', 'Test Visitor'], ['#ff_%ID%_email', 'visitor@example.test'], ['#ff_%ID%_message', 'Hello from the browser test.']], 'We got your message'],
+    ['/prayer/', [['#ff_%ID%_request', 'Please pray for our town.']], 'Your request has gone to our pastors'],
+  ];
+  for (const [path, fields, thanks] of cases) {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1000, height: 900 });
+    await page.goto(BASE + path, { waitUntil: 'networkidle0' });
+    const formId = await page.$eval('form.frm-fluent-form', (f) => f.getAttribute('data-form_id'));
+    const loaded = await page.$eval('input[name="pn_loaded"]', (i) => i.value);
+    if (!/^\d{13}$/.test(loaded)) { console.log(`   [forms] ${path}: the page did not note when it loaded (got '${loaded}')`); problems++; }
+    for (const [selector, text] of fields) await page.type(selector.replace('%ID%', formId), text);
+    await new Promise((r) => setTimeout(r, 3500));
+    await page.click('form.frm-fluent-form button[type="submit"]');
+    try {
+      await page.waitForFunction((t) => document.body.innerText.includes(t), { timeout: 15000 }, thanks);
+      console.log(`== forms: ${path}: filled in, sent, and saw "${thanks}"`);
+    } catch (e) {
+      const shown = await page.evaluate(() => (document.querySelector('.ff-errors-in-stack, .ff-el-is-error, .error') || {}).innerText || '(no error text)');
+      console.log(`   [forms] ${path}: no thank-you message after sending; page says: ${shown}`); problems++;
+    }
+    await page.close();
+  }
+  return problems;
+}
+
 // Staff edit these pages in the block editor. Open each one as an administrator and require that the editor
 // accepts every block as valid (no "this block contains unexpected content" recovery prompts).
 async function checkEditor(browser) {
@@ -57,7 +87,7 @@ async function checkEditor(browser) {
   await page.goto(BASE + '/wp-admin/edit.php?post_type=page', { waitUntil: 'networkidle0' });
   const found = await page.evaluate(() => [...document.querySelectorAll('a.row-title')].map((a) => [a.textContent.trim(), (a.href.match(/post=(\d+)/) || [])[1]]));
   // The Home page's title is the h1 on the home page.
-  const wanted = ['A church in Pella, Iowa', 'New Here', 'About Us', 'Kids', 'Giving', 'Contact', 'Resources', 'Events', 'Small Groups', 'Blog'];
+  const wanted = ['A church in Pella, Iowa', 'New Here', 'About Us', 'Kids', 'Giving', 'Contact', 'Resources', 'Events', 'Small Groups', 'Blog', 'Prayer Request'];
   let problems = 0;
   for (const title of wanted) {
     const hit = found.find(([t]) => t === title);
@@ -88,7 +118,7 @@ async function checkEditor(browser) {
     ['home, phone 390, MENU OPEN', '/', 390, 800, true],
     ['brand fixture page, desktop', '/brand-check/', 1280, 900, false],
     ['brand fixture page, phone', '/brand-check/', 390, 800, false],
-    ...['new-here', 'about-us', 'kids', 'giving', 'contact', 'resources', 'events', 'small-groups', 'blog', 'welcome-to-our-new-website'].flatMap((s) => [
+    ...['new-here', 'about-us', 'kids', 'giving', 'contact', 'resources', 'events', 'small-groups', 'blog', 'welcome-to-our-new-website', 'prayer'].flatMap((s) => [
       [`${s}, desktop 1280`, `/${s}/`, 1280, 900, false],
       [`${s}, phone 390`, `/${s}/`, 390, 800, false],
     ]),
@@ -118,6 +148,7 @@ async function checkEditor(browser) {
     total += await checkFocus(page, `${name}: focus`);
     await page.close();
   }
+  total += await checkForms(browser);
   total += await checkEditor(browser);
   await browser.close();
   console.log(`\nTOTAL violating elements: ${total}`);

@@ -21,6 +21,7 @@ $pn_pages = array(
 	'events'    => 'Events',
 	'small-groups' => 'Small Groups',
 	'blog'      => 'Blog',
+	'prayer'    => 'Prayer Request',
 );
 
 if ( 'pella-nazarene' !== get_stylesheet() ) {

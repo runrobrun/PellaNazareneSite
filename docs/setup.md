@@ -104,8 +104,8 @@ Credentials are written to `/root/pella-secrets/` (root-only) and never printed:
 - **Settings → Sermons:** confirm the channel ID, click **Check YouTube now**.
 - **Sermons → Speakers:** create the four pastors and link each to their WordPress user.
 - **Users:** pastors as **Author**, office admin as **Editor**. Authors write posts and sermons and submit them for review; they cannot publish. Editors publish.
-- **WP Mail SMTP:** send through the church Gmail account.
-- **Fluent Forms:** Contact, Connect Card, Plan a Visit, Prayer Request.
+- **WP Mail SMTP:** send through the church Gmail account (settings and the Google app password are in `docs/forms.md`).
+- **Forms:** `PN_CONTACT_TO=… PN_PRAYER_TO=… PN_WP_USER=www-data scripts/create-forms.sh /var/www/staging/public` creates the Contact and Prayer Request forms (Fluent Forms, pinned); the Connect Card and Plan a Visit buttons link to the Church Center Connect Card. Setup, email delivery, spam rules and privacy: `docs/forms.md`.
 
 ## Backfilling older sermons
 

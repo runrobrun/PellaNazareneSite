@@ -14,6 +14,10 @@ cp -R /repo/wp-content/themes/pella-nazarene wp-content/themes/
 wp theme activate pella-nazarene --quiet
 mkdir -p wp-content/plugins; cp -R /repo/wp-content/plugins/pn-sermons wp-content/plugins/
 wp plugin activate pn-sermons --quiet
+# The forms: the pinned Fluent Forms, our form code, and a stand-in that records emails instead of sending them.
+mkdir -p wp-content/mu-plugins; cp /repo/wp-content/mu-plugins/pn-forms.php /repo/deploy/tests/fixtures/pn-test-mail-capture.php wp-content/mu-plugins/
+wp plugin install fluentform --version="$(awk '$1 == "fluentform" {print $2}' /repo/plugins.txt)" --activate --quiet
+PN_CONTACT_TO=hello@example.test PN_PRAYER_TO=pastor@example.test bash /repo/scripts/create-forms.sh "$W" >/dev/null
 wp rewrite structure '/%postname%/' --hard --quiet
 # The brand fixture page uses every brand element; it lives at /brand-check/. The real pages come from the theme's patterns.
 wp post create --post_type=page --post_title="Brand check" --post_name=brand-check --post_status=publish --post_content="$(cat /repo/deploy/tests/fixtures/brand-check-page.html)" --quiet

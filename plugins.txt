@@ -4,7 +4,9 @@
 
 # The Events Calendar was removed in MIG-7: the Events page is hand-written and links to the Church Center
 # calendar. The plugin also claims the /events/ address, so deactivate and delete it on any server that still has it.
-fluentform
+# Fluent Forms: the Contact and Prayer Request forms. Pinned: scripts/create-forms.sh writes straight to its tables
+# and the form tests are written against this version; update on purpose and re-run deploy/tests/forms-check.sh.
+fluentform 6.2.16
 wp-mail-smtp
 redis-cache
 # Required by wp-content/mu-plugins/pn-security.php (two-factor sign-in). Pinned: security
