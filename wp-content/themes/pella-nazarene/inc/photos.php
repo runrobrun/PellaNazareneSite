@@ -53,6 +53,9 @@ function pn_import_photos( array &$errors = array() ): array {
 
 	$ids = array();
 	foreach ( pn_photo_manifest() as $slug => $photo ) {
+		if ( isset( $photo['import'] ) && false === $photo['import'] ) {
+			continue; // a file used directly by the theme (the link-preview picture), not a media-library photo.
+		}
 		$id = pn_photo_id( $slug );
 		if ( ! $id ) {
 			$file = get_theme_file_path( "assets/images/photos/$slug.webp" );

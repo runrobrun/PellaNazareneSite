@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds the web photos from the originals listed in the theme's photos manifest.
 
-Each photo becomes <slug>.webp next to the manifest: orientation fixed, scaled down (never up) to its
+Each photo becomes <slug>.webp (or a fixed-size <slug>.jpg for "format": "jpg") next to the manifest: orientation fixed, scaled down (never up) to its
 "max" long edge, optional square crop ("square" is how far from the top to start, 0 to 1), and no metadata
 (no camera details, no GPS location). Run through scripts/build-photos.sh (Docker; nothing to install).
 """
@@ -30,7 +30,15 @@ for p in photos:
         top = int((im.height - side) * float(p["square"]))
         left = (im.width - side) // 2
         im = im.crop((left, top, left + side, top + side))
-    im.thumbnail((p["max"], p["max"]), Image.LANCZOS)
-    dest = os.path.join(OUT, p["slug"] + ".webp")
-    im.save(dest, "WEBP", quality=QUALITY, method=6)   # no exif= argument: metadata is not carried over
+    if "size" in p:
+        # A fixed-size picture (the link preview): cut to exactly this shape around the focus point.
+        im = ImageOps.fit(im, tuple(p["size"]), Image.LANCZOS, centering=tuple(p.get("focus", (0.5, 0.5))))
+    else:
+        im.thumbnail((p["max"], p["max"]), Image.LANCZOS)
+    if p.get("format") == "jpg":
+        dest = os.path.join(OUT, p["slug"] + ".jpg")
+        im.save(dest, "JPEG", quality=82, optimize=True, progressive=True)   # no exif= argument: metadata is not carried over
+    else:
+        dest = os.path.join(OUT, p["slug"] + ".webp")
+        im.save(dest, "WEBP", quality=QUALITY, method=6)   # no exif= argument: metadata is not carried over
     print("%-20s %4dx%-4d %4d KB" % (p["slug"], im.width, im.height, os.path.getsize(dest) // 1024))

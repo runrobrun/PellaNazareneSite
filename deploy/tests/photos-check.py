@@ -26,12 +26,13 @@ def check(name, ok, detail=""):
 manifest = json.load(open(os.path.join(DIR, "manifest.json"), encoding="utf-8"))["photos"]
 slugs = [p["slug"] for p in manifest]
 check("slugs are unique", len(slugs) == len(set(slugs)), "duplicate slug")
-files = sorted(f for f in os.listdir(DIR) if f.endswith(".webp"))
-check("every photo file is in the manifest", set(f[:-5] for f in files) == set(slugs), "files %s vs manifest %s" % (files, slugs))
+files = sorted(f for f in os.listdir(DIR) if f.endswith((".webp", ".jpg")))
+check("every photo file is in the manifest", set(os.path.splitext(f)[0] for f in files) == set(slugs), "files %s vs manifest %s" % (files, slugs))
 total = 0
 for p in manifest:
     s = p["slug"]
-    path = os.path.join(DIR, s + ".webp")
+    jpg = p.get("format") == "jpg"
+    path = os.path.join(DIR, s + (".jpg" if jpg else ".webp"))
     if not os.path.isfile(path):
         check("%s: file exists" % s, False, path)
         continue
@@ -39,9 +40,15 @@ for p in manifest:
     total += kb
     with open(path, "rb") as f:
         head = f.read(12)
-    check("%s: is a real WebP file" % s, head[:4] == b"RIFF" and head[8:12] == b"WEBP", "bad header")
+    if jpg:
+        check("%s: is a real JPEG file" % s, head[:3] == b"\xff\xd8\xff", "bad header")
+    else:
+        check("%s: is a real WebP file" % s, head[:4] == b"RIFF" and head[8:12] == b"WEBP", "bad header")
     im = Image.open(path)
-    check("%s: no more than %d px on the long side" % (s, p["max"]), max(im.size) <= p["max"], "%dx%d" % im.size)
+    if "size" in p:
+        check("%s: exactly %dx%d" % (s, p["size"][0], p["size"][1]), list(im.size) == list(p["size"]), "%dx%d" % im.size)
+    else:
+        check("%s: no more than %d px on the long side" % (s, p["max"]), max(im.size) <= p["max"], "%dx%d" % im.size)
     check("%s: under %d KB" % (s, MAX_FILE_KB), kb <= MAX_FILE_KB, "%.0f KB" % kb)
     meta = {k for k in im.info if k.lower() in ("exif", "xmp", "icc_profile")} | ({"exif"} if im.getexif() else set())
     check("%s: no camera, location or other embedded metadata" % s, not meta, "found %s" % sorted(meta))
