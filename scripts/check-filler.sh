@@ -32,7 +32,7 @@ found=0
 # Lists of words for grep: one per line.
 words="$(mktemp)"
 # The words to look for in the database and on the pages (kinds "text" and "site"), and in the code (kind "text" only).
-code_words="$(mktemp)"; trap 'rm -f "$words" "$code_words"' EXIT
+code_words="$(mktemp)"; code_files="$(mktemp)"; trap 'rm -f "$words" "$code_words" "$code_files"' EXIT
 awk -F'|' '$1 ~ /^[[:space:]]*(text|site)[[:space:]]*$/ { gsub(/^[ \t]+|[ \t]+$/, "", $2); if ($2 != "") print $2 }' "$LIST" > "$words"
 awk -F'|' '$1 ~ /^[[:space:]]*text[[:space:]]*$/ { gsub(/^[ \t]+|[ \t]+$/, "", $2); if ($2 != "") print $2 }' "$LIST" > "$code_words"
 [[ -s "$words" ]] || { echo "The list has no words to look for." >&2; exit 2; }
@@ -51,14 +51,22 @@ if [[ -n "$URL" ]]; then
 	curl_args=(-sS -m 40 -L)
 	[[ -z "$INSECURE" ]] || curl_args+=(-k)
 	[[ -z "$USERPW" ]] || curl_args+=(-u "$USERPW")
-	urls="$(wp --path="$WP_PATH" post list --post_type=any --post_status=publish --field=url 2>/dev/null | grep -E '^https?://' | sort -u || true)"
+	curl_args+=(-f)
+	if ! post_urls="$(wp --path="$WP_PATH" post list --post_type=any --post_status=publish --field=url)"; then
+		echo "Could not enumerate published URLs with WP-CLI." >&2
+		exit 2
+	fi
+	urls="$(printf '%s\n' "$post_urls" | awk '/^https?:\/\//')"
 	urls="$(printf '%s\n%s/\n%s/feed/\n' "$urls" "${URL%/}" "${URL%/}" | sed '/^$/d' | sort -u)"
 	pages=0
 	while IFS= read -r page; do
 		# Pages are listed with the site's own address; ask the address we were given instead.
 		path="${page#*://*/}"; target="${URL%/}/$path"
-		body="$(curl "${curl_args[@]}" "$target" 2>/dev/null || true)"
-		if [[ -z "$body" ]]; then echo "  could not read $target" >&2; found=$((found+1)); continue; fi
+		if ! body="$(curl "${curl_args[@]}" "$target" 2>/dev/null)"; then
+			echo "  could not read $target" >&2
+			found=$((found+1))
+			continue
+		fi
 		pages=$((pages+1))
 		# One word at a time, so every leftover on the page is reported (not just the first), as written on the page.
 		while IFS= read -r word; do
@@ -71,14 +79,25 @@ fi
 
 if [[ -n "$REPO" ]]; then
 	echo "== 3. The code"
-	hits="$(cd "$REPO" && find wp-content/themes/pella-nazarene wp-content/plugins/pn-sermons wp-content/mu-plugins deploy/nginx deploy/forms deploy/redirects scripts -type f \
+	if ! (cd "$REPO" && find wp-content/themes/pella-nazarene wp-content/plugins/pn-sermons wp-content/mu-plugins deploy/nginx deploy/forms deploy/redirects scripts -type f \
 		! -name 'check-filler.*' ! -path '*/assets/*' ! -name '*.webp' ! -name '*.jpg' ! -name '*.png' ! -name '*.woff2' ! -name '*.ico' ! -name '*.svg' \
-		-exec grep -nioF -f "$code_words" {} + 2>/dev/null || true)"
-	if [[ -n "$hits" ]]; then
-		while IFS= read -r hit; do found=$((found+1)); printf '  FOUND  %s\n' "$hit"; done <<<"$hits"
-	else
-		echo "  nothing in the code"
+		-print0 >"$code_files"); then
+		echo "Could not enumerate code files in: $REPO" >&2
+		exit 2
 	fi
+	code_hits=0
+	while IFS= read -r -d '' file; do
+		if hits="$(grep -nioF -f "$code_words" -- "$REPO/${file#./}")"; then
+			while IFS= read -r hit; do found=$((found+1)); code_hits=$((code_hits+1)); printf '  FOUND  %s\n' "$hit"; done <<<"$hits"
+		else
+			grep_status=$?
+			if [[ $grep_status -ne 1 ]]; then
+				echo "Could not scan code file: $REPO/${file#./}" >&2
+				exit 2
+			fi
+		fi
+	done <"$code_files"
+	[[ $code_hits -gt 0 ]] || echo "  nothing in the code"
 fi
 
 echo

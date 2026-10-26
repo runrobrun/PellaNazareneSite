@@ -34,7 +34,7 @@ case "${BREAK:-}" in
 	skip-options) break_it $S/scripts/check-filler.php 'foreach ( $pn_tables as $pn_table ) {' 'foreach ( $pn_tables as $pn_table ) { if ( $pn_table === $wpdb->options ) { continue; }' ;;
 	no-quotes)    break_it $S/scripts/check-filler.php "array( '$RSQ', '$LSQ', '$LDQ', '$RDQ' )" "array( 'ZZ1', 'ZZ2', 'ZZ3', 'ZZ4' )" ;;
 	skip-pages)   break_it $S/scripts/check-filler.sh 'hit="$(grep -oiF -m1 -- "$word" <<<"$body" || true)"' 'hit=""' ;;
-	skip-code)    break_it $S/scripts/check-filler.sh '-exec grep -nioF -f "$code_words" {} +' '-exec true {} +' ;;
+	skip-code)    break_it $S/scripts/check-filler.sh 'grep -nioF -f "$code_words" -- "$REPO/${file#./}"' 'true' ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
 scan() { bash "$S/scripts/check-filler.sh" "$W" "$@" 2>&1; }
@@ -106,7 +106,27 @@ run --url "$BASE"
 expect_eq "clean again once the leak is gone" "$RC" "0"
 expect_contains "a wrong password is reported, not ignored" "$(bash "$S/scripts/check-filler.sh" "$W" --url http://127.0.0.1:9 2>&1 || true)" "could not read"
 
-echo "== 5. The code"
+echo "== 5. Failed URL enumeration and HTTP errors fail the page check"
+mkdir -p /tmp/fail-wp
+cat >/tmp/fail-wp/wp <<'EOF'
+#!/usr/bin/env bash
+case " $* " in
+	*" post list "*) exit 1 ;;
+esac
+exec php -d memory_limit=512M /usr/local/bin/wp "$@"
+EOF
+chmod +x /tmp/fail-wp/wp
+RC=0
+OUT="$(PATH="/tmp/fail-wp:$PATH" bash "$S/scripts/check-filler.sh" "$W" --url "$BASE" 2>&1)" || RC=$?
+expect_eq "failed WP-CLI URL enumeration aborts" "$RC" "2"
+expect_contains "enumeration error is reported" "$OUT" "Could not enumerate published URLs"
+echo '<?php add_action( "template_redirect", function () { status_header( 401 ); echo "Unauthorized"; exit; } );' > wp-content/mu-plugins/leak.php
+run --url "$BASE"
+expect_eq "an HTTP error fails the page check" "$RC" "1"
+expect_contains "HTTP error is reported, not scanned" "$OUT" "could not read"
+rm -f wp-content/mu-plugins/leak.php
+
+echo "== 6. The code"
 run --repo /repo
 expect_eq "this repository's code is clean" "$RC" "0"
 expect_contains "it says so" "$OUT" "nothing in the code"
@@ -116,6 +136,26 @@ run --repo /tmp/rc
 expect_eq "filler planted in a theme file fails" "$RC" "1"
 expect_contains "it names the file" "$OUT" "wp-content/themes/pella-nazarene/templates/404.html"
 expect_eq "it did not flag the scanner's own word list" "$(grep -c 'deploy/filler.txt:' <<<"$OUT" | tr -d ' ')" "0"
+RC=0
+OUT="$(bash "$S/scripts/check-filler.sh" "$W" --repo /tmp/not-a-repository 2>&1)" || RC=$?
+expect_eq "a missing repository fails the code check" "$RC" "2"
+expect_contains "repository enumeration error is reported" "$OUT" "Could not enumerate code files"
+rm -rf /tmp/rc/deploy/forms
+RC=0
+OUT="$(bash "$S/scripts/check-filler.sh" "$W" --repo /tmp/rc 2>&1)" || RC=$?
+expect_eq "a missing scan directory fails the code check" "$RC" "2"
+expect_contains "missing directory error is reported" "$OUT" "Could not enumerate code files"
+mkdir -p /tmp/fail-grep
+cat >/tmp/fail-grep/grep <<'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "-nioF" ]]; then exit 2; fi
+exec /usr/bin/grep "$@"
+EOF
+chmod +x /tmp/fail-grep/grep
+RC=0
+OUT="$(PATH="/tmp/fail-grep:$PATH" bash "$S/scripts/check-filler.sh" "$W" --repo /repo 2>&1)" || RC=$?
+expect_eq "a file-scan error fails the code check" "$RC" "2"
+expect_contains "file-scan error is reported" "$OUT" "Could not scan code file"
 
 echo
 echo "Passed: $PASS   Failed: $FAIL"
