@@ -284,7 +284,7 @@ check( 'The sharing picture is a 1200x630 JPEG under 250 KB', ( $isize[0] ?? 0 )
 list( , $sermon_html ) = fetch( $base . '/sermons/latest-published-sermon/' );
 $sermon_x = dom( $sermon_html );
 check( 'A sermon shares as an article', 'article' === meta_tag( $sermon_x, 'property', 'og:type' ), 'og:type=' . meta_tag( $sermon_x, 'property', 'og:type' ) );
-check( 'A sermon shares its video picture', 'https://i.ytimg.com/vi/Nll1UzWZHQA/maxresdefault.jpg' === meta_tag( $sermon_x, 'property', 'og:image' ), meta_tag( $sermon_x, 'property', 'og:image' ) );
+check( 'A sermon shares its video picture', 'https://i.ytimg.com/vi/Nll1UzWZHQA/hqdefault.jpg' === meta_tag( $sermon_x, 'property', 'og:image' ), meta_tag( $sermon_x, 'property', 'og:image' ) );
 check( 'A sermon has its own description', 'Pastor Rob Hammann on the Holy Spirit at Pentecost.' === meta_tag( $sermon_x, 'name', 'description' ), meta_tag( $sermon_x, 'name', 'description' ) );
 check( 'A sermon says when it was published', '' !== meta_tag( $sermon_x, 'property', 'article:published_time' ), 'no published time' );
 check( 'A blog post shares as an article', 'article' === meta_tag( $post_x, 'property', 'og:type' ), 'og:type=' . meta_tag( $post_x, 'property', 'og:type' ) );
@@ -313,13 +313,13 @@ foreach ( (array) ( $ld['sameAs'] ?? array() ) as $social ) {
 }
 check( 'It lists three social pages', 3 === count( (array) ( $ld['sameAs'] ?? array() ) ), count( (array) ( $ld['sameAs'] ?? array() ) ) . ' found' );
 // The hours given to Google must be the hours people read on the Contact page (from the one Service info block).
-$h12  = fn( string $t ) => array( ( (int) substr( $t, 0, 2 ) % 12 ) ?: 12, (int) substr( $t, 0, 2 ) >= 12 ? 'PM' : 'AM' );
+$h12  = fn( string $t ) => array( ( (int) substr( $t, 0, 2 ) % 12 ) ?: 12, '00' === substr( $t, 3, 2 ) ? '' : ':' . substr( $t, 3, 2 ), (int) substr( $t, 0, 2 ) >= 12 ? 'PM' : 'AM' );
 $read = str_replace( array( "\xC2\xA0", "\xE2\x81\xA0", '—', '-' ), array( ' ', '', '–', '–' ), main_text( dom( $html_of['/contact/'] ) ) . ' ' . (string) dom( $html_of['/contact/'] )->query( '//footer' )->item( 0 )?->textContent );
 $read = preg_replace( '/\s+/u', ' ', $read );
 foreach ( (array) ( $ld['openingHoursSpecification'] ?? array() ) as $spec ) {
-	list( $oh, $oa ) = $h12( (string) $spec['opens'] );
-	list( $ch, $ca ) = $h12( (string) $spec['closes'] );
-	$said = $oa === $ca ? "{$spec['dayOfWeek']} {$oh}–{$ch} {$ca}" : "{$spec['dayOfWeek']} {$oh} {$oa}–{$ch} {$ca}";
+	list( $oh, $om, $oa ) = $h12( (string) $spec['opens'] );
+	list( $ch, $cm, $ca ) = $h12( (string) $spec['closes'] );
+	$said = $oa === $ca ? "{$spec['dayOfWeek']} {$oh}{$om}–{$ch}{$cm} {$ca}" : "{$spec['dayOfWeek']} {$oh}{$om} {$oa}–{$ch}{$cm} {$ca}";
 	check( "Google's {$spec['dayOfWeek']} hours match the site ($said)", false !== strpos( $read, $said ), "the site does not say '$said'" );
 }
 check( 'It lists exactly three office days', 3 === count( (array) ( $ld['openingHoursSpecification'] ?? array() ) ), 'wrong number of days' );

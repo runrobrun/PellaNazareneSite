@@ -135,9 +135,9 @@ function pn_seo_image(): array {
 			$video = (string) get_post_meta( $id, 'pn_youtube_id', true );
 			if ( 1 === preg_match( '/^[\w-]{11}$/', $video ) ) {
 				return array(
-					'url'    => 'https://i.ytimg.com/vi/' . $video . '/maxresdefault.jpg',
-					'width'  => 1280,
-					'height' => 720,
+					'url'    => 'https://i.ytimg.com/vi/' . $video . '/hqdefault.jpg',
+					'width'  => 480,
+					'height' => 360,
 					'type'   => 'image/jpeg',
 				);
 			}
