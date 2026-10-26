@@ -156,6 +156,11 @@ jobs:
       - name: Old URLs redirect correctly
         run: deploy/tests/redirects-check.sh
 
+      # The check for leftovers from the old site (MIG-8): a clean site passes, and filler planted in the database,
+      # on the pages and in the code is found. (Part of this job so it is already a required check.)
+      - name: Leftover-filler check
+        run: deploy/tests/filler-check.sh
+
   nginx:
     name: Nginx config tests
     runs-on: ubuntu-24.04
