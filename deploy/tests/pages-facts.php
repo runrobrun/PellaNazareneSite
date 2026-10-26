@@ -246,6 +246,102 @@ foreach ( array_keys( $pages ) as $path ) {
 	check( "$path has a Blog link in the menu", dom( $html_of[ $path ] )->query( "//header//a[contains(@href, '/blog/')]" )->length >= 1, 'no Blog in the header' );
 }
 
+// Search and sharing: a title and a description for every page, the tags for link previews, and Google's data.
+function meta_tag( DOMXPath $x, string $attr, string $key ): string {
+	return trim( (string) $x->query( "//head/meta[@$attr='$key']" )->item( 0 )?->getAttribute( 'content' ) );
+}
+$seo_titles = array();
+$seo_descs  = array();
+foreach ( $pages as $path => $unused ) {
+	$sx    = dom( $html_of[ $path ] );
+	$title = trim( (string) $sx->query( '//head/title' )->item( 0 )?->textContent );
+	$desc  = meta_tag( $sx, 'name', 'description' );
+	check( "$path has a page title", '' !== $title && mb_strlen( $title ) <= 70, "'$title'" );
+	check( "$path title ends with the site name", '/' === $path ? 'Pella Church of the Nazarene | Pella, Iowa' === $title : (bool) preg_match( '/^.+ \| Pella Nazarene$/', $title ), "'$title'" );
+	check( "$path has a search description (50 to 160 characters)", mb_strlen( $desc ) >= 50 && mb_strlen( $desc ) <= 160, mb_strlen( $desc ) . " characters: '$desc'" );
+	$seo_titles[ $title ] = ( $seo_titles[ $title ] ?? 0 ) + 1;
+	$seo_descs[ $desc ]   = ( $seo_descs[ $desc ] ?? 0 ) + 1;
+	check( "$path sharing title matches the page title", meta_tag( $sx, 'property', 'og:title' ) === $title, 'og:title differs' );
+	check( "$path sharing description matches", meta_tag( $sx, 'property', 'og:description' ) === $desc, 'og:description differs' );
+	check( "$path sharing address is a full web address", (bool) preg_match( '#^https?://[^/]+/#', meta_tag( $sx, 'property', 'og:url' ) ), meta_tag( $sx, 'property', 'og:url' ) );
+	check( "$path asks for a large link preview", 'summary_large_image' === meta_tag( $sx, 'name', 'twitter:card' ), 'no twitter:card' );
+	check( "$path has a sharing picture address", (bool) preg_match( '#^https?://.+\.(jpg|webp|png)#', meta_tag( $sx, 'property', 'og:image' ) ), meta_tag( $sx, 'property', 'og:image' ) );
+	if ( '/blog/' !== $path ) {
+		check( "$path names its own address once (canonical)", 1 === $sx->query( "//head/link[@rel='canonical']" )->length, 'canonical link missing or repeated' );
+	}
+	check( "$path has Google's church data only if it is the home page", ( '/' === $path ) === ( 1 === $sx->query( "//script[@type='application/ld+json']" )->length ), 'church data on the wrong pages' );
+}
+check( 'Every page title is different', max( $seo_titles ) === 1, 'two pages share a title' );
+check( 'Every page description is different', max( $seo_descs ) === 1, 'two pages share a description' );
+
+$share_url = meta_tag( dom( $html_of['/'] ), 'property', 'og:image' );
+list( $ic, $ibytes ) = fetch( $share_url );
+$isize = $ibytes ? (array) @getimagesizefromstring( $ibytes ) : array();
+check( 'The sharing picture can be fetched', 200 === $ic && '' !== $ibytes, "got $ic" );
+check( 'The sharing picture is a 1200x630 JPEG under 250 KB', ( $isize[0] ?? 0 ) === 1200 && ( $isize[1] ?? 0 ) === 630 && ( $isize['mime'] ?? '' ) === 'image/jpeg' && strlen( $ibytes ) < 250 * 1024, json_encode( array_slice( $isize, 0, 2 ) ) . ' ' . strlen( $ibytes ) . ' bytes' );
+
+// Sermons and posts share as articles, and a sermon's picture is its video's picture.
+list( , $sermon_html ) = fetch( $base . '/sermons/latest-published-sermon/' );
+$sermon_x = dom( $sermon_html );
+check( 'A sermon shares as an article', 'article' === meta_tag( $sermon_x, 'property', 'og:type' ), 'og:type=' . meta_tag( $sermon_x, 'property', 'og:type' ) );
+check( 'A sermon shares its video picture', 'https://i.ytimg.com/vi/Nll1UzWZHQA/maxresdefault.jpg' === meta_tag( $sermon_x, 'property', 'og:image' ), meta_tag( $sermon_x, 'property', 'og:image' ) );
+check( 'A sermon has its own description', 'Pastor Rob Hammann on the Holy Spirit at Pentecost.' === meta_tag( $sermon_x, 'name', 'description' ), meta_tag( $sermon_x, 'name', 'description' ) );
+check( 'A sermon says when it was published', '' !== meta_tag( $sermon_x, 'property', 'article:published_time' ), 'no published time' );
+check( 'A blog post shares as an article', 'article' === meta_tag( $post_x, 'property', 'og:type' ), 'og:type=' . meta_tag( $post_x, 'property', 'og:type' ) );
+check( 'A blog post has a description from its text', mb_strlen( meta_tag( $post_x, 'name', 'description' ) ) >= 20, meta_tag( $post_x, 'name', 'description' ) );
+list( $nc, $nf_html ) = fetch( $base . '/does-not-exist/' );
+check( 'A missing page has no search description or sharing tags', 404 === $nc && '' === meta_tag( dom( $nf_html ), 'name', 'description' ) && '' === meta_tag( dom( $nf_html ), 'property', 'og:title' ), 'tags on a 404 page' );
+
+// Google's data about the church (home page).
+$ld_node = dom( $html_of['/'] )->query( "//script[@type='application/ld+json']" )->item( 0 );
+$ld      = json_decode( (string) $ld_node?->textContent, true );
+check( 'The church data is valid JSON', is_array( $ld ), 'invalid JSON' );
+$ld = (array) $ld;
+check( 'It describes a Church with a name and the web address', 'Church' === ( $ld['@type'] ?? '' ) && 'Pella Church of the Nazarene' === ( $ld['name'] ?? '' ) && 'https://schema.org' === ( $ld['@context'] ?? '' ), 'type or name wrong' );
+check( 'It has the street address', ( $ld['address']['streetAddress'] ?? '' ) === '303 University Street' && ( $ld['address']['addressLocality'] ?? '' ) === 'Pella' && ( $ld['address']['addressRegion'] ?? '' ) === 'IA' && ( $ld['address']['postalCode'] ?? '' ) === '50219', 'address wrong' );
+check( 'It has the phone number and email', ( $ld['telephone'] ?? '' ) === '+1-641-628-1818' && ( $ld['email'] ?? '' ) === 'pellanazarene@gmail.com', 'phone or email wrong' );
+check( 'It lists Sunday worship at 10:30 and small groups at 9:30', ( function () use ( $ld ) {
+	$found = array();
+	foreach ( (array) ( $ld['event'] ?? array() ) as $e ) {
+		$found[ (string) ( $e['name'] ?? '' ) ] = (string) ( $e['eventSchedule']['startTime'] ?? '' ) . ' ' . (string) ( $e['eventSchedule']['byDay'] ?? '' ) . ' ' . (string) ( $e['eventSchedule']['scheduleTimezone'] ?? '' );
+	}
+	return ( $found['Sunday Worship'] ?? '' ) === '10:30:00 https://schema.org/Sunday America/Chicago' && ( $found['Small Groups'] ?? '' ) === '09:30:00 https://schema.org/Sunday America/Chicago';
+} )(), 'service times wrong' );
+$footer_links = array_map( fn( $a ) => $a->getAttribute( 'href' ), iterator_to_array( dom( $html_of['/'] )->query( '//footer//a[@href]' ) ) );
+foreach ( (array) ( $ld['sameAs'] ?? array() ) as $social ) {
+	check( "Its social page $social is the one in the footer", in_array( $social, $footer_links, true ), 'not in the footer' );
+}
+check( 'It lists three social pages', 3 === count( (array) ( $ld['sameAs'] ?? array() ) ), count( (array) ( $ld['sameAs'] ?? array() ) ) . ' found' );
+// The hours given to Google must be the hours people read on the Contact page (from the one Service info block).
+$h12  = fn( string $t ) => array( ( (int) substr( $t, 0, 2 ) % 12 ) ?: 12, (int) substr( $t, 0, 2 ) >= 12 ? 'PM' : 'AM' );
+$read = str_replace( array( "\xC2\xA0", "\xE2\x81\xA0", '—', '-' ), array( ' ', '', '–', '–' ), main_text( dom( $html_of['/contact/'] ) ) . ' ' . (string) dom( $html_of['/contact/'] )->query( '//footer' )->item( 0 )?->textContent );
+$read = preg_replace( '/\s+/u', ' ', $read );
+foreach ( (array) ( $ld['openingHoursSpecification'] ?? array() ) as $spec ) {
+	list( $oh, $oa ) = $h12( (string) $spec['opens'] );
+	list( $ch, $ca ) = $h12( (string) $spec['closes'] );
+	$said = $oa === $ca ? "{$spec['dayOfWeek']} {$oh}–{$ch} {$ca}" : "{$spec['dayOfWeek']} {$oh} {$oa}–{$ch} {$ca}";
+	check( "Google's {$spec['dayOfWeek']} hours match the site ($said)", false !== strpos( $read, $said ), "the site does not say '$said'" );
+}
+check( 'It lists exactly three office days', 3 === count( (array) ( $ld['openingHoursSpecification'] ?? array() ) ), 'wrong number of days' );
+
+// The sitemap and robots.txt.
+list( $sc, $sitemap ) = fetch( $base . '/wp-sitemap.xml' );
+check( 'The sitemap answers 200 as XML', 200 === $sc && false !== strpos( $sitemap, '<sitemapindex' ), "got $sc" );
+check( 'The sitemap lists pages, posts and sermons', false !== strpos( $sitemap, 'wp-sitemap-posts-page-1.xml' ) && false !== strpos( $sitemap, 'wp-sitemap-posts-post-1.xml' ) && false !== strpos( $sitemap, 'wp-sitemap-posts-pn_sermon-1.xml' ), 'a content type is missing' );
+list( , $page_map ) = fetch( $base . '/wp-sitemap-posts-page-1.xml' );
+foreach ( array_keys( $pages ) as $path ) {
+	if ( '/' !== $path ) {
+		check( "The sitemap lists $path", false !== strpos( $page_map, $base . $path ), 'page missing from the sitemap' );
+	}
+}
+list( , $sermon_map ) = fetch( $base . '/wp-sitemap-posts-pn_sermon-1.xml' );
+check( 'The sitemap lists the published sermon and not the draft', false !== strpos( $sermon_map, 'latest-published-sermon' ) && false === strpos( $sermon_map, 'a-draft-sermon' ), 'sermon sitemap wrong' );
+list( , $post_map ) = fetch( $base . '/wp-sitemap-posts-post-1.xml' );
+check( 'The sitemap lists the published post and not the draft', false !== strpos( $post_map, 'welcome-to-our-new-website' ) && false === strpos( $post_map, 'a-draft-post' ), 'post sitemap wrong' );
+list( $rc, $robots ) = fetch( $base . '/robots.txt' );
+check( 'robots.txt points search engines to the sitemap', 200 === $rc && false !== strpos( $robots, 'Sitemap: ' . $base . '/wp-sitemap.xml' ), 'no sitemap line' );
+check( 'robots.txt keeps the admin out', false !== strpos( $robots, 'Disallow: /wp-admin/' ), 'admin not disallowed' );
+
 // The sermon pages use our own templates; they must carry the header and footer too.
 foreach ( array( '/sermons/', '/sermons/latest-published-sermon/' ) as $sp ) {
 	list( $c, $b ) = fetch( $base . $sp );

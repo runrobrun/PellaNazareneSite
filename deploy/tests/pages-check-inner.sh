@@ -26,7 +26,7 @@ wp theme install twentytwentyfive --quiet || setup_fail "installing Twenty Twent
 cp -R /repo/wp-content/themes/pella-nazarene wp-content/themes/
 mkdir -p wp-content/plugins; cp -R /repo/wp-content/plugins/pn-sermons wp-content/plugins/
 wp theme activate pella-nazarene --quiet || setup_fail "activating our theme"
-mkdir -p wp-content/mu-plugins && cp /repo/wp-content/mu-plugins/pn-forms.php /repo/wp-content/mu-plugins/pn-analytics.php wp-content/mu-plugins/   # Fluent Forms is not installed in this test: [pn_form] must quietly show nothing
+mkdir -p wp-content/mu-plugins && cp /repo/wp-content/mu-plugins/pn-forms.php /repo/wp-content/mu-plugins/pn-analytics.php /repo/wp-content/mu-plugins/pn-seo.php wp-content/mu-plugins/   # Fluent Forms is not installed in this test: [pn_form] must quietly show nothing
 wp plugin activate pn-sermons --quiet || setup_fail "activating the sermon plugin"
 wp rewrite structure '/%postname%/' --hard --quiet
 wp post delete 1 2 3 --force --quiet >/dev/null 2>&1   # WordPress's sample post, sample page, and privacy-policy draft
@@ -69,6 +69,9 @@ case "${BREAK:-}" in
 	ga-for-staff)  break_it wp-content/mu-plugins/pn-analytics.php "&& ! is_user_logged_in()" "" ;;
 	ga-ignores-gpc) break_it wp-content/mu-plugins/pn-analytics.php "navigator.globalPrivacyControl === true || " "" ;;
 	wrong-hours)  break_it $T/parts/service-info.html 'Wednesday 9&nbsp;AM–&#8288;12&nbsp;PM' 'Wednesday 1–&#8288;4&nbsp;PM' ;;
+	hours-drift)  break_it wp-content/mu-plugins/pn-seo.php "array( 'Friday', '09:00', '12:00' )," "array( 'Friday', '13:00', '16:00' )," ;;
+	no-description) break_it wp-content/mu-plugins/pn-seo.php "return pn_seo_shorten( \$text );" "return '';" ;;
+	no-share-image) break_it wp-content/mu-plugins/pn-seo.php "photos/og-default.jpg" "photos/missing.jpg" ;;
 	same-words)  break_it $T/patterns/page-home.php '>Upcoming events</a>' '>Give online</a>' ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
@@ -188,7 +191,7 @@ echo implode("; ", $bad);')"
 expect_eq "every block is a real WordPress block with nothing loose between them" "$bad_blocks" ""
 
 echo "== 4. Home shows the latest published sermon, never a draft"
-wp post create --post_type=pn_sermon --post_status=publish --post_title="Latest published sermon" --post_date="2026-05-24 12:00:00" --meta_input='{"pn_youtube_id":"Nll1UzWZHQA"}' --quiet
+wp post create --post_type=pn_sermon --post_status=publish --post_title="Latest published sermon" --post_excerpt="Pastor Rob Hammann on the Holy Spirit at Pentecost." --post_date="2026-05-24 12:00:00" --meta_input='{"pn_youtube_id":"Nll1UzWZHQA"}' --quiet
 wp post create --post_type=pn_sermon --post_status=draft --post_title="A draft sermon" --post_date="2026-06-07 12:00:00" --meta_input='{"pn_youtube_id":"vTKuOza2c68"}' --quiet
 ( wp server --host=127.0.0.1 --port=8080 >/tmp/server.log 2>&1 & )
 for _ in $(seq 1 30); do curl -s -o /dev/null "$BASE/" && break; sleep 1; done

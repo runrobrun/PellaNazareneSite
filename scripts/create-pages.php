@@ -25,6 +25,22 @@ $pn_pages = array(
 	'privacy'   => 'Privacy',
 );
 
+// What search results show under each page's title (the Excerpt box in the page editor). About 150 characters each.
+$pn_descriptions = array(
+	'home'         => 'Pella Church of the Nazarene in Pella, Iowa. Join us Sundays: small groups at 9:30 AM, worship at 10:30 AM. Come as you are and grow together in Jesus.',
+	'new-here'     => 'Visiting Pella Nazarene for the first time? Find service times, directions, parking, what a Sunday is like, and answers to common questions.',
+	'about-us'     => 'Meet Pella Church of the Nazarene: our mission, core values, pastors, what we believe, and the story of our church in Pella, Iowa.',
+	'kids'         => 'Pella Nazarene Kids: a safe, joyful place for children from birth through age 12 to learn about Jesus every Sunday.',
+	'giving'       => 'Give to Pella Church of the Nazarene securely online through Church Center: one-time or recurring gifts, the building fund, and world missions.',
+	'contact'      => 'Contact Pella Church of the Nazarene: send a message, call (641) 628-1818, find us at 303 University Street in Pella, and see office hours.',
+	'resources'    => 'Helpful links from the Church of the Nazarene: ministries, missions, and USA/Canada Region resources for discipleship, kids and youth.',
+	'events'       => 'Weekly events at Pella Nazarene: Sunday School, Lighthouse Student Ministry, Midweek Prayer and Coffee Time, plus a link to our full calendar.',
+	'small-groups' => 'Find a small group at Pella Nazarene. Groups meet Sunday mornings at 9:30 AM; see them all and join through Church Center.',
+	'blog'         => 'News and encouragement from Pella Church of the Nazarene.',
+	'prayer'       => 'Share a prayer request with the pastors of Pella Church of the Nazarene. It is emailed to our pastors and not kept on this website.',
+	'privacy'      => 'How the Pella Nazarene website handles your information: messages, prayer requests, Google Analytics, videos and photos.',
+);
+
 if ( 'pella-nazarene' !== get_stylesheet() ) {
 	WP_CLI::error( 'The Pella Nazarene theme is not active here.' );
 }
@@ -72,6 +88,16 @@ foreach ( $pn_pages as $pn_slug => $pn_title ) {
 			WP_CLI::error( "'$pn_slug' conflicts with an attachment; rename or delete the media item first." );
 		}
 		$pn_ids[ $pn_slug ] = $pn_existing->ID;
+		// A page with no search description gets one; a description staff have written is never touched.
+		if ( '' === trim( (string) $pn_existing->post_excerpt ) && isset( $pn_descriptions[ $pn_slug ] ) ) {
+			wp_update_post(
+				array(
+					'ID'           => $pn_existing->ID,
+					'post_excerpt' => $pn_descriptions[ $pn_slug ],
+				)
+			);
+			WP_CLI::log( "Added a search description to '$pn_slug'." );
+		}
 		if ( in_array( $pn_slug, $pn_replace, true ) ) {
 			$pn_updated = wp_update_post(
 				array(
@@ -95,6 +121,7 @@ foreach ( $pn_pages as $pn_slug => $pn_title ) {
 			'post_status'  => 'publish',
 			'post_name'    => $pn_slug,
 			'post_title'   => $pn_title,
+			'post_excerpt' => $pn_descriptions[ $pn_slug ] ?? '',
 			'post_content' => wp_slash( $pn_content ),
 		),
 		true

@@ -15,7 +15,7 @@ wp theme activate pella-nazarene --quiet
 mkdir -p wp-content/plugins; cp -R /repo/wp-content/plugins/pn-sermons wp-content/plugins/
 wp plugin activate pn-sermons --quiet
 # The forms: the pinned Fluent Forms, our form code, and a stand-in that records emails instead of sending them.
-mkdir -p wp-content/mu-plugins; cp /repo/wp-content/mu-plugins/pn-forms.php /repo/wp-content/mu-plugins/pn-analytics.php /repo/deploy/tests/fixtures/pn-test-mail-capture.php wp-content/mu-plugins/
+mkdir -p wp-content/mu-plugins; cp /repo/wp-content/mu-plugins/pn-forms.php /repo/wp-content/mu-plugins/pn-analytics.php /repo/wp-content/mu-plugins/pn-seo.php /repo/deploy/tests/fixtures/pn-test-mail-capture.php wp-content/mu-plugins/
 # This site counts as 'production' (the default), so the analytics tag is on: give it a made-up ID so a test visit can never be recorded in the church's real Google Analytics.
 wp config set PN_GA_MEASUREMENT_ID G-TEST000000 --type=constant --quiet
 wp plugin install fluentform --version="$(awk '$1 == "fluentform" {print $2}' /repo/plugins.txt)" --activate --quiet

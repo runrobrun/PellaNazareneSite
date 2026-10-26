@@ -194,8 +194,10 @@ Fluent Forms: Contact, Connect Card, Plan a Visit, Prayer Request.
 ### FEAT-4 Planning Center / Church Center integration · S · partly done in MIG-7
 Church Center (pella-nazarene.churchcenter.com) already has Calendar, Groups, Registrations and a Connect Card turned on; the Events and Small Groups pages link to them (MIG-7). Still to decide: use the Church Center Connect Card for the online connect card and kids pre-registration (FEAT-3). Giving stays linked out to Church Center. Check whether the Planning Center subscription includes Groups, Registrations, or Calendar; if so, use them for small groups, kids pre-registration, and event signups and only link or embed them here. Embeds load on demand, not on every page.
 
-### FEAT-5 SEO and sharing · S · todo
+### FEAT-5 SEO and sharing · S · in review (built; Search Console and Facebook checks happen at launch)
 Sitemap, meta titles and descriptions, Open Graph images, `Church` schema.org markup with address, service times, and the office hours (Mon 1-4, Wed 9-12, Fri 9-12 Central).
+- **Done in the FEAT-5 PR:** `pn-seo.php`: page titles ("Kids | Pella Nazarene"), a description for every page (pages get an Excerpt box; `create-pages.sh` fills missing ones), Open Graph and Twitter tags with a 1200x630 church photo (sermons use their YouTube picture), `Church` JSON-LD on the home page (address, phone, email, office hours, worship and small-group times, social pages). The sitemap and robots.txt are WordPress's own, tested. The hours in the data are tested against what Contact shows. Docs: `docs/seo.md`.
+- **At launch:** submit the sitemap in Google Search Console, check the live source and a shared link preview, make the Google Business Profile match, confirm "Discourage search engines" is off.
 
 ### FEAT-7 Blog · S · in review (built; staff to write the first real post before launch)
 Set up a blog at `/blog/` starting empty (old posts are not migrated).
