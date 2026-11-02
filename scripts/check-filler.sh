@@ -32,7 +32,7 @@ found=0
 # Lists of words for grep: one per line.
 words="$(mktemp)"
 # The words to look for in the database and on the pages (kinds "text" and "site"), and in the code (kind "text" only).
-code_words="$(mktemp)"; code_files="$(mktemp)"; trap 'rm -f "$words" "$code_words" "$code_files"' EXIT
+code_words="$(mktemp)"; code_files="$(mktemp)"; curl_err="$(mktemp)"; trap 'rm -f "$words" "$code_words" "$code_files" "$curl_err"' EXIT
 awk -F'|' '$1 ~ /^[[:space:]]*(text|site)[[:space:]]*$/ { gsub(/^[ \t]+|[ \t]+$/, "", $2); if ($2 != "") print $2 }' "$LIST" > "$words"
 awk -F'|' '$1 ~ /^[[:space:]]*text[[:space:]]*$/ { gsub(/^[ \t]+|[ \t]+$/, "", $2); if ($2 != "") print $2 }' "$LIST" > "$code_words"
 [[ -s "$words" ]] || { echo "The list has no words to look for." >&2; exit 2; }
@@ -62,8 +62,9 @@ if [[ -n "$URL" ]]; then
 	while IFS= read -r page; do
 		# Pages are listed with the site's own address; ask the address we were given instead.
 		path="${page#*://*/}"; target="${URL%/}/$path"
-		if ! body="$(curl "${curl_args[@]}" "$target" 2>/dev/null)"; then
-			echo "  could not read $target" >&2
+		if ! body="$(curl "${curl_args[@]}" "$target" 2>"$curl_err")"; then
+			# Say why (for example "401": the staging password was refused), not just that it failed.
+			echo "  could not read $target: $(tr '\n' ' ' <"$curl_err")" >&2
 			found=$((found+1))
 			continue
 		fi
