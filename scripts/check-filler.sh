@@ -87,7 +87,7 @@ if [[ -n "$REPO" ]]; then
 	fi
 	code_hits=0
 	while IFS= read -r -d '' file; do
-		if hits="$(grep -nioF -f "$code_words" -- "$REPO/${file#./}")"; then
+		if hits="$(grep -HnioF -f "$code_words" -- "$REPO/${file#./}")"; then   # -H: say which file, even when it is the only one
 			while IFS= read -r hit; do found=$((found+1)); code_hits=$((code_hits+1)); printf '  FOUND  %s\n' "$hit"; done <<<"$hits"
 		else
 			grep_status=$?

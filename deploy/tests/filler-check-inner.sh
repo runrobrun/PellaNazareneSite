@@ -34,7 +34,7 @@ case "${BREAK:-}" in
 	skip-options) break_it $S/scripts/check-filler.php 'foreach ( $pn_tables as $pn_table ) {' 'foreach ( $pn_tables as $pn_table ) { if ( $pn_table === $wpdb->options ) { continue; }' ;;
 	no-quotes)    break_it $S/scripts/check-filler.php "array( '$RSQ', '$LSQ', '$LDQ', '$RDQ' )" "array( 'ZZ1', 'ZZ2', 'ZZ3', 'ZZ4' )" ;;
 	skip-pages)   break_it $S/scripts/check-filler.sh 'hit="$(grep -oiF -m1 -- "$word" <<<"$body" || true)"' 'hit=""' ;;
-	skip-code)    break_it $S/scripts/check-filler.sh 'grep -nioF -f "$code_words" -- "$REPO/${file#./}"' 'true' ;;
+	skip-code)    break_it $S/scripts/check-filler.sh 'grep -HnioF -f "$code_words" --' 'grep -HnioF -f /dev/null --' ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
 scan() { bash "$S/scripts/check-filler.sh" "$W" "$@" 2>&1; }
@@ -148,7 +148,7 @@ expect_contains "missing directory error is reported" "$OUT" "Could not enumerat
 mkdir -p /tmp/fail-grep
 cat >/tmp/fail-grep/grep <<'EOF'
 #!/usr/bin/env bash
-if [[ "${1:-}" == "-nioF" ]]; then exit 2; fi
+if [[ "${1:-}" == "-HnioF" ]]; then exit 2; fi
 exec /usr/bin/grep "$@"
 EOF
 chmod +x /tmp/fail-grep/grep
