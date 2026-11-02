@@ -104,7 +104,14 @@ expect_contains "and the page" "$OUT" "$BASE/"
 rm -f wp-content/mu-plugins/leak.php
 run --url "$BASE"
 expect_eq "clean again once the leak is gone" "$RC" "0"
-expect_contains "a wrong password is reported, not ignored" "$(bash "$S/scripts/check-filler.sh" "$W" --url http://127.0.0.1:9 2>&1 || true)" "could not read"
+unreadable="$(bash "$S/scripts/check-filler.sh" "$W" --url http://127.0.0.1:9 2>&1 || true)"
+expect_contains "a page it cannot open is reported, not ignored" "$unreadable" "could not read"
+expect_contains "...with the reason curl gave" "$unreadable" "curl: ("
+printf '<?php if ( empty( $_SERVER["PHP_AUTH_USER"] ) ) { header( "WWW-Authenticate: Basic" ); http_response_code( 401 ); exit; } ?>ok' > /tmp/locked.php
+( php -S 127.0.0.1:8099 /tmp/locked.php >/dev/null 2>&1 & )
+sleep 1
+refused="$(bash "$S/scripts/check-filler.sh" "$W" --url http://127.0.0.1:8099 2>&1 || true)"
+expect_contains "a refused password is named (401)" "$refused" "401"
 
 echo "== 5. Failed URL enumeration and HTTP errors fail the page check"
 mkdir -p /tmp/fail-wp
