@@ -1,0 +1,47 @@
+# Leftovers from the old website that must NOT be on the new one. scripts/check-filler.sh looks for every line here in
+# the database, on the live pages, and in the code. Capitals and curly quotes do not matter.
+#
+# Format:  kind | text | why
+#   text   the words must not appear anywhere: page text, titles, settings, comments, menus, or the code
+#   site   the words must not be in the database or on the pages, but the code may mention them in a comment that
+#          explains the old site (the redirect rules do)
+#   title  no post, page, sermon, menu item or category may have exactly this title
+#
+# The line "why" is for the person reading a report. To allow a word on purpose, take its line out and say why in
+# the pull request.
+
+text  | lorem ipsum              | template filler text
+text  | dolor sit amet           | template filler text
+text  | omega church             | the platform's old name; one filler blog post mentions it
+text  | brunson                  | demo group leaders (Paul & Olivia Brunson) on the old site
+text  | gloria jackson           | demo group leaders (Will & Gloria Jackson) on the old site
+site  | ministry designs         | the old theme's maker ("Powered by Ministry Designs")
+site  | mt-content               | the old site's uploads folder: images must be brought over, not linked
+text  | eastern time             | the old site wrongly said Eastern; the church is on Central time
+text  | 8:30-5                   | the old site's wrong office hours
+text  | 8:30 - 5                 | the old site's wrong office hours
+text  | 8:00 - 5:00              | the old site's wrong footer hours
+text  | wedensday                | typo on the old site
+text  | giving onine             | typo on the old site
+text  | activites                | typo on the old site
+text  | link to be added         | placeholder on the old New Here page
+text  | pre-register my kids     | the old Kids button that went nowhere (ours says "Contact us to pre-register")
+title | hello world!             | WordPress sample post
+title | sample page              | WordPress sample page
+title | privacy policy           | WordPress default draft page (ours is called "Privacy")
+title | our year in review       | old filler blog post
+title | world missions           | old filler blog post
+title | faith over fear          | old filler blog post
+title | biblical giving          | old filler blog post
+title | kids event               | old filler event page
+title | family event             | old filler event page
+title | youth event              | old filler event page
+title | worship night            | old filler event page
+title | baptism sunday           | old filler event page
+title | movie night              | old filler event page
+title | men's group              | old filler group page
+title | women's group            | old filler group page
+title | young adults group       | old filler group page
+title | single men's group       | old filler group page
+title | single women's group     | old filler group page
+title | local outreach group     | old filler group page
