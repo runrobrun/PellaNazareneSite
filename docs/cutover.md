@@ -33,7 +33,7 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 - [ ] Staff have confirmed the five weekly event times (MIG-7).
 - [ ] Floyd Ware's full bio is in, or the cut-off sentence is removed (MIG-4).
 - [ ] At least one real blog post is published, so `/blog/` is not empty (FEAT-7).
-- [ ] Sermons reviewed and published on staging; the four old-site sermons (Pentecost, God's Messenger, Vision Sunday 1 and 2) are there, or their old links knowingly fall back to `/sermons/` (`docs/sermons.md`, "Overrides").
+- [ ] Sermons reviewed and published on staging; all four old-site sermons (Pentecost, God's Messenger, Vision Sunday 1 and 2) have published targets, with `pn_legacy_slug` set where needed so their old URLs reach the individual sermon pages (`docs/sermons.md`, "Overrides"; `docs/redirects.md`).
 - [ ] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`).
 - [ ] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`).
 - [ ] Real email addresses agreed for the Contact form and for prayer requests (`docs/forms.md`).
