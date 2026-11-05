@@ -27,6 +27,7 @@ deploy/
 docs/
   setup.md                   Building the server from scratch
   runbook.md                 Day-to-day operations and "if X breaks, do Y"
+  cutover.md                 Going live: the switch from the old site, checks, and rollback
 .wp-env.json                 Local development with @wordpress/env
 ```
 

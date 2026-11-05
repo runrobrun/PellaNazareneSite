@@ -8,6 +8,7 @@
 
 ## How it's set up
 - See `docs/setup.md`
+- Going live (switching pellanazarene.org from the old site), and rolling back: `docs/cutover.md`
 
 ## Staff accounts and two-factor sign-in
 

@@ -83,7 +83,8 @@ Source: the current site is WordPress on the Ministry Designs theme (uploads und
 ### MIG-1 Inventory the current site · done
 Inventory delivered (PDF and CSV in `docs/`). The old "Calendar" page is just the Planning Center calendar, so nothing to migrate.
 
-### MIG-2 URL map and redirects · S · todo
+### MIG-2 URL map and redirects · S · done
+Done in PR #20: Nginx and WordPress rules, the contract table `deploy/redirects/expected.csv`, `scripts/check-redirects.sh`, and a stack test in CI. See `docs/redirects.md`.
 Implement the redirects from the inventory as 301s in Nginx (config kept in `deploy/`), and test every URL in the CSV.
 - `/events-2/` to `/events/`; `/sermons-t/` to `/sermons/`; `/sermons-t/<slug>/` to `/sermons/<slug>/`.
 - `/about-us/`, `/new-here/`, `/kids/`, `/giving/`, `/contact/`, `/resources/`, `/small-groups/` keep their slugs.
@@ -142,7 +143,8 @@ The old site has only 4 sermons; the YouTube channel (@pellanazarene) is the rea
 Do not migrate: the 4 old blog posts (dated 2021-01-27, one mentions "Omega Church"; the new blog starts empty, see FEAT-7), the News index, the 6 event pages, the 6 group pages, and all empty taxonomy archives. Verify nothing from the filler (demo names, Lorem ipsum, "Omega Church") appears on staging before launch with a grep of the database.
 - **Done in the MIG-8 PR:** nothing from the filler was migrated (the pages, events, groups and posts were never brought over). `scripts/check-filler.sh` is the verification: it searches the whole database (every text column, drafts and trash included), every published page as a visitor sees it, and the code, for the leftovers listed in `deploy/filler.txt`, and for WordPress's own sample content. Tested against real WordPress with leftovers planted in 17 places (`deploy/tests/filler-check.sh`, in CI). How to run it and fix findings: `docs/filler-check.md`. **To do:** run it on staging (and right after cutover on the live site) and clear anything it finds.
 
-### MIG-9 Production cutover plan and execution · M · todo · needs everything above
+### MIG-9 Production cutover plan and execution · M · plan in review (`docs/cutover.md`); execution todo · needs everything above
+**Plan written:** `docs/cutover.md` is the step-by-step checklist: go/no-go gate (every open launch item from the other stories), building the live site beside the old one, lowering DNS TTL, content freeze and copying the reviewed staging database across, a private test with `--resolve`, the DNS switch, first-hour checks, rollback, and the two-week and 60-day follow-up. **Decisions it needs:** INF-3 (Cloudflare or DNS Made Easy), copying staging vs rebuilding fresh (copy recommended), the date, and the old host details in its "Fill in" table.
 **Add to the checklist (from MIG-2):** run `scripts/check-redirects.sh https://pellanazarene.org --pages-must-exist` with no `--allow-fallback`; first confirm `/events/`, `/blog/`, and `/small-groups/` exist.
 - Written cutover checklist: content freeze, DNS switch, cache purge, smoke tests, rollback plan.
 - Old site kept intact for a defined period after cutover.
