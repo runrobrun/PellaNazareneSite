@@ -95,7 +95,7 @@ Then, on the live copy: re-add the hosts-file line from step 2 **before opening 
 - [ ] **Users:** remove test accounts; check pastors are Author and the office admin is Editor. Everyone keeps their staging password and two-factor setup.
 - [ ] **Settings → Sermons:** channel ID present; **Check YouTube now** works.
 - [ ] `scripts/check-filler.sh /var/www/pellanazarene/public --repo /var/www/pellanazarene/repo` is clean (database and code; the page part runs after the switch).
-- [ ] Nothing still says "staging": `wp db search 'staging.pellanazarene' --all-tables` finds nothing.
+- [ ] No staging references remain outside preserved GUIDs: run `wp db search 'staging.pellanazarene' --all-tables` and confirm any remaining matches are only in `guid` columns, intentionally excluded from search-replace above.
 
 ## 4. Test it privately (the day before)
 
