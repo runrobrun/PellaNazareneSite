@@ -22,9 +22,9 @@ fi
 REPO="$DEPLOY_PATH/repo"
 WP="$DEPLOY_PATH/public"
 
-if [[ "$DEPLOY_PATH" == "/var/www/staging" && "${PN_DEPLOY_LOCK_HELD:-0}" != "1" ]]; then
+if [[ ( "$DEPLOY_PATH" == "/var/www/staging" || "$DEPLOY_PATH" == "/var/www/pellanazarene" ) && "${PN_DEPLOY_LOCK_HELD:-0}" != "1" ]]; then
 	exec 9>"$DEPLOY_PATH/.deploy.lock"
-	flock -n 9 || { echo "Another staging deploy is already running." >&2; exit 4; }
+	flock -n 9 || { echo "Another deploy of this site is already running." >&2; exit 4; }
 fi
 
 cd "$REPO"

@@ -1,36 +1,70 @@
 #!/usr/bin/env bash
-# Forced command for the GitHub Actions deploy key (staging).
+# Forced command for the GitHub Actions deploy keys (staging and production).
 #
 # Installed root-owned at /usr/local/bin/pn-ci-deploy by scripts/setup-ci-deploy.sh.
-# The CI key in ~deploy/.ssh/authorized_keys is pinned to this script with
-# `restrict,command="/usr/local/bin/pn-ci-deploy"`, so that key can run this and nothing else.
+# Each CI key in ~deploy/.ssh/authorized_keys is pinned to this script with
+# `restrict,command="/usr/local/bin/pn-ci-deploy <target>"`, so that key can run this and nothing else,
+# and only for its own site. A key line with no target is the original staging key and means staging.
+# This is what makes the production approval in GitHub real: the staging key, which deploys
+# without approval, can never deploy production.
 #
-# Input (SSH_ORIGINAL_COMMAND): "staging <40-character commit sha>"
+# Input (SSH_ORIGINAL_COMMAND): "<target> <40-character commit sha>", where <target> must be the key's own.
 # Steps: validate -> back up the database -> deploy that commit -> health check -> roll back on failure.
 set -euo pipefail
 
-ROOT="/var/www/staging"
-WP="$ROOT/public"
-REPO="$ROOT/repo"
-CACHE_DIR="/var/cache/nginx/pellanazarene-staging"
-DOMAIN="staging.pellanazarene.org"
-BACKUPS="/var/backups/pn-staging-db"
-SECRETS_FILE="/root/pella-secrets/staging-basic-auth.txt"
-# Root-owned deploy scripts outside the repo. RUNNER is the last version that deployed
-# successfully and is what a rollback uses (so a broken new deploy.sh cannot break its own
-# rollback). CANDIDATE is the new commit's deploy.sh, promoted to RUNNER only once healthy,
-# so changes to deploy.sh take effect immediately and are never stale.
-RUNNER="/usr/local/libexec/pn-staging-deploy"
-CANDIDATE="/usr/local/libexec/pn-staging-deploy.candidate"
+# Where things live. The test harness rewrites these lines to point at a sandbox.
+WWW_DIR="/var/www"
+NGINX_CACHE_DIR="/var/cache/nginx"
+BACKUP_DIR="/var/backups"
+LIBEXEC_DIR="/usr/local/libexec"
+SECRETS_DIR="/root/pella-secrets"
 
-TARGET="" SHA="" EXTRA=""
-read -r TARGET SHA EXTRA <<<"${SSH_ORIGINAL_COMMAND:-}" || true
-if [[ "$TARGET" != "staging" || ! "$SHA" =~ ^[0-9a-f]{40}$ || -n "$EXTRA" ]]; then
-	echo "Usage: staging <40-character commit sha>" >&2
+ALLOWED="${1:-staging}"
+if [[ $# -gt 1 || ( "$ALLOWED" != "staging" && "$ALLOWED" != "production" ) ]]; then
+	echo "This deploy key is misconfigured in authorized_keys (target: ${ALLOWED})." >&2
 	exit 2
 fi
 
-# Share the lock with direct staging deploys, including setup-staging.sh.
+TARGET="" SHA="" EXTRA=""
+read -r TARGET SHA EXTRA <<<"${SSH_ORIGINAL_COMMAND:-}" || true
+if [[ ( "$TARGET" != "staging" && "$TARGET" != "production" ) || ! "$SHA" =~ ^[0-9a-f]{40}$ || -n "$EXTRA" ]]; then
+	echo "Usage: staging|production <40-character commit sha>" >&2
+	exit 2
+fi
+if [[ "$TARGET" != "$ALLOWED" ]]; then
+	echo "Refusing: this key may only deploy to $ALLOWED, not $TARGET." >&2
+	exit 2
+fi
+
+case "$TARGET" in
+	staging)
+		LABEL="Staging"
+		ROOT="$WWW_DIR/staging"
+		CACHE_DIR="$NGINX_CACHE_DIR/pellanazarene-staging"
+		DOMAIN="staging.pellanazarene.org"
+		BACKUPS="$BACKUP_DIR/pn-staging-db"
+		# Staging sits behind basic auth; the health check needs its password.
+		SECRETS_FILE="$SECRETS_DIR/staging-basic-auth.txt"
+		;;
+	production)
+		LABEL="Production"
+		ROOT="$WWW_DIR/pellanazarene"
+		CACHE_DIR="$NGINX_CACHE_DIR/pellanazarene"
+		DOMAIN="pellanazarene.org"
+		BACKUPS="$BACKUP_DIR/pn-production-db"
+		SECRETS_FILE=""
+		;;
+esac
+WP="$ROOT/public"
+REPO="$ROOT/repo"
+# Root-owned deploy scripts outside the repo. RUNNER is the last version that deployed
+# successfully and is what a rollback uses (so a broken new deploy.sh cannot break its own
+# rollback). CANDIDATE is the new commit's deploy.sh, promoted to RUNNER only once healthy,
+# so changes to deploy.sh take effect immediately and are never stale. One pair per site.
+RUNNER="$LIBEXEC_DIR/pn-$TARGET-deploy"
+CANDIDATE="$LIBEXEC_DIR/pn-$TARGET-deploy.candidate"
+
+# Share the lock with direct deploys of the same site (deploy.sh, setup-staging.sh).
 exec 9>"$ROOT/.deploy.lock"
 flock -n 9 || { echo "Another deploy is already running." >&2; exit 4; }
 
@@ -65,14 +99,27 @@ BACKUP_FILE="$BACKUPS/pre-${SHA:0:12}-$(date +%Y%m%d-%H%M%S).sql.gz"
 # Keep the five most recent.
 find "$BACKUPS" -name 'pre-*.sql.gz' -type f -printf '%T@ %p\n' | sort -rn | tail -n +6 | cut -d' ' -f2- | xargs -r rm -f
 
-health_check() {
-	local path body code password
-	password="$(sudo -n sed -n 's/^password: //p' "$SECRETS_FILE")"
-	[[ -n "$password" ]] || { echo "health: could not read the staging basic-auth password" >&2; return 1; }
-	for path in / /wp-login.php; do
-		body="$(curl -sS --max-time 25 --resolve "$DOMAIN:443:127.0.0.1" \
+# One request to this site over this machine's own loopback; prints the body, then the status code on its own line.
+fetch() {
+	local url="https://$DOMAIN$1" password
+	if [[ -n "$SECRETS_FILE" ]]; then
+		password="$(sudo -n sed -n 's/^password: //p' "$SECRETS_FILE")"
+		[[ -n "$password" ]] || { echo "health: could not read the staging basic-auth password" >&2; return 1; }
+		curl -sS --max-time 25 --resolve "$DOMAIN:443:127.0.0.1" \
 			--config <(printf 'user = "church:%s"\n' "$password") \
-			-w '\n%{http_code}' "https://$DOMAIN$path")" || { echo "health: request to $path failed" >&2; return 1; }
+			-w '\n%{http_code}' "$url"
+	else
+		# Production: certificate checking adds nothing on loopback, and curl does not trust
+		# a Cloudflare origin certificate.
+		curl -sS --max-time 25 --resolve "$DOMAIN:443:127.0.0.1" --insecure \
+			-w '\n%{http_code}' "$url"
+	fi
+}
+
+health_check() {
+	local path body code
+	for path in / /wp-login.php; do
+		body="$(fetch "$path")" || { echo "health: request to $path failed" >&2; return 1; }
 		code="${body##*$'\n'}"
 		body="${body%$'\n'*}"
 		if [[ "$code" != "200" ]]; then
@@ -110,7 +157,7 @@ rollback() {
 	sudo rm -f "$CANDIDATE"
 	if ! PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
 		"$RUNNER" "$ROOT" "$CACHE_DIR" "$PREVIOUS"; then
-		echo "!! Rollback deployment failed; inspect staging before retrying." >&2
+		echo "!! Rollback deployment failed; inspect $TARGET before retrying." >&2
 		exit 1
 	fi
 	if ! reconcile_mu_plugins; then
@@ -122,12 +169,12 @@ rollback() {
 	local attempt
 	for attempt in 1 2 3; do
 		if health_check; then
-			echo "Staging is healthy again on ${PREVIOUS:0:7}." >&2
+			echo "$LABEL is healthy again on ${PREVIOUS:0:7}." >&2
 			exit "$status"
 		fi
 		sleep 4
 	done
-	echo "!! STAGING IS STILL UNHEALTHY after rolling back to ${PREVIOUS:0:7}. It needs manual attention (database backup: $BACKUP_FILE)." >&2
+	echo "!! ${LABEL^^} IS STILL UNHEALTHY after rolling back to ${PREVIOUS:0:7}. It needs manual attention (database backup: $BACKUP_FILE)." >&2
 	exit 6
 }
 

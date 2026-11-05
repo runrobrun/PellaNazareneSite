@@ -42,7 +42,7 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 - [ ] Decision 1 made, and if Cloudflare, DNS already moved and settled.
 
 **Should**
-- [ ] Production deploy job in GitHub with required approval (DEV-3). Until it exists, deploy by hand (step 2).
+- [ ] Production deploys from GitHub set up but still switched off (`docs/setup.md` section 5: a separate production key, the `production` environment with required reviewers). Step 2 deploys by hand; automatic deploys are switched on after the switch (step 7).
 - [ ] Off-server backups and one restore tried on staging (OPS-1).
 - [ ] Uptime monitor on the home page and `wp-login.php` (OPS-2).
 - [ ] Performance numbers recorded on staging (PERF-1).
@@ -54,9 +54,9 @@ The old site keeps serving visitors the whole time. Follow `docs/setup.md`; the 
 - [ ] Database and user `pellanazarene` (setup.md section 2; the password is already in `/root/pella-secrets/`).
 - [ ] WordPress in `/var/www/pellanazarene/public`, this repo in `/var/www/pellanazarene/repo`, Twenty Twenty-Five installed (setup.md section 3).
 - [ ] `wp-config.php`: unique salts; `WP_ENVIRONMENT_TYPE` set to `production` (this is what turns email and Google Analytics on); `DISABLE_WP_CRON`, `DISALLOW_FILE_EDIT`, `FORCE_SSL_ADMIN`; Redis on a **different database number and key prefix** from staging; the `WPMS_*` Gmail settings (`docs/forms.md`); the YouTube constants (`docs/sermons.md`).
-- [ ] Code deployed: `deploy/deploy.sh /var/www/pellanazarene /var/cache/nginx/pellanazarene <commit>` as `deploy`, with the commit currently on staging.
+- [ ] Code deployed: `deploy/deploy.sh /var/www/pellanazarene /var/cache/nginx/pellanazarene <commit>` as `deploy`, with the commit currently on staging. `/var/www/pellanazarene` and its `repo` owned by `deploy`, as on staging (deploys keep a lock file there).
 - [ ] Plugins at the pinned versions: `scripts/install-plugins.sh /var/www/pellanazarene/public` on a fresh install is fine. Check `wp plugin list`: Two Factor 0.17.0 and Fluent Forms 6.2.16 active, and The Events Calendar **not** installed.
-- [ ] Nginx vhost from `deploy/nginx.conf.example` (it already includes the redirect snippet), `scripts/apply-server-tuning.sh` run, `sudo nginx -t` passes. Two changes the example still needs: (1) it has no HTTPS server block for `www`, so add one (`listen 443 ssl http2; listen [::]:443 ssl http2; server_name www.pellanazarene.org;` with the same certificate, and `return 301 https://pellanazarene.org$request_uri;`), otherwise `https://www.pellanazarene.org` may hit another vhost or have its TLS handshake rejected; (2) with Let's Encrypt (decision 1b), point `ssl_certificate` at `/etc/letsencrypt/live/pellanazarene.org/` instead of the Cloudflare paths. Do not reload Nginx with a vhost whose certificate files do not exist yet.
+- [ ] Nginx vhost from `deploy/nginx.conf.example` (it includes the redirect snippet and the HTTPS `www` redirect), `scripts/apply-server-tuning.sh` run, `sudo nginx -t` passes. With Let's Encrypt (decision 1b), point `ssl_certificate` in **both** HTTPS blocks at `/etc/letsencrypt/live/pellanazarene.org/` instead of the Cloudflare paths. Do not reload Nginx with a vhost whose certificate files do not exist yet.
 - [ ] Certificate:
   - (a) Cloudflare: create the origin certificate, install it at the paths in the vhost, write the real-IP config (`/etc/nginx/snippets/cloudflare-realip.conf`, not in the repo yet: `set_real_ip_from` for each range at cloudflare.com/ips, and `real_ip_header CF-Connecting-IP;`) and uncomment its include in the vhost. The login throttle needs real IPs, so this comes before launch.
   - (b) Let's Encrypt: it cannot check the server until DNS points here. To avoid a few minutes of browser warnings at the switch, get a temporary certificate now with a DNS check (`sudo certbot certonly --manual --preferred-challenges dns -d pellanazarene.org -d www.pellanazarene.org`, then add the TXT record it asks for at DNS Made Easy). It will not renew itself, so it is replaced in step 6.
@@ -150,6 +150,7 @@ curl -sI https://pellanazarene.org/ | grep -i -E 'x-cache|x-robots'   # run twic
 - [ ] Google Analytics: the four checks in `docs/analytics.md` (tag once in the source, Realtime shows your visit, absent when signed in, absent on staging).
 - [ ] Search and sharing: the five launch steps in `docs/seo.md` (submit `https://pellanazarene.org/wp-sitemap.xml`, check the source, share a link to yourself, Google Business Profile, "Discourage search engines" off).
 - [ ] Staging still asks for a password and still says `noindex`.
+- [ ] Switch on deploys to the live site: in GitHub, Settings → Secrets and variables → Actions → **Variables**, add the repository variable `PRODUCTION_DEPLOYS` with the value `on`. From the next merge, each change goes to staging, then waits for an approval in the Actions tab before it reaches the live site.
 - [ ] Tell staff the new site is live and that edits now happen at `pellanazarene.org/wp-admin`.
 
 ## If it goes wrong: rollback

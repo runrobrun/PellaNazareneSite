@@ -66,8 +66,9 @@ Add `.github/workflows/ci.yml`.
 - Secret scanning (gitleaks or GitHub secret scanning) and dependency/plugin vulnerability check against `plugins.txt` (e.g. WPScan or Patchstack data).
 - Branch protection on `main`: PR required, CI must pass.
 
-### DEV-3 Deploy pipeline · M · done for staging (production added at cutover, MIG-9) · needs INF-1, INF-2, DEV-2
+### DEV-3 Deploy pipeline · M · staging done; production in review (switched on at cutover, MIG-9) · needs INF-1, INF-2, DEV-2
 Staging half done and proven on 2026-10-20/21: first automatic deploy, a deliberately broken commit caught by the health check and rolled back automatically, and recovery. The wrapper is covered by `deploy/tests/ci-deploy-harness.sh`, which runs in CI. Built as: `deploy.yml`, forced-command wrapper `deploy/ci-deploy.sh`, `scripts/setup-ci-deploy.sh` (see `docs/setup.md` section 5). Includes database backup, SHA-pinned deploy, health check, automatic rollback. Production job with required approval is added at cutover (MIG-9).
+**Production half (PR):** a `production` job in `deploy.yml` after the staging job, for the same commit, behind the `production` environment's required reviewers and the `PRODUCTION_DEPLOYS` repository variable (off until cutover). The wrapper now serves both sites; each CI key is locked to its own site in `authorized_keys`, so the staging key (no approval) can never deploy production. `setup-ci-deploy.sh production` installs it. Production health checks use no staging password. The harness covers production deploys, rollbacks, and every key/site mismatch (13 scenarios). Also fixed in `deploy/nginx.conf.example`: the missing HTTPS `www` block (tested in Nginx 1.24: `https://www.` now 301s to the bare address; before, the main site block answered it). **On the server at cutover:** the steps in `docs/setup.md` section 5 "Production deploys".
 Add `.github/workflows/deploy.yml`.
 - Merge to `main` deploys to staging automatically; production deploy requires approval via the `production` GitHub environment.
 - Uses `deploy/deploy.sh`; add pre-deploy DB backup and a rollback step.

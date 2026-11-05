@@ -1,7 +1,9 @@
-name: Deploy to staging
+name: Deploy
 
-# Runs after CI finishes on main. Deploys the exact commit CI tested.
-# Production is deliberately not here yet; it is added at cutover (MIG-9) with required approval.
+# Runs after CI finishes on main. Deploys the exact commit CI tested: to staging automatically,
+# then to production only after someone approves it in GitHub (the `production` environment's
+# required reviewers). The production job stays off until the repository variable
+# PRODUCTION_DEPLOYS is set to `on` at cutover (docs/cutover.md); until then it is skipped.
 on:
   workflow_run:
     workflows: [CI]
@@ -11,10 +13,6 @@ on:
 permissions:
   contents: read
 
-# One deploy at a time; a newer merge waits instead of cancelling a deploy in progress.
-concurrency:
-  group: deploy-staging
-  cancel-in-progress: false
 
 jobs:
   staging:
@@ -22,6 +20,10 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # One deploy at a time; a newer merge waits instead of cancelling a deploy in progress.
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
     environment:
       name: staging
       url: https://staging.pellanazarene.org
@@ -42,3 +44,35 @@ jobs:
           ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
               -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               "$DEPLOY_USER@$DEPLOY_HOST" "staging $SHA"
+
+  production:
+    name: Deploy to production
+    # Only a commit that just deployed to staging and stayed healthy there.
+    needs: staging
+    if: vars.PRODUCTION_DEPLOYS == 'on'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    environment:
+      # Required reviewers on this environment are what make a person approve each deploy.
+      name: production
+      url: https://pellanazarene.org
+    steps:
+      - name: Deploy over SSH (forced command, pinned host key)
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$DEPLOY_USER@$DEPLOY_HOST" "production $SHA"

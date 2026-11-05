@@ -97,4 +97,4 @@ Follow `docs/PellaNazareneBrandingGuide.pdf`. Mission: "to love people where the
 
 ## Known gaps
 
-`README.md` references `.github/workflows/deploy.yml` and `.wp-env.json`, which do not exist yet (see DEV-1 and DEV-3 in the backlog). Don't assume they work. CI (`ci.yml`) exists.
+`README.md` references `.wp-env.json`, which does not exist yet (see DEV-1 in the backlog). Don't assume it works. CI (`ci.yml`) and deploys (`deploy.yml`: staging automatic, production with approval once `PRODUCTION_DEPLOYS` is `on`) exist.
