@@ -42,7 +42,7 @@ case "${BREAK:-}" in
 	eastern)     break_it $T/patterns/page-contact.php '<strong>Address:</strong>' '<strong>Address (Eastern Time):</strong>' ;;
 	lorem)       break_it $T/patterns/page-giving.php 'Thank you for your support!' 'Lorem ipsum dolor sit amet.' ;;
 	dead-link)   break_it $T/patterns/page-home.php 'href="/kids/">Pella Nazarene Kids' 'href="/kidz/">Pella Nazarene Kids' ;;
-	bad-anchor)  break_it $T/patterns/page-home.php '/new-here/#sunday-questions' '/new-here/#sunday-qustions' ;;
+	bad-anchor)  break_it $T/patterns/page-home.php 'href="/new-here/#plan-your-visit">Plan your visit' 'href="/new-here/#plan-your-vist">Plan your visit' ;;
 	old-phone)   break_it $T/patterns/page-contact.php 'tel:+16416281818' 'tel:641628-1818' ;;
 	two-h1)      break_it $T/patterns/page-about-us.php '<!-- wp:heading -->
 <h2 class="wp-block-heading">Our mission</h2>' '<!-- wp:heading {"level":1} -->
@@ -72,7 +72,7 @@ case "${BREAK:-}" in
 	hours-drift)  break_it wp-content/mu-plugins/pn-seo.php "array( 'Wednesday', '09:00', '12:00' )," "array( 'Wednesday', '09:30', '12:00' )," ;;
 	no-description) break_it wp-content/mu-plugins/pn-seo.php "return pn_seo_shorten( \$text );" "return '';" ;;
 	no-share-image) break_it wp-content/mu-plugins/pn-seo.php "photos/og-default.jpg" "photos/missing.jpg" ;;
-	same-words)  break_it $T/patterns/page-home.php '>Upcoming events</a>' '>Give online</a>' ;;
+	same-words)  break_it $T/patterns/page-home.php '>Full calendar →</a>' '>Find a group →</a>' ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
 
@@ -191,7 +191,9 @@ echo implode("; ", $bad);')"
 expect_eq "every block is a real WordPress block with nothing loose between them" "$bad_blocks" ""
 
 echo "== 4. Home shows the latest published sermon, never a draft"
-wp post create --post_type=pn_sermon --post_status=publish --post_title="Latest published sermon" --post_excerpt="Pastor Rob Hammann on the Holy Spirit at Pentecost." --post_date="2026-05-24 12:00:00" --meta_input='{"pn_youtube_id":"Nll1UzWZHQA"}' --quiet
+latest_sermon="$(wp post create --post_type=pn_sermon --post_status=publish --post_title="Latest published sermon" --post_excerpt="Pastor Rob Hammann on the Holy Spirit at Pentecost." --post_date="2026-05-24 12:00:00" --meta_input='{"pn_youtube_id":"Nll1UzWZHQA"}' --porcelain)"
+wp post term set "$latest_sermon" pn_speaker "Rob Hammann" --quiet
+wp post term set "$latest_sermon" pn_series "Holiness in the House: A Study in Titus" --quiet
 wp post create --post_type=pn_sermon --post_status=draft --post_title="A draft sermon" --post_date="2026-06-07 12:00:00" --meta_input='{"pn_youtube_id":"vTKuOza2c68"}' --quiet
 ( wp server --host=127.0.0.1 --port=8080 >/tmp/server.log 2>&1 & )
 for _ in $(seq 1 30); do curl -s -o /dev/null "$BASE/" && break; sleep 1; done

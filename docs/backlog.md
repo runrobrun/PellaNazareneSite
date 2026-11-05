@@ -178,6 +178,13 @@ Use `patterns/staff-member.php`; pages for pastors, ministries, and "I'm new" vi
 ### FE-4 Accessibility pass · M · todo
 Keyboard navigation, focus states, landmarks, alt text, form labels, reduced motion. WCAG 2.2 AA on key pages.
 
+### FE-5 Home page to match the approved mockup · M · review
+The home page was a plain stack of headings and paragraphs; the approved homepage mockup (`Pella Nazarene Homepage.pdf`, November 2026) has a navy photo hero, an info strip, alternating background bands, photo cards, a side-by-side latest message, the weekly events list and a giving band. **Decision (Rob, 2026-11-05): accent colors beyond the brand guide are approved**: rust, rust dark, rust light, stone and navy deep, from the mockup (`docs/design-system.md`).
+- **Done in the FE-5 PR:** `patterns/page-home.php` rebuilt in the mockup's seven sections, all core blocks (staff can edit every word in the block editor; the editor accepts all 61 blocks as valid). New "Eyebrow" paragraph style, pill-shaped buttons site-wide, rust Plan a Visit in the header, `[pn_latest_sermon layout="feature"]` in the sermon plugin, `half` and `card` photo sizes. The office hours in the mockup's footer (Mon-Fri 8-5) are the old site's mistake and were not used.
+- Tested here: page suite 919/919 (with the deliberate breaks re-pointed and each shown to fail), theme suite 106/106, contrast of every new pairing, axe with 0 violations and a visible focus ring at every stop on home desktop, phone and menu-open, PHPCS clean. Lighthouse mobile on the same local server, before/after: score 96/95, LCP 2.70/2.86 s (same hero image, 44 KB), CLS 0/0, page weight 279/439 KB (the four new photos are lazy-loaded).
+- **On staging after merge:** `PN_WP_USER=www-data PN_NGINX_CACHE_DIR=/var/cache/nginx/pellanazarene-staging scripts/create-pages.sh /var/www/staging/public --replace home` (this resets any staff edits to the home page).
+- **Staff to confirm:** the giving line names "our building fund" (from the mockup); the kids age wording ("birth through 12") is the one already under review in MIG-3. **Photos wanted:** Todd & Cindy greeting people (Who we are) and a small group or class (Groups card); stand-ins are used until then.
+
 ### FEAT-1 Sermons: finish and polish · L · todo
 Sermon content comes from the YouTube import (MIG-6), not the old site.
 Finish `pn-sermons`: archive and single templates, series/speaker/scripture browsing, search and filters, YouTube auto-import via cron.
