@@ -92,6 +92,8 @@ function pn_photo_sizes( string $variant ): string {
 		'hero'   => '100vw',
 		'col'    => '(max-width: 781px) 100vw, 340px',
 		'avatar' => '(max-width: 781px) 100vw, 216px',
+		'half'   => '(max-width: 781px) 100vw, 560px',
+		'card'   => '(max-width: 781px) 100vw, 380px',
 	);
 	return $sizes[ $variant ] ?? '';
 }
@@ -100,7 +102,8 @@ function pn_photo_sizes( string $variant ): string {
  * Block markup for one photo (an Image block in the page). Empty if the photo has not been loaded.
  *
  * @param string $slug    Photo slug from manifest.json.
- * @param string $variant full (content width), hero, col (half a column of text), or avatar.
+ * @param string $variant full (content width), hero, col (half a column of text), avatar, half (half the wide
+ *                        width, beside text), or card (one of three cards).
  * @param string $ratio   Optional crop, like 3/2; the picture fills it.
  */
 function pn_photo_block( string $slug, string $variant = 'full', string $ratio = '' ): string {
@@ -147,7 +150,7 @@ add_filter(
 		}
 		$class          = (string) $tags->get_attribute( 'class' );
 		$figure_variant = '';
-		if ( preg_match( '/pn-photo--(hero|col|avatar)/', (string) $html, $m ) ) {
+		if ( preg_match( '/pn-photo--(hero|col|avatar|half|card)/', (string) $html, $m ) ) {
 			$figure_variant = $m[1];
 		}
 		if ( '' !== $figure_variant && ! $tags->get_attribute( 'sizes' ) && false !== strpos( $class, 'wp-image-' ) ) {

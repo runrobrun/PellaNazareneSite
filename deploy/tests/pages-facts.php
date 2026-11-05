@@ -44,7 +44,7 @@ foreach ( $theme_json['settings']['color']['palette'] ?? array() as $swatch ) {
 check( 'brand palette was read from theme.json', count( $brand ) >= 5, count( $brand ) . ' colors' );
 
 $pages = array(
-	'/'           => array( 'Home', 'A church in Pella, Iowa', array( 'Plan a Visit', 'Watch Online', 'Todd &amp; Cindy Olson' ) ),
+	'/'           => array( 'Home', 'Loving people. Growing together.', array( 'Plan a Visit', 'Watch Online', 'Todd &amp; Cindy Olson', 'Find your place', 'Latest message', 'Lighthouse Student Ministry', 'Windmill Cafe', 'Give generously' ) ),
 	'/new-here/'  => array( 'New Here', 'New Here', array( 'Plan your visit', 'Where do I park?', 'Prairie Street', 'Connect card' ) ),
 	'/about-us/'  => array( 'About Us', 'About Us', array( 'Honest Fellowship', 'Whitlatch', 'Vermeer', 'Floyd Ware', 'Statement of beliefs' ) ),
 	'/kids/'      => array( 'Kids', 'Kids', array( 'birth through age 12', 'background checks' ) ),
@@ -100,7 +100,7 @@ foreach ( $pages as $path => list( $title, $h1, $musts ) ) {
 		check( "$path photo $name has srcset and sizes", '' !== $img->getAttribute( 'srcset' ) && '' !== $img->getAttribute( 'sizes' ), 'not responsive' );
 		check( "$path photo $name is from our own site", str_starts_with( $src, $base . '/' ) || str_starts_with( $src, '/' ), $src );
 		// A photo drawn in half a column must not be offered at full-page size: sizes follows the layout.
-		$want = array( 'pn-photo--hero' => '100vw', 'pn-photo--col' => '(max-width: 781px) 100vw, 340px', 'pn-photo--avatar' => '(max-width: 781px) 100vw, 216px' );
+		$want = array( 'pn-photo--hero' => '100vw', 'pn-photo--col' => '(max-width: 781px) 100vw, 340px', 'pn-photo--avatar' => '(max-width: 781px) 100vw, 216px', 'pn-photo--half' => '(max-width: 781px) 100vw, 560px', 'pn-photo--card' => '(max-width: 781px) 100vw, 380px' );
 		foreach ( $want as $cls => $sizes ) {
 			if ( false !== strpos( (string) $img->parentNode->getAttribute( 'class' ), $cls ) ) {
 				check( "$path photo $name sizes match its layout ($cls)", $sizes === preg_replace( '/^auto,\s*/', '', $img->getAttribute( 'sizes' ) ), "sizes='" . $img->getAttribute( 'sizes' ) . "'" );
@@ -193,7 +193,7 @@ foreach ( $give as $h ) {
 $contact = main_text( dom( $html_of['/contact/'] ) );
 check( 'Contact hours are Mon 1-4, Wed 9-12 and Fri 9-12', (bool) preg_match( '/Monday 1.{1,3}4\s*PM, Wednesday 9\s*AM.{1,3}12\s*PM, Friday 9\s*AM.{1,3}12\s*PM Central/u', $contact ), 'hours text not found' );
 // Photos in total, the hero preload, and that the files really are served as WebP.
-$expected_photos = array( '/' => 1, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 0, '/blog/' => 0, '/prayer/' => 0, '/privacy/' => 0 );
+$expected_photos = array( '/' => 5, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 0, '/blog/' => 0, '/prayer/' => 0, '/privacy/' => 0 );
 foreach ( $expected_photos as $path => $n ) {
 	$found = dom( $html_of[ $path ] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->length;
 	check( "$path shows $n photo(s)", $n === $found, "$found found" );
@@ -359,4 +359,7 @@ check( 'Home headline is the one h1 and sits on the hero photo', 1 === $home_x->
 check( 'Home headline is drawn (not hidden)', 0 === $home_x->query( "//h1[contains(@class, 'hidden')]" )->length, 'h1 hidden' );
 check( 'Home photo runs edge to edge (alignfull)', $home_x->query( "//main//figure[contains(@class, 'alignfull')][contains(@class, 'pn-photo--hero')]" )->length === 1, 'hero is not full width' );
 check( 'Nothing sits between the header and the hero', (bool) preg_match( '#</header>\s*<main[^>]*style="[^"]*margin-top:0;padding-top:0#', $html_of['/'] ), 'gap above the hero' );
-check( 'Home has its staff-written hero only once', 1 === substr_count( $home, 'A church in Pella, Iowa' ), 'hero repeated' );
+check( 'Home has its staff-written hero only once', 1 === substr_count( $home, 'Loving people.' ), 'hero repeated' );
+// The home page's "Latest message" shows who preached and the series, and links to the sermon and to all sermons.
+check( 'Home latest message names the speaker and series', false !== strpos( $home, 'Rob Hammann · Holiness in the House' ), 'byline missing' );
+check( 'Home latest message has its two buttons', 2 === $home_x->query( "//*[contains(@class, 'pn-latest-sermon--feature')]//a[contains(@class, 'wp-block-button__link')]" )->length, 'buttons missing' );

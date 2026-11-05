@@ -4,7 +4,7 @@ How the brand guide (`docs/PellaNazareneBrandingGuide.pdf`) is built into the th
 
 ## Colors
 
-Three brand colors (navy, white, black) and tints of the navy. No other hues. Editors get exactly these nine swatches; the custom color picker, custom gradients, and WordPress's built-in palettes are turned off.
+Three brand colors (navy, white, black) and tints of the navy, plus a small set of **accent colors approved by the church in November 2026** for the homepage redesign (FE-5): a rust accent and a warm stone background, taken from the approved homepage mockup. No other hues. Editors get exactly these fourteen swatches; the custom color picker, custom gradients, and WordPress's built-in palettes are turned off.
 
 | Name in the editor | Slug | Hex | Use |
 |---|---|---|---|
@@ -17,10 +17,15 @@ Three brand colors (navy, white, black) and tints of the navy. No other hues. Ed
 | Navy tint 8% | `accent-2` | `#EEEFF1` | Callout and section backgrounds |
 | Navy tint 4% | `accent-5` | `#F7F7F8` | Faint backgrounds |
 | Border | `accent-6` | 20% of the text color | Hairlines |
+| **Rust (accent)** | `rust` | `#B64A24` | Main call-to-action buttons (Plan a Visit, Give Online), eyebrow labels, "more →" links. Text on white or stone only |
+| Rust dark | `rust-dark` | `#953A1A` | Hover for rust buttons and links |
+| Rust light | `rust-light` | `#E8B9A5` | Eyebrow label **on navy only** (rust itself is too dark there) |
+| Stone | `stone` | `#F3F2EE` | Warm section backgrounds (alternating bands on the home page) |
+| Navy deep | `navy-deep` | `#1B2A44` | The strip under the home hero |
 
 The slugs come from the parent theme (Twenty Twenty-Five) so its patterns and templates stay readable; only the values are ours. So "Navy" is `accent-3`, not a slug called `primary`.
 
-**Contrast (WCAG 2.2 AA needs 4.5:1 for text, 3:1 for interface elements).** Every pairing the theme uses is checked from the real `theme.json` by `deploy/tests/brand-contrast.php`: black on white 21:1, navy on white 11:1, white on navy 11:1, muted text on white 6.0:1, muted on the 8% tint 5.2:1. Change a color to something unreadable and CI fails.
+**Contrast (WCAG 2.2 AA needs 4.5:1 for text, 3:1 for interface elements).** Every pairing the theme uses is checked from the real `theme.json` by `deploy/tests/brand-contrast.php`: black on white 21:1, navy on white 11:1, white on navy 11:1, muted text on white 6.0:1, muted on the 8% tint 5.2:1, white on rust 5.3:1, rust on white 5.3:1, rust on stone 4.7:1, rust light on navy 6.3:1, white on navy deep 14.4:1. Change a color to something unreadable and CI fails. **Rust is never used as text on navy** (2.1:1); use rust light there.
 
 ## Typography
 
@@ -30,6 +35,7 @@ Plus Jakarta Sans only, self-hosted (two variable WOFF2 files, 56 KB total; see 
 |---|---|---|
 | Headings | Extra Bold (800), navy, tight line height | `h1` to `h6` |
 | **Subheading** | **Light Italic (300)**, navy, large | Block style "Subheading" on a paragraph or heading (sidebar, Styles) |
+| **Eyebrow** | Extra Bold (800), small, uppercase, letter-spaced, rust | Block style "Eyebrow" on a paragraph: the short label above a section heading ("Who we are", "Every week") |
 | Body | Regular (400), black, 18 px, line height 1.6 | everything else |
 
 Heading sizes are fluid (they shrink on phones): `h1` 32 to 52 px, `h2` 26 to 36 px, `h3` 20 to 24 px. Staff pick from five preset sizes; arbitrary sizes are off. Headings get extra space above them (except as the first block in a group).
@@ -37,13 +43,28 @@ Heading sizes are fluid (they shrink on phones): `h1` 32 to 52 px, `h2` 26 to 36
 ## Components
 
 - **Links:** navy, underlined; darker navy on hover; a 3 px navy ring on keyboard focus.
-- **Buttons:** navy with white Extra Bold text, 8 px corners, at least 44 px tall (a comfortable touch target); dark navy on hover; focus ring. The **Outline** style is a navy border and navy text.
+- **Buttons:** navy with white Extra Bold text, fully rounded (pill) corners, at least 44 px tall (a comfortable touch target); dark navy on hover; focus ring. The **Outline** style is a navy border and navy text. For the main call to action, pick the **Rust** background (white text); on a navy background, a **White** button with navy text. Both keep a visible hover.
+- **"More" links:** a paragraph with the class `pn-more` makes its link bold rust with no underline (underlined on hover). Write the arrow in the text: "Meet our pastors →".
 - **Quote:** large text with a navy rule on the left.
 - **Callout / section background:** use the 8% tint (`accent-2`) with black or navy text.
 
+## Home page
+
+`patterns/page-home.php`, laid out after the approved homepage mockup (`Pella Nazarene Homepage.pdf`, FE-5). Top to bottom, in full-width bands:
+
+1. **Hero:** navy band with the home photo behind it (a navy fade from the left keeps the white text readable; on phones the whole photo is faded), an eyebrow, the page's only `h1` ("Loving people. Growing together."), one line, and Plan a Visit (rust) and Watch Online (white) buttons. The photo is still the first, preloaded, non-lazy image.
+2. **Info strip** (navy deep): Sunday times, address, Get directions.
+3. **Who we are:** photo beside a short welcome from Todd & Cindy and "Meet our pastors →".
+4. **Find your place** (stone): three white cards with a photo, heading, line and "more →" link (New here, Kids, Groups).
+5. **Latest message:** `[pn_latest_sermon layout="feature"]`, the newest published sermon's click-to-load video beside its title, speaker · series, and Watch the message / All sermons buttons.
+6. **What's happening** (stone): the five weekly events as an editable table (when, what, where) and "Full calendar →" to Church Center. **If a weekly time changes, change it here and on the Events page.**
+7. **Give generously:** a line and a rust Give Online button to Church Center.
+
+The styles for these sections are at the top of the theme's `style.css` (hero, strip, cards, event list, latest message). Photos use `pn_photo_block()` with the `half` and `card` sizes, which tell the browser how wide they really are.
+
 ## Header, footer, and templates
 
-- **Header** (`patterns/header.php`, used by `parts/header.html`): the primary logo (220 px, shrinking to 150 px on phones; explicit width and height so nothing jumps while it loads), the main menu (**New Here, About Us, Sermons, Events, Kids, Giving, Contact**) and a **Plan a Visit** button that links to New Here. On phones the menu collapses to a hamburger with a full-screen panel; the current page is underlined.
+- **Header** (`patterns/header.php`, used by `parts/header.html`): the primary logo (220 px, shrinking to 150 px on phones; explicit width and height so nothing jumps while it loads), the main menu (**New Here, About Us, Sermons, Events, Kids, Giving, Contact**) and a rust **Plan a Visit** button that links to New Here. On phones the menu collapses to a hamburger with a full-screen panel; the current page is underlined.
 - **Footer** (`patterns/footer.php`, used by `parts/footer.html`): navy, with the white logo, the mission line, **Facebook, Instagram, and YouTube** icons, a "Visit us" column (the `service-info` part: service times, address, tap-to-call phone, email, office hours) and an "Explore" menu (Plan a Visit, Resources, Blog, Contact), then the copyright line with the current year.
 - **404 page**: a friendly message with Plan a visit, Watch a sermon, and Contact us buttons and a search box.
 - Menu links are built from the site's own address, so staging links to staging and production to production. **Until the pages exist (MIG-3), menu items other than Sermons lead to the 404 page.**

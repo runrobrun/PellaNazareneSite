@@ -8,6 +8,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * Usage in templates or content: [pn_sermon_video] (current sermon) or [pn_sermon_video id="Nll1UzWZHQA"].
  * [pn_latest_sermon] shows the newest published sermon (video, title, date, speaker) for the home page.
+ * [pn_latest_sermon layout="feature"] is the home page's "Latest message" section: the video beside the title,
+ * speaker and series, with buttons to the sermon and to all sermons.
  */
 class Video {
 
@@ -55,7 +57,8 @@ class Video {
 	}
 
 	/** The newest published sermon, for the home page. Drafts are never shown. */
-	public static function latest(): string {
+	public static function latest( $atts = array() ): string {
+		$atts  = shortcode_atts( array( 'layout' => '' ), $atts, 'pn_latest_sermon' );
 		$found = get_posts(
 			array(
 				'post_type'      => Post_Types::POST_TYPE,
@@ -75,6 +78,9 @@ class Video {
 		}
 		$sermon   = $found[0];
 		$video_id = (string) get_post_meta( $sermon->ID, 'pn_youtube_id', true );
+		if ( 'feature' === $atts['layout'] ) {
+			return self::feature( $sermon, $video_id );
+		}
 		$speakers = get_the_terms( $sermon->ID, 'pn_speaker' );
 		$byline   = array( get_the_date( '', $sermon ) );
 		if ( is_array( $speakers ) ) {
@@ -91,6 +97,44 @@ class Video {
 			esc_html( get_the_title( $sermon ) ),
 			esc_html( implode( ' · ', array_filter( $byline ) ) )
 		);
+		return $html;
+	}
+
+	/** The home page's "Latest message" section for one sermon: video on one side, title and buttons on the other. */
+	private static function feature( \WP_Post $sermon, string $video_id ): string {
+		$names  = static function ( string $taxonomy ) use ( $sermon ): string {
+			$terms = get_the_terms( $sermon->ID, $taxonomy );
+			return is_array( $terms ) ? implode( ', ', wp_list_pluck( $terms, 'name' ) ) : '';
+		};
+		$byline = array_filter( array( $names( 'pn_speaker' ), $names( 'pn_series' ) ) );
+		if ( ! $byline ) {
+			$byline = array( get_the_date( '', $sermon ) );
+		}
+
+		// The words and buttons are real blocks, rendered by WordPress, so they get the theme's Eyebrow and Outline
+		// styles and the buttons' spacing exactly as the same blocks would in a page.
+		$blocks = sprintf(
+			'<!-- wp:paragraph {"className":"is-style-eyebrow"} --><p class="is-style-eyebrow">%1$s</p><!-- /wp:paragraph -->'
+			. '<!-- wp:heading --><h2 class="wp-block-heading">%2$s</h2><!-- /wp:heading -->'
+			. '<!-- wp:paragraph {"className":"pn-latest-sermon__byline"} --><p class="pn-latest-sermon__byline">%3$s</p><!-- /wp:paragraph -->'
+			. '<!-- wp:buttons --><div class="wp-block-buttons">'
+			. '<!-- wp:button --><div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="%4$s">%5$s</a></div><!-- /wp:button -->'
+			. '<!-- wp:button {"className":"is-style-outline"} --><div class="wp-block-button is-style-outline"><a class="wp-block-button__link wp-element-button" href="%6$s">%7$s</a></div><!-- /wp:button -->'
+			. '</div><!-- /wp:buttons -->',
+			esc_html__( 'Latest message', 'pn-sermons' ),
+			esc_html( get_the_title( $sermon ) ),
+			esc_html( implode( ' · ', $byline ) ),
+			esc_url( get_permalink( $sermon ) ),
+			esc_html__( 'Watch the message', 'pn-sermons' ),
+			esc_url( home_url( '/sermons/' ) ),
+			esc_html__( 'All sermons', 'pn-sermons' )
+		);
+
+		$html = '<div class="pn-latest-sermon pn-latest-sermon--feature alignwide">';
+		if ( preg_match( '/^[\w-]{11}$/', $video_id ) ) {
+			$html .= '<div class="pn-latest-sermon__media">' . self::facade( $video_id, get_the_title( $sermon ) ) . '</div>';
+		}
+		$html .= '<div class="pn-latest-sermon__text">' . do_blocks( $blocks ) . '</div></div>';
 		return $html;
 	}
 }

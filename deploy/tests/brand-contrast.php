@@ -52,6 +52,18 @@ $pairs = array(
 	array( 'base', 'accent-3', 4.5, 'white text on navy (parent patterns)' ),
 	array( 'accent-1', 'accent-3', 4.5, 'footer hover and copyright text on navy' ),
 	array( 'accent-3', 'base', 3.0, 'focus ring and button edge against the page' ),
+	// Accent colors added with the home page redesign (FE-5).
+	array( 'base', 'rust', 4.5, 'button text on rust' ),
+	array( 'base', 'rust-dark', 4.5, 'rust button hover text' ),
+	array( 'rust', 'base', 4.5, 'eyebrow labels and "more" links on white' ),
+	array( 'rust', 'stone', 4.5, 'eyebrow labels and "more" links on stone' ),
+	array( 'rust-dark', 'stone', 4.5, '"more" link hover on stone' ),
+	array( 'rust-light', 'accent-3', 4.5, 'eyebrow label on the navy hero' ),
+	array( 'contrast', 'stone', 4.5, 'body text on stone' ),
+	array( 'accent-3', 'stone', 4.5, 'headings on stone' ),
+	array( 'accent-4', 'base', 4.5, 'muted text in the white event list' ),
+	array( 'base', 'navy-deep', 4.5, 'white text on the deep navy strip' ),
+	array( 'primary-dark', 'accent-2', 4.5, 'white-button hover text on its tinted hover' ),
 );
 
 $failed = 0;
