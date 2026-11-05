@@ -13,6 +13,14 @@ POOL_DIR="/etc/php/8.3/fpm/pool.d"
 [[ $EUID -ne 0 ]] || { echo "Run as the deploy user, not root." >&2; exit 1; }
 sudo -n true || { echo "deploy needs passwordless sudo." >&2; exit 1; }
 
+for php_user in pn-staging-php pn-production-php; do
+	if ! id "$php_user" &>/dev/null; then
+		sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin "$php_user"
+	fi
+	getent group "$php_user" >/dev/null || sudo groupadd --system "$php_user"
+	sudo usermod -g "$php_user" -G "$php_user" "$php_user"
+done
+
 # source (relative to repo) -> destination
 FILES=(
 	"deploy/nginx/pn-performance.conf:/etc/nginx/conf.d/pn-performance.conf"

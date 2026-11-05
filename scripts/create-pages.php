@@ -62,7 +62,7 @@ if ( $pn_photo_errors ) {
 	}
 	$pn_hint = '';
 	if ( false !== stripos( implode( ' ', $pn_photo_errors ), 'writable' ) || false !== stripos( implode( ' ', $pn_photo_errors ), 'permission' ) ) {
-		$pn_hint = ' The uploads folder is probably owned by the web user: run this as that user, for example PN_WP_USER=www-data scripts/create-pages.sh ...';
+		$pn_hint = ' Set PN_WP_USER to this site\'s PHP-FPM user so it can write to uploads.';
 	}
 	WP_CLI::error( 'Could not load ' . count( $pn_photo_errors ) . ' photo(s). No pages were created or replaced.' . $pn_hint );
 }

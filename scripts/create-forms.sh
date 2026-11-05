@@ -6,7 +6,7 @@
 #   PN_CONTACT_TO=a@x.org PN_PRAYER_TO="b@x.org,c@x.org" create-forms.sh WP_PATH
 #   create-forms.sh WP_PATH --replace contact     # also reset one form to the file's current version
 # Who receives the email comes from PN_CONTACT_TO and PN_PRAYER_TO (not stored in the repo).
-# Set PN_WP_USER=www-data (on the server) to run WordPress as the web user, like create-pages.sh.
+# Set PN_WP_USER to this site's PHP-FPM user (on the server), like create-pages.sh.
 set -euo pipefail
 
 WP_PATH="${1:?Usage: $0 WP_PATH [--replace NAME...]}"

@@ -1,78 +1,130 @@
 #!/usr/bin/env bash
-# Forced command for the GitHub Actions deploy key (staging).
+# Forced command for the GitHub Actions deploy keys (staging and production).
 #
 # Installed root-owned at /usr/local/bin/pn-ci-deploy by scripts/setup-ci-deploy.sh.
-# The CI key in ~deploy/.ssh/authorized_keys is pinned to this script with
-# `restrict,command="/usr/local/bin/pn-ci-deploy"`, so that key can run this and nothing else.
+# Each CI key in its site's dedicated deploy user's authorized_keys is pinned to this script with
+# `restrict,command="/usr/local/bin/pn-ci-deploy <target>"`, so that key can run this and nothing else,
+# and only for its own site. A key line with no target is the original staging key and means staging.
+# This is what makes the production approval in GitHub real: the staging key, which deploys
+# without approval, can never deploy production. The wrapper runs as root, but runs every
+# repository command and WP-CLI process as that site's unprivileged deploy user.
 #
-# Input (SSH_ORIGINAL_COMMAND): "staging <40-character commit sha>"
+# Input (SSH_ORIGINAL_COMMAND): "<target> <40-character commit sha>", where <target> must be the key's own.
 # Steps: validate -> back up the database -> deploy that commit -> health check -> roll back on failure.
 set -euo pipefail
 
-ROOT="/var/www/staging"
-WP="$ROOT/public"
-REPO="$ROOT/repo"
-CACHE_DIR="/var/cache/nginx/pellanazarene-staging"
-DOMAIN="staging.pellanazarene.org"
-BACKUPS="/var/backups/pn-staging-db"
-SECRETS_FILE="/root/pella-secrets/staging-basic-auth.txt"
-# Root-owned deploy scripts outside the repo. RUNNER is the last version that deployed
-# successfully and is what a rollback uses (so a broken new deploy.sh cannot break its own
-# rollback). CANDIDATE is the new commit's deploy.sh, promoted to RUNNER only once healthy,
-# so changes to deploy.sh take effect immediately and are never stale.
-RUNNER="/usr/local/libexec/pn-staging-deploy"
-CANDIDATE="/usr/local/libexec/pn-staging-deploy.candidate"
+[[ $EUID -eq 0 ]] || { echo "The CI deploy wrapper must run through its restricted sudo rule." >&2; exit 1; }
 
-TARGET="" SHA="" EXTRA=""
-read -r TARGET SHA EXTRA <<<"${SSH_ORIGINAL_COMMAND:-}" || true
-if [[ "$TARGET" != "staging" || ! "$SHA" =~ ^[0-9a-f]{40}$ || -n "$EXTRA" ]]; then
-	echo "Usage: staging <40-character commit sha>" >&2
+# Where things live. The test harness rewrites these lines to point at a sandbox.
+WWW_DIR="/var/www"
+NGINX_CACHE_DIR="/var/cache/nginx"
+BACKUP_DIR="/var/backups"
+LIBEXEC_DIR="/usr/local/libexec"
+SECRETS_DIR="/root/pella-secrets"
+
+ALLOWED="${1:-staging}"
+if [[ $# -gt 1 || ( "$ALLOWED" != "staging" && "$ALLOWED" != "production" ) ]]; then
+	echo "This deploy key is misconfigured in authorized_keys (target: ${ALLOWED})." >&2
 	exit 2
 fi
 
-# Share the lock with direct staging deploys, including setup-staging.sh.
+TARGET="" SHA="" EXTRA=""
+read -r TARGET SHA EXTRA <<<"${SSH_ORIGINAL_COMMAND:-}" || true
+if [[ ( "$TARGET" != "staging" && "$TARGET" != "production" ) || ! "$SHA" =~ ^[0-9a-f]{40}$ || -n "$EXTRA" ]]; then
+	echo "Usage: staging|production <40-character commit sha>" >&2
+	exit 2
+fi
+if [[ "$TARGET" != "$ALLOWED" ]]; then
+	echo "Refusing: this key may only deploy to $ALLOWED, not $TARGET." >&2
+	exit 2
+fi
+
+case "$TARGET" in
+	staging)
+		LABEL="Staging"
+		DEPLOY_USER="pn-staging-deploy"
+		ROOT="$WWW_DIR/staging"
+		CACHE_DIR="$NGINX_CACHE_DIR/pellanazarene-staging"
+		DOMAIN="staging.pellanazarene.org"
+		BACKUPS="$BACKUP_DIR/pn-staging-db"
+		# Staging sits behind basic auth; the health check needs its password.
+		SECRETS_FILE="$SECRETS_DIR/staging-basic-auth.txt"
+		;;
+	production)
+		LABEL="Production"
+		DEPLOY_USER="pn-production-deploy"
+		ROOT="$WWW_DIR/pellanazarene"
+		CACHE_DIR="$NGINX_CACHE_DIR/pellanazarene"
+		DOMAIN="pellanazarene.org"
+		BACKUPS="$BACKUP_DIR/pn-production-db"
+		SECRETS_FILE=""
+		;;
+esac
+WP="$ROOT/public"
+REPO="$ROOT/repo"
+# Root-owned deploy scripts outside the repo. RUNNER is the last version that deployed
+# successfully and is what a rollback uses (so a broken new deploy.sh cannot break its own
+# rollback). CANDIDATE is the new commit's deploy.sh, promoted to RUNNER only once healthy,
+# so changes to deploy.sh take effect immediately and are never stale. One pair per site.
+RUNNER="$LIBEXEC_DIR/pn-$TARGET-deploy"
+CANDIDATE="$LIBEXEC_DIR/pn-$TARGET-deploy.candidate"
+
+# Share the lock with direct deploys of the same site (deploy.sh, setup-staging.sh).
 exec 9>"$ROOT/.deploy.lock"
 flock -n 9 || { echo "Another deploy is already running." >&2; exit 4; }
 
 # Only deploy commits that are on main (a PR branch can never be deployed this way).
-git -C "$REPO" fetch --quiet origin main
-if ! git -C "$REPO" merge-base --is-ancestor "$SHA" origin/main; then
+runuser -u "$DEPLOY_USER" -- git -C "$REPO" fetch --quiet origin main
+if ! runuser -u "$DEPLOY_USER" -- git -C "$REPO" merge-base --is-ancestor "$SHA" origin/main; then
 	echo "Refusing to deploy $SHA: it is not on origin/main." >&2
 	exit 3
 fi
 
-PREVIOUS="$(git -C "$REPO" rev-parse HEAD)"
+PREVIOUS="$(runuser -u "$DEPLOY_USER" -- git -C "$REPO" rev-parse HEAD)"
 echo "==> Deploying ${SHA:0:7} (currently ${PREVIOUS:0:7})"
 
 echo "==> Checking deploy runner"
-if ! git -C "$REPO" show "$SHA:deploy/deploy.sh" | sudo tee "$CANDIDATE" >/dev/null; then
+if ! runuser -u "$DEPLOY_USER" -- git -C "$REPO" show "$SHA:deploy/deploy.sh" | tee "$CANDIDATE" >/dev/null; then
 	echo "Could not read deploy/deploy.sh at $SHA." >&2
 	exit 1
 fi
 if ! grep -Fxq '# pn-ci-deploy-contract: 1' "$CANDIDATE"; then
-	sudo rm -f "$CANDIDATE"
+	rm -f "$CANDIDATE"
 	echo "Refusing to deploy $SHA: deploy/deploy.sh does not support CI runner contract 1." >&2
 	exit 5
 fi
-sudo chown root:root "$CANDIDATE"
-sudo chmod 755 "$CANDIDATE"
+chown root:root "$CANDIDATE"
+chmod 755 "$CANDIDATE"
 
 echo "==> Database backup"
-sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 750 "$BACKUPS"
+install -d -o root -g root -m 700 "$BACKUPS"
 BACKUP_FILE="$BACKUPS/pre-${SHA:0:12}-$(date +%Y%m%d-%H%M%S).sql.gz"
 # Owner-only: the dump contains password hashes.
-( umask 077; wp --path="$WP" db export - --quiet | gzip > "$BACKUP_FILE" )
+( umask 077; runuser -u "$DEPLOY_USER" -- wp --path="$WP" db export - --quiet | gzip > "$BACKUP_FILE" )
 # Keep the five most recent.
 find "$BACKUPS" -name 'pre-*.sql.gz' -type f -printf '%T@ %p\n' | sort -rn | tail -n +6 | cut -d' ' -f2- | xargs -r rm -f
 
-health_check() {
-	local path body code password
-	password="$(sudo -n sed -n 's/^password: //p' "$SECRETS_FILE")"
-	[[ -n "$password" ]] || { echo "health: could not read the staging basic-auth password" >&2; return 1; }
-	for path in / /wp-login.php; do
-		body="$(curl -sS --max-time 25 --resolve "$DOMAIN:443:127.0.0.1" \
+# One request to this site over this machine's own loopback; prints the body, then the status code on its own line.
+fetch() {
+	local url="https://$DOMAIN$1" password
+	if [[ -n "$SECRETS_FILE" ]]; then
+		password="$(sudo -n sed -n 's/^password: //p' "$SECRETS_FILE")"
+		[[ -n "$password" ]] || { echo "health: could not read the staging basic-auth password" >&2; return 1; }
+		curl -sS --max-time 25 --resolve "$DOMAIN:443:127.0.0.1" \
 			--config <(printf 'user = "church:%s"\n' "$password") \
-			-w '\n%{http_code}' "https://$DOMAIN$path")" || { echo "health: request to $path failed" >&2; return 1; }
+			-w '\n%{http_code}' "$url"
+	else
+		# Production: certificate checking adds nothing on loopback, and curl does not trust
+		# a Cloudflare origin certificate.
+		curl -sS --max-time 25 --resolve "$DOMAIN:443:127.0.0.1" --insecure \
+			-w '\n%{http_code}' "$url"
+	fi
+}
+
+health_check() {
+	local path body code
+	for path in / /wp-login.php; do
+		body="$(fetch "$path")" || { echo "health: request to $path failed" >&2; return 1; }
 		code="${body##*$'\n'}"
 		body="${body%$'\n'*}"
 		if [[ "$code" != "200" ]]; then
@@ -89,28 +141,28 @@ health_check() {
 reconcile_mu_plugins() {
 	local source="$REPO/wp-content/mu-plugins"
 	local target="$WP/wp-content/mu-plugins"
-	mkdir -p "$target"
+	runuser -u "$DEPLOY_USER" -- mkdir -p "$target"
 	while IFS= read -r -d '' installed; do
 		if [[ ! -f "$source/${installed##*/}" ]]; then
-			rm -f "$installed"
+			runuser -u "$DEPLOY_USER" -- rm -f "$installed"
 		fi
-	done < <(find "$target" -maxdepth 1 -type f -name 'pn-*.php' -print0)
+	done < <(runuser -u "$DEPLOY_USER" -- find "$target" -maxdepth 1 -type f -name 'pn-*.php' -print0)
 	if [[ -d "$source" ]]; then
-		rsync -a --include='pn-*.php' --exclude='*' "$source/" "$target/"
+		runuser -u "$DEPLOY_USER" -- rsync -a --include='pn-*.php' --exclude='*' "$source/" "$target/"
 	fi
 }
 
 rollback() {
 	local reason="$1" status="${2:-1}"
 	echo "!! $reason; rolling back to ${PREVIOUS:0:7}" >&2
-	if ! git -C "$REPO" reset --hard --quiet "$PREVIOUS"; then
+	if ! runuser -u "$DEPLOY_USER" -- git -C "$REPO" reset --hard --quiet "$PREVIOUS"; then
 		echo "!! Could not reset the checkout to ${PREVIOUS:0:7}" >&2
 		exit 1
 	fi
-	sudo rm -f "$CANDIDATE"
-	if ! PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
+	rm -f "$CANDIDATE"
+	if ! runuser -u "$DEPLOY_USER" -- env PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
 		"$RUNNER" "$ROOT" "$CACHE_DIR" "$PREVIOUS"; then
-		echo "!! Rollback deployment failed; inspect staging before retrying." >&2
+		echo "!! Rollback deployment failed; inspect $TARGET before retrying." >&2
 		exit 1
 	fi
 	if ! reconcile_mu_plugins; then
@@ -122,19 +174,20 @@ rollback() {
 	local attempt
 	for attempt in 1 2 3; do
 		if health_check; then
-			echo "Staging is healthy again on ${PREVIOUS:0:7}." >&2
+			echo "$LABEL is healthy again on ${PREVIOUS:0:7}." >&2
 			exit "$status"
 		fi
 		sleep 4
 	done
-	echo "!! STAGING IS STILL UNHEALTHY after rolling back to ${PREVIOUS:0:7}. It needs manual attention (database backup: $BACKUP_FILE)." >&2
+	echo "!! ${LABEL^^} IS STILL UNHEALTHY after rolling back to ${PREVIOUS:0:7}. It needs manual attention (database backup: $BACKUP_FILE)." >&2
 	exit 6
 }
 
 echo "==> Deploy"
 # CI deploys code only. Third-party plugins are installed and updated on purpose (see
 # docs/setup.md), so a code merge never changes plugin versions and a rollback never has to undo them.
-if PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 "$CANDIDATE" "$ROOT" "$CACHE_DIR" "$SHA"; then
+if runuser -u "$DEPLOY_USER" -- env PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
+	"$CANDIDATE" "$ROOT" "$CACHE_DIR" "$SHA"; then
 	:
 else
 	deploy_status=$?
@@ -144,7 +197,7 @@ fi
 echo "==> Health check"
 for attempt in 1 2 3; do
 	if health_check; then
-		sudo mv -f "$CANDIDATE" "$RUNNER"
+		mv -f "$CANDIDATE" "$RUNNER"
 		echo "Healthy. Deployed ${SHA:0:7}."
 		exit 0
 	fi

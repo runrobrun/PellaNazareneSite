@@ -15,7 +15,7 @@ The **Connect Card** and **Plan a Visit** are not on this site: those buttons op
 2. Create the forms and say who gets the email (nothing about who is stored in the repo):
    ```bash
    cd /var/www/staging/repo
-   PN_WP_USER=www-data \
+   PN_WP_USER=pn-staging-php \
    PN_CONTACT_TO="pellanazarene@gmail.com" \
    PN_PRAYER_TO="pastor1@example.org,pastor2@example.org" \
    scripts/create-forms.sh /var/www/staging/public
@@ -26,7 +26,7 @@ The **Connect Card** and **Plan a Visit** are not on this site: those buttons op
 On an existing site, this command leaves existing page content unchanged. After reviewing and preserving any staff edits, update the Contact and New Here pages once with:
 
 ```bash
-PN_WP_USER=www-data scripts/create-pages.sh /var/www/staging/public --replace contact new-here
+PN_WP_USER=pn-staging-php scripts/create-pages.sh /var/www/staging/public --replace contact new-here
 ```
 
 This replaces the full content of both pages with their current patterns, including the Contact form and prayer link and the New Here Connect Card button. Save or merge any staff changes before running it; use the live site's public path for a live-site update.

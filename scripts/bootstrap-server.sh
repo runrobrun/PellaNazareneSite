@@ -24,13 +24,42 @@ echo "==> Packages"
 apt-get update -qq
 apt-get upgrade -y -qq
 apt-get install -y -qq \
-	nginx mariadb-server redis-server unattended-upgrades ufw fail2ban curl git rsync unzip \
+	nginx mariadb-server redis-server unattended-upgrades ufw fail2ban curl git rsync unzip acl \
 	php8.3-fpm php8.3-cli php8.3-mysql php8.3-curl php8.3-gd php8.3-imagick php8.3-intl \
 	php8.3-mbstring php8.3-xml php8.3-zip php8.3-redis
 
 echo "==> Timezone and automatic security updates"
 timedatectl set-timezone America/Chicago
 dpkg-reconfigure -f noninteractive unattended-upgrades
+
+echo "==> Redis ACLs for separate site caches"
+SECRETS_DIR="/root/pella-secrets"
+install -d -o root -g root -m 700 "$SECRETS_DIR"
+for redis_user in pn-staging pn-production pn-admin; do
+	secret="$SECRETS_DIR/redis-${redis_user#pn-}.pw"
+	if [[ ! -s "$secret" ]]; then
+		( umask 077; openssl rand -hex 32 | tr -d '\n' > "$secret" )
+	fi
+	chown root:root "$secret"
+	chmod 600 "$secret"
+done
+STAGING_PASSWORD="$(cat "$SECRETS_DIR/redis-staging.pw")"
+PRODUCTION_PASSWORD="$(cat "$SECRETS_DIR/redis-production.pw")"
+ADMIN_PASSWORD="$(cat "$SECRETS_DIR/redis-admin.pw")"
+STAGING_HASH="$(printf '%s' "$STAGING_PASSWORD" | sha256sum | awk '{print $1}')"
+PRODUCTION_HASH="$(printf '%s' "$PRODUCTION_PASSWORD" | sha256sum | awk '{print $1}')"
+ADMIN_HASH="$(printf '%s' "$ADMIN_PASSWORD" | sha256sum | awk '{print $1}')"
+unset STAGING_PASSWORD PRODUCTION_PASSWORD ADMIN_PASSWORD
+cat > /etc/redis/users.acl <<EOF
+user default off
+user pn-staging on #$STAGING_HASH ~pn_staging_* +@all -@dangerous
+user pn-production on #$PRODUCTION_HASH ~pn_production_* +@all -@dangerous
+user pn-admin on #$ADMIN_HASH ~* +@all
+EOF
+chown root:redis /etc/redis/users.acl
+chmod 640 /etc/redis/users.acl
+grep -qxF 'aclfile /etc/redis/users.acl' /etc/redis/redis.conf \
+	|| echo 'aclfile /etc/redis/users.acl' >> /etc/redis/redis.conf
 
 echo "==> WP-CLI"
 if ! command -v wp >/dev/null; then
@@ -47,6 +76,8 @@ if ! id "$DEPLOY_USER" &>/dev/null; then
 	adduser --disabled-password --gecos "" "$DEPLOY_USER"
 fi
 usermod -aG sudo,www-data "$DEPLOY_USER"
+# This is the administrative login only. CI keys use the separate pn-staging-deploy and
+# pn-production-deploy accounts provisioned by setup-ci-deploy.sh, not this sudo-capable user.
 # Copy root's key only the first time; never overwrite a key that is already set up.
 if [[ -f /root/.ssh/authorized_keys && ! -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ]]; then
 	install -d -m 700 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "/home/$DEPLOY_USER/.ssh"
@@ -85,6 +116,7 @@ grep -Eq '^bind 127\.0\.0\.1' /etc/redis/redis.conf || echo "WARNING: check 'bin
 ss -ltn | awk '$4 ~ /:(3306|6379)$/ && $4 !~ /^(127\.0\.0\.1|\[::1\])/ {print "WARNING: " $4 " is listening publicly"}'
 
 systemctl enable --now nginx php8.3-fpm mariadb redis-server
+systemctl restart redis-server
 
 if [[ "$LOCK_SSH" == "--lock-ssh" ]]; then
 	echo "==> Locking SSH (no root login, no passwords)"

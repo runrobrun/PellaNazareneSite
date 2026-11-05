@@ -66,9 +66,9 @@ Third-party GitHub Actions are pinned to full commit SHAs; update them deliberat
 
 ## Deploying
 
-Merge a pull request to `main`. After CI passes, `.github/workflows/deploy.yml` deploys that exact commit to **staging**: it backs up the database, runs `deploy/deploy.sh` (syncs `wp-content/` code, installs plugins from `plugins.txt`, flushes caches), health-checks the site, and rolls back automatically if the check fails. Production deploys are added at cutover. Setup and security model: `docs/setup.md` section 5.
+Merge a pull request to `main`. After CI passes, `.github/workflows/deploy.yml` deploys that exact commit to **staging**: it backs up the database, runs `deploy/deploy.sh` (syncs `wp-content/` code, installs plugins from `plugins.txt`, flushes caches), health-checks the site, and rolls back automatically if the check fails. The same commit then waits for an approval in GitHub before the same steps run on **production** (switched on at cutover with the `PRODUCTION_DEPLOYS` variable). Setup and security model: `docs/setup.md` section 5.
 
-`staging` environment variables: `DEPLOY_HOST`, `DEPLOY_USER`. Secrets: `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`.
+`staging` and `production` environment variables: `DEPLOY_HOST`, `DEPLOY_USER` (`pn-staging-deploy` and `pn-production-deploy`). Secrets: `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` (a separate key for each environment). CI uses separate accounts with site-bound sudo rules; repository code and WP-CLI run as the site's unprivileged account. Repository variable: `PRODUCTION_DEPLOYS` (`on` to deploy to production).
 
 ## Secrets
 

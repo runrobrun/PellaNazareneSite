@@ -10,6 +10,21 @@ server {
 	return 301 https://pellanazarene.org$request_uri;
 }
 
+# https://www. goes to the bare address. Without this block Nginx would answer www with
+# whichever HTTPS site it loaded first, which on this server could be staging.
+# The certificate must cover www as well (Cloudflare origin certificates do by default;
+# with Let's Encrypt, request both names, see docs/cutover.md).
+server {
+	listen 443 ssl http2;
+	listen [::]:443 ssl http2;
+	server_name www.pellanazarene.org;
+
+	ssl_certificate     /etc/ssl/cloudflare/pellanazarene.pem;
+	ssl_certificate_key /etc/ssl/cloudflare/pellanazarene.key;
+
+	return 301 https://pellanazarene.org$request_uri;
+}
+
 server {
 	# Ubuntu 24.04 ships Nginx 1.24, which needs http2 on the listen line.
 	listen 443 ssl http2;

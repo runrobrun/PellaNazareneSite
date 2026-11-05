@@ -1,4 +1,4 @@
-# crontab -u www-data -e
+# crontab -u pn-production-php -e
 # Run WP-Cron from the system so scheduled jobs (sermon import, companion
 # drafts) don't depend on site traffic. Pair with this in wp-config.php:
 #   define( 'DISABLE_WP_CRON', true );
