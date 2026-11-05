@@ -168,6 +168,11 @@ p.is-style-eyebrow + h2.wp-block-heading {
 	align-items: center;
 }
 
+/* A sermon with no video: the words use the whole width instead of leaving the video's column empty. */
+.pn-latest-sermon__text:only-child {
+	grid-column: 1 / -1;
+}
+
 .pn-latest-sermon--feature .pn-video {
 	border-radius: 12px;
 }
