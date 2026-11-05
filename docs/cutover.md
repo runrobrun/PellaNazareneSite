@@ -130,8 +130,8 @@ Then remove the hosts-file line.
 - [ ] Download a full backup of the old site from its host (files and database), and keep it with the church's records.
 - [ ] Write the old A/AAAA values in the table at the top (they are the rollback).
 - [ ] Change the records:
-  - (a) Cloudflare: `pellanazarene.org` A record to the Linode IP with the proxy **on** (orange cloud); `www` likewise. SSL/TLS mode **Full (strict)**.
-  - (b) DNS Made Easy: `pellanazarene.org` A record to the Linode IP; `www` to the same (or a CNAME to `pellanazarene.org`).
+  - (a) Cloudflare: set the `pellanazarene.org` A record to the Linode IPv4 address and update any existing AAAA record to the Linode IPv6 address (or remove it if IPv6 is not used); do the same for `www`. Turn the proxy **on** (orange cloud) for the web records. SSL/TLS mode **Full (strict)**.
+  - (b) DNS Made Easy: set the `pellanazarene.org` A record to the Linode IPv4 address and update any existing AAAA record to the Linode IPv6 address (or remove it if IPv6 is not used); do the same for `www`, or replace its address records with a CNAME to `pellanazarene.org`.
 - [ ] Wait 5 to 10 minutes, then check from outside: `dig +short pellanazarene.org` shows the new address (Cloudflare: one of its addresses), and the home page loads.
 - [ ] (b) only: replace the temporary certificate with one that renews itself: `sudo certbot certonly --webroot -w /var/www/pellanazarene/public -d pellanazarene.org -d www.pellanazarene.org --force-renewal`, `sudo nginx -t && sudo systemctl reload nginx`, and `sudo certbot renew --dry-run` succeeds.
 
