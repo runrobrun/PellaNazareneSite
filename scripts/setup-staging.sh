@@ -20,6 +20,8 @@ ADMIN_EMAIL="${2:?Usage: $0 ADMIN_USER ADMIN_EMAIL}"
 DOMAIN="staging.pellanazarene.org"
 ROOT="/var/www/staging"
 WP="$ROOT/public"
+PHP_USER="pn-staging-php"
+CI_USER="pn-staging-deploy"
 DB="pellanazarene_staging"
 REPO_URL="git@github.com:runrobrun/PellaNazareneSite.git"
 CACHE_DIR="/var/cache/nginx/pellanazarene-staging"
@@ -29,6 +31,15 @@ KEY="$HOME/.ssh/github_deploy"
 [[ $EUID -ne 0 ]] || { echo "Run as the deploy user, not root." >&2; exit 1; }
 sudo -n true || { echo "deploy needs passwordless sudo." >&2; exit 1; }
 sudo test -s "$SECRETS/$DB.pw" || { echo "Missing $SECRETS/$DB.pw" >&2; exit 1; }
+sudo test -s "$SECRETS/redis-staging.pw" || { echo "Missing $SECRETS/redis-staging.pw" >&2; exit 1; }
+
+run_wp() {
+	if id "$CI_USER" &>/dev/null; then
+		sudo -n -u "$CI_USER" env "WP_CLI_CACHE_DIR=/tmp/wpcli-$CI_USER" wp "$@"
+	else
+		wp "$@"
+	fi
+}
 
 echo "==> GitHub deploy key"
 if [[ ! -f "$KEY" ]]; then
@@ -67,46 +78,60 @@ ssh-keygen -lF github.com | grep -v '^#' | head -3 || true
 echo "==> WordPress core"
 mkdir -p "$WP"
 if [[ ! -f "$WP/wp-settings.php" ]]; then
-	wp core download --path="$WP" --locale=en_US
+	run_wp core download --path="$WP" --locale=en_US
 fi
 
 echo "==> wp-config.php"
 if [[ ! -f "$WP/wp-config.php" ]]; then
 	DBPASS="$(sudo cat "$SECRETS/$DB.pw")"
-	wp config create --path="$WP" --dbname="$DB" --dbuser="$DB" --dbpass="$DBPASS" --dbcharset=utf8mb4
+	run_wp config create --path="$WP" --dbname="$DB" --dbuser="$DB" --dbpass="$DBPASS" --dbcharset=utf8mb4
 	unset DBPASS
 fi
-wp config set --path="$WP" WP_ENVIRONMENT_TYPE staging
-wp config set --path="$WP" WP_DEBUG false --raw
-wp config set --path="$WP" DISABLE_WP_CRON true --raw
-wp config set --path="$WP" DISALLOW_FILE_EDIT true --raw
-wp config set --path="$WP" FORCE_SSL_ADMIN true --raw
-wp config set --path="$WP" WP_REDIS_HOST 127.0.0.1
-wp config set --path="$WP" WP_REDIS_DATABASE 1 --raw
-wp config set --path="$WP" WP_REDIS_PREFIX pn_staging_
+run_wp config set --path="$WP" WP_ENVIRONMENT_TYPE staging
+run_wp config set --path="$WP" WP_DEBUG false --raw
+run_wp config set --path="$WP" DISABLE_WP_CRON true --raw
+run_wp config set --path="$WP" DISALLOW_FILE_EDIT true --raw
+run_wp config set --path="$WP" FORCE_SSL_ADMIN true --raw
+run_wp config set --path="$WP" WP_REDIS_HOST 127.0.0.1
+REDIS_PASSWORD="$(sudo cat "$SECRETS/redis-staging.pw")"
+run_wp config set --path="$WP" WP_REDIS_USERNAME pn-staging
+run_wp config set --path="$WP" WP_REDIS_PASSWORD "$REDIS_PASSWORD"
+unset REDIS_PASSWORD
+run_wp config set --path="$WP" WP_REDIS_DATABASE 1 --raw
+run_wp config set --path="$WP" WP_REDIS_PREFIX pn_staging_
 
 echo "==> Install WordPress"
-if ! wp core is-installed --path="$WP" 2>/dev/null; then
+if ! run_wp core is-installed --path="$WP" 2>/dev/null; then
 	ADMINPASS="$(openssl rand -base64 18 | tr -d '/+=')"
-	wp core install --path="$WP" --url="https://$DOMAIN" --title="Pella Nazarene (staging)" \
+	run_wp core install --path="$WP" --url="https://$DOMAIN" --title="Pella Nazarene (staging)" \
 		--admin_user="$ADMIN_USER" --admin_email="$ADMIN_EMAIL" --admin_password="$ADMINPASS" --skip-email
 	printf '%s' "$ADMINPASS" | sudo tee "$SECRETS/staging-wp-admin.pw" >/dev/null
 	sudo chmod 600 "$SECRETS/staging-wp-admin.pw"
 	unset ADMINPASS
 fi
-wp option update --path="$WP" blog_public 0
-wp option update --path="$WP" users_can_register 0
-wp option update --path="$WP" timezone_string America/Chicago
-wp theme install twentytwentyfive --path="$WP" 2>/dev/null || true
+run_wp option update --path="$WP" blog_public 0
+run_wp option update --path="$WP" users_can_register 0
+run_wp option update --path="$WP" timezone_string America/Chicago
+run_wp theme install twentytwentyfive --path="$WP" 2>/dev/null || true
 # Default plugins we never use; unused plugins are attack surface.
-wp plugin delete akismet hello --path="$WP" 2>/dev/null || true
+run_wp plugin delete akismet hello --path="$WP" 2>/dev/null || true
 
 echo "==> File ownership"
-# deploy owns code (so deploys and WP-CLI work); www-data can read it and write uploads only.
-sudo chown -R deploy:www-data "$WP"
+CODE_OWNER="deploy"
+CODE_GROUP="www-data"
+if id "$CI_USER" &>/dev/null; then
+	CODE_OWNER="$CI_USER"
+fi
+if getent group "$PHP_USER" >/dev/null; then
+	CODE_GROUP="$PHP_USER"
+fi
+sudo chown -R "$CODE_OWNER:$CODE_GROUP" "$WP"
 sudo find "$WP" -type d -exec chmod 755 {} +
 sudo find "$WP" -type f -exec chmod 644 {} +
 sudo chmod 640 "$WP/wp-config.php"
+if [[ "$CODE_OWNER" != "deploy" ]]; then
+	sudo setfacl -m u:deploy:r-- "$WP/wp-config.php"
+fi
 sudo install -d -o www-data -g www-data -m 755 "$WP/wp-content/uploads"
 sudo chown -R www-data:www-data "$WP/wp-content/uploads"
 
@@ -164,6 +189,12 @@ fi
 
 echo "==> Nginx and PHP-FPM tuning"
 "$ROOT/repo/scripts/apply-server-tuning.sh"
+sudo chgrp "$PHP_USER" "$WP/wp-config.php"
+sudo chmod 640 "$WP/wp-config.php"
+sudo find "$WP/wp-content/uploads" -type d \
+	-exec setfacl -m "u:$PHP_USER:rwx,d:u:$PHP_USER:rwx" {} +
+sudo find "$WP/wp-content/uploads" -type f \
+	-exec setfacl -m "u:$PHP_USER:rw-" {} +
 
 echo "==> Nginx staging site"
 sed -e "s|@DOMAIN@|$DOMAIN|g" -e "s|@WEBROOT@|$WP|g" "$ROOT/repo/deploy/nginx/staging.conf.template" \
@@ -172,12 +203,18 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 echo "==> Deploy site code"
-"$ROOT/repo/deploy/deploy.sh" "$ROOT" "$CACHE_DIR"
-wp theme activate pella-nazarene --path="$WP"
-wp redis enable --path="$WP" 2>/dev/null || echo "NOTE: Redis object cache not enabled yet; run 'wp redis enable' after checking the plugin."
+sudo install -m 755 -o root -g root "$ROOT/repo/deploy/clear-cache.sh" /usr/local/sbin/pn-clear-cache
+if id "$CI_USER" &>/dev/null; then
+	sudo -n -u "$CI_USER" env "WP_CLI_CACHE_DIR=/tmp/wpcli-$CI_USER" \
+		"$ROOT/repo/deploy/deploy.sh" "$ROOT" "$CACHE_DIR"
+else
+	"$ROOT/repo/deploy/deploy.sh" "$ROOT" "$CACHE_DIR"
+fi
+run_wp theme activate pella-nazarene --path="$WP"
+run_wp redis enable --path="$WP" 2>/dev/null || echo "NOTE: Redis object cache not enabled yet; run 'wp redis enable' after checking the plugin."
 
 echo "==> WP-Cron (system cron instead of site traffic)"
-echo "*/5 * * * * www-data cd $WP && /usr/local/bin/wp cron event run --due-now --quiet" | sudo tee /etc/cron.d/pella-staging >/dev/null
+echo "*/5 * * * * $PHP_USER cd $WP && WP_CLI_CACHE_DIR=/tmp/wp-cli-$PHP_USER /usr/local/bin/wp cron event run --due-now --quiet" | sudo tee /etc/cron.d/pella-staging >/dev/null
 sudo chmod 644 /etc/cron.d/pella-staging
 
 echo

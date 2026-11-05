@@ -2,15 +2,18 @@
 # Forced command for the GitHub Actions deploy keys (staging and production).
 #
 # Installed root-owned at /usr/local/bin/pn-ci-deploy by scripts/setup-ci-deploy.sh.
-# Each CI key in ~deploy/.ssh/authorized_keys is pinned to this script with
+# Each CI key in its site's dedicated deploy user's authorized_keys is pinned to this script with
 # `restrict,command="/usr/local/bin/pn-ci-deploy <target>"`, so that key can run this and nothing else,
 # and only for its own site. A key line with no target is the original staging key and means staging.
 # This is what makes the production approval in GitHub real: the staging key, which deploys
-# without approval, can never deploy production.
+# without approval, can never deploy production. The wrapper runs as root, but runs every
+# repository command and WP-CLI process as that site's unprivileged deploy user.
 #
 # Input (SSH_ORIGINAL_COMMAND): "<target> <40-character commit sha>", where <target> must be the key's own.
 # Steps: validate -> back up the database -> deploy that commit -> health check -> roll back on failure.
 set -euo pipefail
+
+[[ $EUID -eq 0 ]] || { echo "The CI deploy wrapper must run through its restricted sudo rule." >&2; exit 1; }
 
 # Where things live. The test harness rewrites these lines to point at a sandbox.
 WWW_DIR="/var/www"
@@ -39,6 +42,7 @@ fi
 case "$TARGET" in
 	staging)
 		LABEL="Staging"
+		DEPLOY_USER="pn-staging-deploy"
 		ROOT="$WWW_DIR/staging"
 		CACHE_DIR="$NGINX_CACHE_DIR/pellanazarene-staging"
 		DOMAIN="staging.pellanazarene.org"
@@ -48,6 +52,7 @@ case "$TARGET" in
 		;;
 	production)
 		LABEL="Production"
+		DEPLOY_USER="pn-production-deploy"
 		ROOT="$WWW_DIR/pellanazarene"
 		CACHE_DIR="$NGINX_CACHE_DIR/pellanazarene"
 		DOMAIN="pellanazarene.org"
@@ -69,33 +74,33 @@ exec 9>"$ROOT/.deploy.lock"
 flock -n 9 || { echo "Another deploy is already running." >&2; exit 4; }
 
 # Only deploy commits that are on main (a PR branch can never be deployed this way).
-git -C "$REPO" fetch --quiet origin main
-if ! git -C "$REPO" merge-base --is-ancestor "$SHA" origin/main; then
+runuser -u "$DEPLOY_USER" -- git -C "$REPO" fetch --quiet origin main
+if ! runuser -u "$DEPLOY_USER" -- git -C "$REPO" merge-base --is-ancestor "$SHA" origin/main; then
 	echo "Refusing to deploy $SHA: it is not on origin/main." >&2
 	exit 3
 fi
 
-PREVIOUS="$(git -C "$REPO" rev-parse HEAD)"
+PREVIOUS="$(runuser -u "$DEPLOY_USER" -- git -C "$REPO" rev-parse HEAD)"
 echo "==> Deploying ${SHA:0:7} (currently ${PREVIOUS:0:7})"
 
 echo "==> Checking deploy runner"
-if ! git -C "$REPO" show "$SHA:deploy/deploy.sh" | sudo tee "$CANDIDATE" >/dev/null; then
+if ! runuser -u "$DEPLOY_USER" -- git -C "$REPO" show "$SHA:deploy/deploy.sh" | tee "$CANDIDATE" >/dev/null; then
 	echo "Could not read deploy/deploy.sh at $SHA." >&2
 	exit 1
 fi
 if ! grep -Fxq '# pn-ci-deploy-contract: 1' "$CANDIDATE"; then
-	sudo rm -f "$CANDIDATE"
+	rm -f "$CANDIDATE"
 	echo "Refusing to deploy $SHA: deploy/deploy.sh does not support CI runner contract 1." >&2
 	exit 5
 fi
-sudo chown root:root "$CANDIDATE"
-sudo chmod 755 "$CANDIDATE"
+chown root:root "$CANDIDATE"
+chmod 755 "$CANDIDATE"
 
 echo "==> Database backup"
-sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 750 "$BACKUPS"
+install -d -o root -g root -m 700 "$BACKUPS"
 BACKUP_FILE="$BACKUPS/pre-${SHA:0:12}-$(date +%Y%m%d-%H%M%S).sql.gz"
 # Owner-only: the dump contains password hashes.
-( umask 077; wp --path="$WP" db export - --quiet | gzip > "$BACKUP_FILE" )
+( umask 077; runuser -u "$DEPLOY_USER" -- wp --path="$WP" db export - --quiet | gzip > "$BACKUP_FILE" )
 # Keep the five most recent.
 find "$BACKUPS" -name 'pre-*.sql.gz' -type f -printf '%T@ %p\n' | sort -rn | tail -n +6 | cut -d' ' -f2- | xargs -r rm -f
 
@@ -136,26 +141,26 @@ health_check() {
 reconcile_mu_plugins() {
 	local source="$REPO/wp-content/mu-plugins"
 	local target="$WP/wp-content/mu-plugins"
-	mkdir -p "$target"
+	runuser -u "$DEPLOY_USER" -- mkdir -p "$target"
 	while IFS= read -r -d '' installed; do
 		if [[ ! -f "$source/${installed##*/}" ]]; then
-			rm -f "$installed"
+			runuser -u "$DEPLOY_USER" -- rm -f "$installed"
 		fi
-	done < <(find "$target" -maxdepth 1 -type f -name 'pn-*.php' -print0)
+	done < <(runuser -u "$DEPLOY_USER" -- find "$target" -maxdepth 1 -type f -name 'pn-*.php' -print0)
 	if [[ -d "$source" ]]; then
-		rsync -a --include='pn-*.php' --exclude='*' "$source/" "$target/"
+		runuser -u "$DEPLOY_USER" -- rsync -a --include='pn-*.php' --exclude='*' "$source/" "$target/"
 	fi
 }
 
 rollback() {
 	local reason="$1" status="${2:-1}"
 	echo "!! $reason; rolling back to ${PREVIOUS:0:7}" >&2
-	if ! git -C "$REPO" reset --hard --quiet "$PREVIOUS"; then
+	if ! runuser -u "$DEPLOY_USER" -- git -C "$REPO" reset --hard --quiet "$PREVIOUS"; then
 		echo "!! Could not reset the checkout to ${PREVIOUS:0:7}" >&2
 		exit 1
 	fi
-	sudo rm -f "$CANDIDATE"
-	if ! PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
+	rm -f "$CANDIDATE"
+	if ! runuser -u "$DEPLOY_USER" -- env PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
 		"$RUNNER" "$ROOT" "$CACHE_DIR" "$PREVIOUS"; then
 		echo "!! Rollback deployment failed; inspect $TARGET before retrying." >&2
 		exit 1
@@ -181,7 +186,8 @@ rollback() {
 echo "==> Deploy"
 # CI deploys code only. Third-party plugins are installed and updated on purpose (see
 # docs/setup.md), so a code merge never changes plugin versions and a rollback never has to undo them.
-if PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 "$CANDIDATE" "$ROOT" "$CACHE_DIR" "$SHA"; then
+if runuser -u "$DEPLOY_USER" -- env PN_DEPLOY_LOCK_HELD=1 PN_SKIP_PLUGIN_INSTALL=1 \
+	"$CANDIDATE" "$ROOT" "$CACHE_DIR" "$SHA"; then
 	:
 else
 	deploy_status=$?
@@ -191,7 +197,7 @@ fi
 echo "==> Health check"
 for attempt in 1 2 3; do
 	if health_check; then
-		sudo mv -f "$CANDIDATE" "$RUNNER"
+		mv -f "$CANDIDATE" "$RUNNER"
 		echo "Healthy. Deployed ${SHA:0:7}."
 		exit 0
 	fi

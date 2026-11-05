@@ -49,6 +49,8 @@ chown -R www-data:www-data "$SITE"
 
 step "Configuring PHP-FPM and Nginx from the repo"
 mkdir -p /run/php /var/cache/nginx/t "/etc/letsencrypt/live/$D"
+useradd --system --user-group --no-create-home --shell /usr/sbin/nologin pn-production-php
+useradd --system --user-group --no-create-home --shell /usr/sbin/nologin pn-staging-php
 rm -f /etc/php/8.3/fpm/pool.d/www.conf
 cp /repo/deploy/php/pn-pool.conf /etc/php/8.3/fpm/pool.d/pn.conf
 cp /repo/deploy/php/pn-php.ini /etc/php/8.3/fpm/conf.d/99-pn.ini

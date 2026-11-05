@@ -56,8 +56,11 @@ wp --path="$WP" cache flush --quiet
 
 # Clear the Nginx FastCGI page cache (path matches the fastcgi_cache_path in Nginx).
 if [[ -d "$CACHE_DIR" ]]; then
-	# Cache files are owned by www-data; deploy has passwordless sudo.
-	sudo -n find "$CACHE_DIR" -type f -delete
+	case "$DEPLOY_PATH" in
+		/var/www/staging) sudo -n /usr/local/sbin/pn-clear-cache staging ;;
+		/var/www/pellanazarene) sudo -n /usr/local/sbin/pn-clear-cache production ;;
+		*) find "$CACHE_DIR" -type f -delete ;;
+	esac
 fi
 
 echo "Deploy complete."

@@ -9,6 +9,8 @@
 set -u
 T=/t; mkdir -p $T/www/staging/repo $T/www/staging/public $T/www/pellanazarene/repo $T/www/pellanazarene/public \
   $T/bin $T/libexec $T/backups $T/cache $T/secrets
+useradd --system --no-create-home --shell /bin/bash pn-staging-deploy
+useradd --system --no-create-home --shell /bin/bash pn-production-deploy
 printf 'password: stub\n' > $T/secrets/staging-basic-auth.txt
 # --- stubs ---------------------------------------------------------------
 cat > $T/bin/git <<'EOF'
@@ -23,6 +25,18 @@ EOF
 cat > $T/bin/sudo <<'EOF'
 #!/usr/bin/env bash
 [[ "$1" == "-n" ]] && shift
+if [[ "$1" == "/usr/local/sbin/pn-clear-cache" ]]; then
+  echo "sudo $*" >> /t/sudo.log
+  exit 0
+fi
+exec "$@"
+EOF
+cat > $T/bin/runuser <<'EOF'
+#!/usr/bin/env bash
+[[ "$1" == "-u" ]] || exit 2
+identity="$2"; shift 2
+[[ "$1" == "--" ]] && shift
+echo "$identity $*" >> /t/runuser.log
 exec "$@"
 EOF
 cat > $T/bin/wp <<'EOF'
@@ -71,6 +85,17 @@ if ! { grep -q '^WWW_DIR="/t/www"' $T/wrapper.sh && grep -q '^LIBEXEC_DIR="/t/li
 fi
 SHA=$(printf 'a%.0s' {1..40})
 FAILED=0
+echo "== cache helper is confined to the requested site's cache"
+sed -e 's|/var/cache/nginx/pellanazarene-staging|/t/cache/pellanazarene-staging|' \
+    -e 's|/var/cache/nginx/pellanazarene"|/t/cache/pellanazarene"|' \
+    /work/deploy/clear-cache.sh > "$T/clear-cache.sh"
+mkdir -p "$T/cache/pellanazarene-staging" "$T/cache/pellanazarene"
+touch "$T/cache/pellanazarene-staging/staging" "$T/cache/pellanazarene/production"
+bash "$T/clear-cache.sh" staging
+[[ ! -e "$T/cache/pellanazarene-staging/staging" && -e "$T/cache/pellanazarene/production" ]] \
+  || { echo "FAIL [cache helper]: staging cleared production or left its own cache"; FAILED=1; }
+echo "ok   [cache helper]"
+
 echo "== deploy.sh reconciles managed MU plugins and preserves unrelated ones"
 R="$T/www/staging"
 mkdir -p "$R/repo/wp-content/plugins/pn-sermons" "$R/repo/wp-content/themes/pella-nazarene" \
@@ -88,7 +113,7 @@ run() {  # name, key's site ("" = original staging key), requested site, FAKE_CU
   local name="$1" key="$2" site="$3" curl_mode="$4" deploy_fail="$5" want_exit="$6" want_msg="$7" want_runner="$8" out code R runner
   R="$T/www/$([[ "$site" == production ]] && echo pellanazarene || echo staging)"
   runner="$T/libexec/pn-$site-deploy"
-  rm -f /t/rolled /t/git.log /t/curl.log "$T"/libexec/pn-*-deploy "$T"/libexec/pn-*-deploy.candidate
+  rm -f /t/rolled /t/git.log /t/curl.log /t/runuser.log /t/sudo.log "$T"/libexec/pn-*-deploy "$T"/libexec/pn-*-deploy.candidate
   cp "$T/libexec/known-good.orig" "$runner"; chmod +x "$runner"
   mkdir -p "$R/repo/wp-content/mu-plugins" "$R/public/wp-content/mu-plugins"
   printf 'source site\n' > "$R/repo/wp-content/mu-plugins/pn-site.php"
@@ -98,11 +123,15 @@ run() {  # name, key's site ("" = original staging key), requested site, FAKE_CU
   # The key's site is the forced command's argument in authorized_keys; the request is what CI sends.
   out="$(PATH=$T/bin:$PATH FAKE_CURL="$curl_mode" FAKE_DEPLOY_FAIL="$deploy_fail" SSH_ORIGINAL_COMMAND="$site $SHA" \
     bash "$T/wrapper.sh" ${key:+"$key"} 2>&1)"; code=$?
-  [[ "$code" == "$want_exit" ]] || { echo "FAIL [$name]: exit $code, wanted $want_exit"; FAILED=1; }
+  if [[ "$code" != "$want_exit" ]]; then
+    echo "FAIL [$name]: exit $code, wanted $want_exit"
+    printf '%s\n' "$out"
+    FAILED=1
+  fi
   grep -qF "$want_msg" <<<"$out" || { echo "FAIL [$name]: output lacks: $want_msg"; FAILED=1; }
   if [[ "$want_runner" == "refused" ]]; then
     # Refused before anything happened: no git, no backup, no deploy, no request to either site.
-    [[ ! -e /t/git.log && ! -e /t/curl.log ]] || { echo "FAIL [$name]: something ran after the refusal"; FAILED=1; }
+    [[ ! -e /t/git.log && ! -e /t/curl.log && ! -e /t/runuser.log ]] || { echo "FAIL [$name]: something ran after the refusal"; FAILED=1; }
     grep -q 'known-good RUNNER ran' "$runner" || { echo "FAIL [$name]: runner was replaced"; FAILED=1; }
     [[ -e "$R/public/wp-content/mu-plugins/pn-security.php" ]] || { echo "FAIL [$name]: the site was touched"; FAILED=1; }
     echo "ok   [$name] exit=$code"
@@ -117,6 +146,12 @@ run() {  # name, key's site ("" = original staging key), requested site, FAKE_CU
     [[ -e "$R/public/wp-content/mu-plugins/custom.php" ]] || { echo "FAIL [$name]: rollback removed an unrelated MU plugin"; FAILED=1; }
   fi
   [[ ! -e "$runner.candidate" ]] || { echo "FAIL [$name]: candidate file left behind"; FAILED=1; }
+  expected_user="pn-$site-deploy"
+  if grep -qv "^$expected_user " /t/runuser.log; then
+    echo "FAIL [$name]: a command ran as another site's identity"; FAILED=1
+  fi
+  grep -q "^$expected_user .*wp --path=$R/public db export" /t/runuser.log \
+    || { echo "FAIL [$name]: database export did not run as the site's identity"; FAILED=1; }
   # Each site is checked at its own address; only staging sends the staging password.
   if [[ "$site" == production ]]; then
     if ! { grep -q 'https://pellanazarene.org/' /t/curl.log && ! grep -q 'staging' /t/curl.log && ! grep -q -- '--config' /t/curl.log; }; then
@@ -128,6 +163,9 @@ run() {  # name, key's site ("" = original staging key), requested site, FAKE_CU
       echo "FAIL [$name]: staging health check used the wrong address or no password"; FAILED=1
     fi
   fi
+  backup_dir="$T/backups/pn-$site-db"
+  [[ "$(stat -c '%U:%a' "$backup_dir")" == "root:700" ]] \
+    || { echo "FAIL [$name]: backup directory is not root-owned and private"; FAILED=1; }
   echo "ok   [$name] exit=$code"
 }
 run "healthy deploy, candidate promoted"        ""         staging    ok     0 0 "Healthy. Deployed"                 promoted

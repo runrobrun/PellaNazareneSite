@@ -52,7 +52,7 @@ server {
 
 	location ~ \.php$ {
 		include snippets/fastcgi-php.conf;
-		fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+		fastcgi_pass unix:/run/php/php8.3-fpm-staging.sock;
 		fastcgi_cache PELLA_STG;
 		include snippets/pn-fastcgi-cache.conf;
 		limit_req zone=pn_login burst=5 nodelay;  # only /wp-login.php has a key; see pn-security.conf
