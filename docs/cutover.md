@@ -90,7 +90,7 @@ wp cache flush
 sudo find /var/cache/nginx/pellanazarene -type f -delete
 ```
 
-Then, still on the live copy:
+Then, on the live copy: re-add the hosts-file line from step 2 **before opening `wp-admin` in your browser**, and keep it in place through step 4. Public DNS still points to the old site.
 - [ ] **Forms** (Fluent Forms → each form → Settings → Email Notifications): set the real Contact and prayer recipients, and delete any test messages under Entries.
 - [ ] **Users:** remove test accounts; check pastors are Author and the office admin is Editor. Everyone keeps their staging password and two-factor setup.
 - [ ] **Settings → Sermons:** channel ID present; **Check YouTube now** works.
