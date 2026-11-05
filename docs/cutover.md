@@ -97,7 +97,7 @@ wp cache flush
 sudo find /var/cache/nginx/pellanazarene -type f -delete
 ```
 
-Then, on the live copy: re-add the hosts-file line from step 2 **before opening `wp-admin` in your browser**, and keep it in place through step 4. Public DNS still points to the old site.
+Then, on the live copy: re-add the hosts-file line from step 2 **before opening `wp-admin` in your browser**, and keep it in place through step 5. Public DNS still points to the old site.
 - [ ] **Forms** (Fluent Forms → each form → Settings → Email Notifications): set the real Contact and prayer recipients, and delete any test messages under Entries.
 - [ ] **Users:** remove test accounts; check pastors are Author and the office admin is Editor. Everyone keeps their staging password and two-factor setup.
 - [ ] **Settings → Sermons:** channel ID present; **Check YouTube now** works.
@@ -146,7 +146,7 @@ curl -sI https://www.pellanazarene.org/ | head -3   # 301 to https://pellanazare
 curl -sI https://pellanazarene.org/ | grep -i -E 'x-cache|x-robots'   # run twice: MISS then HIT; no X-Robots-Tag line
 ```
 
-- [ ] The browser checks from step 4 again, now on a phone over cellular too.
+- [ ] The browser checks from step 5 again, now on a phone over cellular too.
 - [ ] Google Analytics: the four checks in `docs/analytics.md` (tag once in the source, Realtime shows your visit, absent when signed in, absent on staging).
 - [ ] Search and sharing: the five launch steps in `docs/seo.md` (submit `https://pellanazarene.org/wp-sitemap.xml`, check the source, share a link to yourself, Google Business Profile, "Discourage search engines" off).
 - [ ] Staging still asks for a password and still says `noindex`.
@@ -158,7 +158,7 @@ Go back if the live site is down or badly broken and the cause is not found with
 
 1. At the DNS host, put the `pellanazarene.org` and `www` records back to the old values written at the top (Cloudflare: also turn the proxy off). With the 300-second TTL, most visitors are back on the old site within 10 minutes.
 2. Tell staff the old site is back and not to edit the new one.
-3. Fix the new site privately with the hosts-file line, and run steps 4 and 6 again on a new date.
+3. Fix the new site privately with the hosts-file line, and run steps 5 and 6 again on a new date.
 
 If edits were made on the new site before rolling back, they are kept there; nothing on the old site needs undoing, because nothing on it was changed.
 
