@@ -6,7 +6,7 @@
 # (With only the key, the site is staging, as before.) The key is the PUBLIC half of a key made
 # just for CI and just for that site. Its private half goes into the matching GitHub environment's
 # secrets and nowhere else. Use a different key for each site: the staging key deploys without
-# approval, so it must never be able to deploy production.
+# approval, so it must not be able to ask for a production deploy.
 #
 # Installs the wrapper and the site's initial known-good deploy runner root-owned (the wrapper
 # refreshes the runner itself after every healthy deploy), then appends the CI key

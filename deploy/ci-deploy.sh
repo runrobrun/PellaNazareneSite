@@ -5,8 +5,10 @@
 # Each CI key in ~deploy/.ssh/authorized_keys is pinned to this script with
 # `restrict,command="/usr/local/bin/pn-ci-deploy <target>"`, so that key can run this and nothing else,
 # and only for its own site. A key line with no target is the original staging key and means staging.
-# This is what makes the production approval in GitHub real: the staging key, which deploys
-# without approval, can never deploy production.
+# So the staging key, which deploys without approval, cannot ask for a production deploy.
+# This is NOT a full boundary between the sites: both run deploy.sh as the same `deploy` user, which has
+# passwordless sudo, so code merged to main could still reach production during its staging deploy.
+# Branch protection on main (PR + review) is what guards against that; see SEC-5 in docs/backlog.md.
 #
 # Input (SSH_ORIGINAL_COMMAND): "<target> <40-character commit sha>", where <target> must be the key's own.
 # Steps: validate -> back up the database -> deploy that commit -> health check -> roll back on failure.
