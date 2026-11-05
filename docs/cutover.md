@@ -21,7 +21,7 @@ Write the answers here (no passwords; say where the password lives instead).
 ## Decisions to make first
 
 1. **DNS and certificates (INF-3).** Either (a) move DNS to Cloudflare and put the site behind it, or (b) stay on DNS Made Easy and use a Let's Encrypt certificate on the server, no CDN. The steps below say where the two differ. If (a), move DNS to Cloudflare **at least a week before** cutover, as its own step: copy every record across, leave the proxy **off** (grey cloud) so the old site keeps working exactly as before, then change the nameservers at the registrar.
-2. **How content reaches the live site.** Recommended: **copy the staging database** (step 3), because staging holds everything staff have reviewed: page edits, published sermons, photos, blog post, and each person's two-factor setup. The alternative, building the live site fresh with the scripts and redoing every staff edit by hand, risks losing work. Either way, staging edits stop at the content freeze.
+2. **How content reaches the live site.** Recommended: **copy the staging database** (step 4), because staging holds everything staff have reviewed: page edits, published sermons, photos, blog post, and each person's two-factor setup. The alternative, building the live site fresh with the scripts and redoing every staff edit by hand, risks losing work. Either way, staging edits stop at the content freeze.
 3. **When.** A weekday morning, Tuesday to Thursday, with someone from the office reachable. Not Saturday night or Sunday, when people look up service times.
 
 ## 1. Go or no-go (one week before)
@@ -59,11 +59,18 @@ The old site keeps serving visitors the whole time. Follow `docs/setup.md`; the 
 - [ ] Nginx vhost from `deploy/nginx.conf.example` (it already includes the redirect snippet), `scripts/apply-server-tuning.sh` run, `sudo nginx -t` passes. Two changes the example still needs: (1) it has no HTTPS server block for `www`, so add one (`listen 443 ssl http2; listen [::]:443 ssl http2; server_name www.pellanazarene.org;` with the same certificate, and `return 301 https://pellanazarene.org$request_uri;`), otherwise `https://www.pellanazarene.org` may hit another vhost or have its TLS handshake rejected; (2) with Let's Encrypt (decision 1b), point `ssl_certificate` at `/etc/letsencrypt/live/pellanazarene.org/` instead of the Cloudflare paths. Do not reload Nginx with a vhost whose certificate files do not exist yet.
 - [ ] Certificate:
   - (a) Cloudflare: create the origin certificate, install it at the paths in the vhost, write the real-IP config (`/etc/nginx/snippets/cloudflare-realip.conf`, not in the repo yet: `set_real_ip_from` for each range at cloudflare.com/ips, and `real_ip_header CF-Connecting-IP;`) and uncomment its include in the vhost. The login throttle needs real IPs, so this comes before launch.
-  - (b) Let's Encrypt: it cannot check the server until DNS points here. To avoid a few minutes of browser warnings at the switch, get a temporary certificate now with a DNS check (`sudo certbot certonly --manual --preferred-challenges dns -d pellanazarene.org -d www.pellanazarene.org`, then add the TXT record it asks for at DNS Made Easy). It will not renew itself, so it is replaced in step 5.
+  - (b) Let's Encrypt: it cannot check the server until DNS points here. To avoid a few minutes of browser warnings at the switch, get a temporary certificate now with a DNS check (`sudo certbot certonly --manual --preferred-challenges dns -d pellanazarene.org -d www.pellanazarene.org`, then add the TXT record it asks for at DNS Made Easy). It will not renew itself, so it is replaced in step 6.
 - [ ] Cron: `deploy/crontab.example` installed for `www-data`; `/var/backups/pellanazarene` created.
 - [ ] Look at it privately: add a line to your computer's hosts file (`<Linode IP> pellanazarene.org`), browse it, then remove the line.
 
-## 3. Content freeze and copy from staging (the day before)
+## 3. Lower the DNS time-to-live (at least 48 hours before cutover)
+
+- [ ] At the DNS host, set the TTL of the `pellanazarene.org` and `www` address records (A, and AAAA if present) to 300 seconds. This makes the switch, and a rollback, take minutes instead of hours.
+- [ ] Before continuing, wait at least the previous TTL recorded at the top of this document. Start this step early enough to finish the wait before switching in step 6.
+- [ ] Leave every other record alone: **MX, TXT (SPF, Google verification), CNAME** and anything else stay exactly as they are, or church email may stop.
+- [ ] Optional now: add the live site to **Google Search Console** as a domain property and verify it with the TXT record it gives (this does not affect the old site).
+
+## 4. Content freeze and copy from staging (the day before)
 
 From here on, **nobody edits staging**. Tell staff; any change they need now is made on the live site after the switch.
 
@@ -97,7 +104,7 @@ Then, on the live copy: re-add the hosts-file line from step 2 **before opening 
 - [ ] `scripts/check-filler.sh /var/www/pellanazarene/public --repo /var/www/pellanazarene/repo` is clean (database and code; the page part runs after the switch).
 - [ ] No staging references remain outside preserved GUIDs: run `wp db search 'staging.pellanazarene' --all-tables` and confirm any remaining matches are only in `guid` columns, intentionally excluded from search-replace above.
 
-## 4. Test it privately (the day before)
+## 5. Test it privately (the day before)
 
 The live site answers to its real name before DNS points at it, so test it by forcing the address. Replace `IP` with the Linode's address.
 
@@ -117,12 +124,6 @@ With the hosts-file line from step 2 in place, in a browser:
 - [ ] On a phone (same hosts trick is harder there, so this can wait until step 6).
 
 Then remove the hosts-file line.
-
-## 5. Lower the DNS time-to-live (at least 48 hours before, and longer than the current TTL)
-
-- [ ] At the DNS host, set the TTL of the `pellanazarene.org` and `www` address records (A, and AAAA if present) to 300 seconds. This makes the switch, and a rollback, take minutes instead of hours.
-- [ ] Leave every other record alone: **MX, TXT (SPF, Google verification), CNAME** and anything else stay exactly as they are, or church email may stop.
-- [ ] Optional now: add the live site to **Google Search Console** as a domain property and verify it with the TXT record it gives (this does not affect the old site).
 
 ## 6. Switch (cutover morning)
 
