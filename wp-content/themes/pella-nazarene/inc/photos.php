@@ -207,8 +207,8 @@ function pn_post_has_h1( int $post_id ): bool {
 }
 
 // WordPress skips lazy-loading for the first three images on every page. Here only the home page's hero and a
-// blog post's featured image load right away; every other photo waits until it is near the screen. (On the other
-// pages the first section puts its words before its photo, so on phones the photo is below the first screen.)
+// blog post's featured image load right away; every other photo waits until it is near the screen. On the other
+// pages the first section puts its words before its photo, so on phones the photo is below the first screen.
 add_filter(
 	'wp_omit_loading_attr_threshold',
 	function () {
