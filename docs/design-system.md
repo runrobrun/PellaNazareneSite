@@ -62,6 +62,21 @@ Heading sizes are fluid (they shrink on phones): `h1` 32 to 52 px, `h2` 26 to 36
 
 The styles for these sections are at the top of the theme's `style.css` (hero, strip, cards, event list, latest message). Photos use `pn_photo_block()` with the `half` and `card` sizes, which tell the browser how wide they really are.
 
+## The other pages
+
+Every page is laid out in the home page's style (FE-6). Same words as before, regrouped:
+
+- **Navy page header** at the top of each page: an eyebrow with the page's name, the page's only `h1` (a warm line such as "We'd love to meet you"), one line of text, and sometimes buttons. Patterns print it with `pn_page_header()` (`inc/sections.php`); once the page exists it is ordinary blocks that staff edit. When a page has this h1, the page template's own title is hidden (`inc/photos.php`); a page staff write without a header still shows its title.
+- **Bands:** full-width sections that alternate white and **stone**; a **navy band** for a statement (the mission) or a final call to action (Pre-register your kids). Each section opens with an eyebrow and an `h2`.
+- **Split:** words beside a photo or video. In the first section under the header, the words come first, so phones show the text before the photo and the photo can lazy-load.
+- **Cards** (`pn-cards`/`pn-card`): white boxes with a photo on top, as on the home page.
+- **Tiles** (`pn-tiles`/`pn-tile`): a grid of small white boxes for lists of equal items (core values, beliefs, kids' first visit and safety, building fund and missions). The grid fits as many as there is room for.
+- **Panel** (`pn-panel`): a rounded box for key facts (Plan your visit, Contact info, the quote on Giving, each staff bio, the prayer form).
+- **Questions** (`pn-faq`): the Details blocks as one list with a rust +/–.
+- **Weekly events** on the Events page use the same when/what/where table as the home page.
+
+The blog and sermon lists use the same navy header, in their templates (`templates/home.html`, `templates/archive-pn_sermon.html`).
+
 ## Header, footer, and templates
 
 - **Header** (`patterns/header.php`, used by `parts/header.html`): the primary logo (220 px, shrinking to 150 px on phones; explicit width and height so nothing jumps while it loads), the main menu (**New Here, About Us, Sermons, Events, Kids, Giving, Contact**) and a rust **Plan a Visit** button that links to New Here. On phones the menu collapses to a hamburger with a full-screen panel; the current page is underlined.

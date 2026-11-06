@@ -4,11 +4,24 @@
  * Slug: pella-nazarene/page-contact
  * Categories: pella-nazarene
  * Inserter: false
- * Description: Address, phone, email, office hours, and social links.
+ * Description: Contact form, phone, email, office hours and directions. In the look of the home page (FE-6).
  */
 ?>
-<!-- wp:paragraph {"className":"is-style-subheading"} -->
-<p class="is-style-subheading">We would love to hear from you!</p>
+<?php
+echo pn_page_header( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_page_header().
+	'Contact',
+	'We would love to hear from you',
+	'Send a message, call the office, or stop by. We’ll get back to you as soon as we can.'
+);
+?>
+<!-- wp:group {"align":"full","style":{"spacing":{"padding":{"top":"var:preset|spacing|70","bottom":"var:preset|spacing|70"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull" style="padding-top:var(--wp--preset--spacing--70);padding-bottom:var(--wp--preset--spacing--70)">
+<!-- wp:columns {"align":"wide"} -->
+<div class="wp-block-columns alignwide">
+<!-- wp:column {"width":"58%"} -->
+<div class="wp-block-column" style="flex-basis:58%">
+<!-- wp:paragraph {"className":"is-style-eyebrow"} -->
+<p class="is-style-eyebrow">Write to us</p>
 <!-- /wp:paragraph -->
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Send us a message</h2>
@@ -22,6 +35,12 @@
 <!-- wp:paragraph -->
 <p>Need prayer? <a href="/prayer/">Send a prayer request</a>.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:column -->
+<!-- wp:column {"width":"42%"} -->
+<div class="wp-block-column" style="flex-basis:42%">
+<!-- wp:group {"className":"pn-panel","backgroundColor":"stone","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-panel has-stone-background-color has-background">
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Contact info</h2>
 <!-- /wp:heading -->
@@ -55,3 +74,11 @@
 <!-- wp:social-link {"url":"https://www.youtube.com/@pellanazarene","service":"youtube","label":"YouTube"} /-->
 </ul>
 <!-- /wp:social-links -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:column -->
+</div>
+<!-- /wp:columns -->
+</div>
+<!-- /wp:group -->

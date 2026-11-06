@@ -4,11 +4,24 @@
  * Slug: pella-nazarene/page-about-us
  * Categories: pella-nazarene
  * Inserter: false
- * Description: Mission, values, leadership, beliefs, and history.
+ * Description: Mission, values, pastors, beliefs and history. In the look of the home page (FE-6).
  */
 ?>
-<!-- wp:paragraph {"className":"is-style-subheading"} -->
-<p class="is-style-subheading">Pella Nazarene is a Christ-centered community committed to loving people where they are and growing together in Jesus.</p>
+<?php
+echo pn_page_header( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_page_header().
+	'About us',
+	'A church family in Pella',
+	'Pella Nazarene is a Christ-centered community committed to loving people where they are and growing together in Jesus.'
+);
+?>
+<!-- wp:group {"align":"full","style":{"spacing":{"padding":{"top":"var:preset|spacing|70","bottom":"var:preset|spacing|70"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull" style="padding-top:var(--wp--preset--spacing--70);padding-bottom:var(--wp--preset--spacing--70)">
+<!-- wp:columns {"verticalAlignment":"center","align":"wide"} -->
+<div class="wp-block-columns alignwide are-vertically-aligned-center">
+<!-- wp:column {"verticalAlignment":"center"} -->
+<div class="wp-block-column is-vertically-aligned-center">
+<!-- wp:paragraph {"className":"is-style-eyebrow"} -->
+<p class="is-style-eyebrow">Who we are</p>
 <!-- /wp:paragraph -->
 <!-- wp:heading -->
 <h2 class="wp-block-heading">About Pella Nazarene</h2>
@@ -19,45 +32,126 @@
 <!-- wp:paragraph -->
 <p>We value community and create spaces for people of all ages to connect, serve, and belong. Whether you’re exploring faith for the first time or looking for a church to call home, we invite you to join us as we follow Jesus together and live out His love in our community and beyond.</p>
 <!-- /wp:paragraph -->
-<?php echo pn_photo_block( 'about-community', 'full', '3/2' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
 <!-- wp:buttons -->
 <div class="wp-block-buttons">
-<!-- wp:button -->
-<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="/new-here/#plan-your-visit">Plan a Visit</a></div>
+<!-- wp:button {"backgroundColor":"rust","textColor":"base"} -->
+<div class="wp-block-button"><a class="wp-block-button__link has-base-color has-rust-background-color has-text-color has-background wp-element-button" href="/new-here/#plan-your-visit">Plan a Visit</a></div>
 <!-- /wp:button -->
 </div>
 <!-- /wp:buttons -->
+</div>
+<!-- /wp:column -->
+<!-- wp:column {"verticalAlignment":"center"} -->
+<div class="wp-block-column is-vertically-aligned-center">
+<?php echo pn_photo_block( 'about-community', 'half', '4/3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+</div>
+<!-- /wp:column -->
+</div>
+<!-- /wp:columns -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"align":"full","className":"pn-band-navy","backgroundColor":"accent-3","textColor":"base","style":{"spacing":{"padding":{"top":"var:preset|spacing|70","bottom":"var:preset|spacing|70"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull pn-band-navy has-base-color has-accent-3-background-color has-text-color has-background" style="padding-top:var(--wp--preset--spacing--70);padding-bottom:var(--wp--preset--spacing--70)">
+<!-- wp:columns {"verticalAlignment":"center","align":"wide"} -->
+<div class="wp-block-columns alignwide are-vertically-aligned-center">
+<!-- wp:column {"verticalAlignment":"center"} -->
+<div class="wp-block-column is-vertically-aligned-center">
+<!-- wp:paragraph {"className":"is-style-eyebrow","textColor":"rust-light"} -->
+<p class="is-style-eyebrow has-rust-light-color has-text-color">Why we’re here</p>
+<!-- /wp:paragraph -->
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Our mission</h2>
 <!-- /wp:heading -->
-<!-- wp:paragraph -->
-<p>Pella Nazarene exists to love people where they are and to grow together in Jesus.</p>
+<!-- wp:paragraph {"fontSize":"x-large"} -->
+<p class="has-x-large-font-size">Pella Nazarene exists to love people where they are and to grow together in Jesus.</p>
 <!-- /wp:paragraph -->
-<?php echo pn_photo_block( 'about-worship', 'full', '3/2' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+</div>
+<!-- /wp:column -->
+<!-- wp:column {"verticalAlignment":"center"} -->
+<div class="wp-block-column is-vertically-aligned-center">
+<?php echo pn_photo_block( 'about-worship', 'half', '4/3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+</div>
+<!-- /wp:column -->
+</div>
+<!-- /wp:columns -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"align":"full","backgroundColor":"stone","style":{"spacing":{"padding":{"top":"var:preset|spacing|70","bottom":"var:preset|spacing|70"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull has-stone-background-color has-background" style="padding-top:var(--wp--preset--spacing--70);padding-bottom:var(--wp--preset--spacing--70)">
+<!-- wp:group {"align":"wide","layout":{"type":"default"}} -->
+<div class="wp-block-group alignwide">
+<!-- wp:paragraph {"className":"is-style-eyebrow"} -->
+<p class="is-style-eyebrow">What we value</p>
+<!-- /wp:paragraph -->
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Our core values</h2>
 <!-- /wp:heading -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"align":"wide","className":"pn-tiles","layout":{"type":"grid","minimumColumnWidth":"22rem"}} -->
+<div class="wp-block-group alignwide pn-tiles">
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:paragraph -->
 <p><strong>Honest Fellowship</strong> is a Christ-centered community marked by authenticity, vulnerability, and accountability. This creates a foundation of trust and support where we carry one another’s burdens, speak the truth in love, and grow together in faith.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:paragraph -->
 <p><strong>Bold Prayer</strong> is an unwavering pursuit of God’s presence, seeking His will with faith and persistence. It begins with self-examination, inviting God to transform us before we ask Him to act. It honors God with Kingdom-sized dreams, trusting that He will answer in His perfect timing and way.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:paragraph -->
 <p><strong>Faithful Stewardship</strong> is the responsible management of the time, talents, and treasures God has entrusted to us for His glory and the good of others. We seek to steward these gifts wisely, generously, and with integrity, recognizing that all we have belongs to God.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:paragraph -->
 <p><strong>Transformational Obedience</strong> is a wholehearted surrender to God that leads to ongoing renewal, Christlike character, and active participation in God’s mission. It shapes our hearts, relationships, and communities. More than rule-following, it is a life-changing response to God’s Word and the Holy Spirit.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:paragraph -->
 <p><strong>Authentic Worship</strong> is a genuine, continual response to God’s presence, rooted in truth and expressed in every part of life. It flows from hearts that seek to honor God through repentance and obedience. It is not limited to corporate gatherings but is lived daily as we align our lives with God’s Word, celebrate God’s love and goodness, and surrender to God’s will.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:paragraph -->
 <p><strong>Compassionate Service</strong> is a visible expression of God’s love and grace, demonstrated through selfless acts of kindness, generosity, and care. It calls us to serve others with open hearts and willing hands, meeting needs, offering comfort, and walking alongside those in difficult times. Compassionate service is not just about action. It reflects Christ’s love and grace in practical ways, fostering strong, supportive communities.</p>
+<!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"align":"full","style":{"spacing":{"padding":{"top":"var:preset|spacing|70","bottom":"var:preset|spacing|70"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull" style="padding-top:var(--wp--preset--spacing--70);padding-bottom:var(--wp--preset--spacing--70)">
+<!-- wp:group {"align":"wide","layout":{"type":"default"}} -->
+<div class="wp-block-group alignwide">
+<!-- wp:paragraph {"className":"is-style-eyebrow"} -->
+<p class="is-style-eyebrow">Our pastors</p>
 <!-- /wp:paragraph -->
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Our leadership team</h2>
 <!-- /wp:heading -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"align":"wide","className":"pn-staff","layout":{"type":"default"}} -->
+<div class="wp-block-group alignwide pn-staff">
+<!-- wp:group {"className":"pn-panel","backgroundColor":"stone","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-panel has-stone-background-color has-background">
 <!-- wp:columns {"verticalAlignment":"top"} -->
 <div class="wp-block-columns are-vertically-aligned-top">
 <!-- wp:column {"verticalAlignment":"top","width":"30%"} -->
@@ -86,6 +180,10 @@
 <!-- /wp:column -->
 </div>
 <!-- /wp:columns -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-panel","backgroundColor":"stone","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-panel has-stone-background-color has-background">
 <!-- wp:columns {"verticalAlignment":"top"} -->
 <div class="wp-block-columns are-vertically-aligned-top">
 <!-- wp:column {"verticalAlignment":"top","width":"30%"} -->
@@ -111,6 +209,10 @@
 <!-- /wp:column -->
 </div>
 <!-- /wp:columns -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-panel","backgroundColor":"stone","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-panel has-stone-background-color has-background">
 <!-- wp:columns {"verticalAlignment":"top"} -->
 <div class="wp-block-columns are-vertically-aligned-top">
 <!-- wp:column {"verticalAlignment":"top","width":"30%"} -->
@@ -136,6 +238,10 @@
 <!-- /wp:column -->
 </div>
 <!-- /wp:columns -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-panel","backgroundColor":"stone","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-panel has-stone-background-color has-background">
 <!-- wp:columns {"verticalAlignment":"top"} -->
 <div class="wp-block-columns are-vertically-aligned-top">
 <!-- wp:column {"verticalAlignment":"top","width":"30%"} -->
@@ -161,56 +267,116 @@
 <!-- /wp:column -->
 </div>
 <!-- /wp:columns -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"align":"full","backgroundColor":"stone","style":{"spacing":{"padding":{"top":"var:preset|spacing|70","bottom":"var:preset|spacing|70"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull has-stone-background-color has-background" style="padding-top:var(--wp--preset--spacing--70);padding-bottom:var(--wp--preset--spacing--70)">
+<!-- wp:group {"align":"wide","layout":{"type":"default"}} -->
+<div class="wp-block-group alignwide">
+<!-- wp:paragraph {"className":"is-style-eyebrow"} -->
+<p class="is-style-eyebrow">What we believe</p>
+<!-- /wp:paragraph -->
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Statement of beliefs</h2>
 <!-- /wp:heading -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"align":"wide","className":"pn-tiles","layout":{"type":"grid","minimumColumnWidth":"17rem"}} -->
+<div class="wp-block-group alignwide pn-tiles">
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Trinity</h3>
 <!-- /wp:heading -->
 <!-- wp:paragraph -->
 <p>We believe in one God: the Father, Son, and Holy Spirit.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Scripture</h3>
 <!-- /wp:heading -->
 <!-- wp:paragraph -->
 <p>We believe that the Old and New Testament Scriptures, given by plenary inspiration, contain all truth necessary to faith and Christian living.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Sinful nature</h3>
 <!-- /wp:heading -->
 <!-- wp:paragraph -->
 <p>We believe that human beings are born with a fallen nature, and are, therefore, inclined to evil, and that continually.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Eternity</h3>
 <!-- /wp:heading -->
 <!-- wp:paragraph -->
 <p>We believe that the finally impenitent are hopelessly and eternally lost.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Salvation</h3>
 <!-- /wp:heading -->
 <!-- wp:paragraph -->
 <p>We believe that the atonement through Jesus Christ is for the whole human race; and that whosoever repents and believes on the Lord Jesus Christ is justified and regenerated and saved from the dominion of sin.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Sanctification</h3>
 <!-- /wp:heading -->
 <!-- wp:paragraph -->
 <p>We believe that believers are to be sanctified wholly, subsequent to regeneration, through faith in the Lord Jesus Christ.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">The Holy Spirit</h3>
 <!-- /wp:heading -->
 <!-- wp:paragraph -->
 <p>We believe that the Holy Spirit bears witness to the new birth, and also to the entire sanctification of believers.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-tile has-base-background-color has-background">
 <!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Christ’s return</h3>
 <!-- /wp:heading -->
 <!-- wp:paragraph -->
 <p>We believe that our Lord will return, the dead will be raised, and the final judgment will take place.</p>
+<!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"align":"full","style":{"spacing":{"padding":{"top":"var:preset|spacing|70","bottom":"var:preset|spacing|70"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull" style="padding-top:var(--wp--preset--spacing--70);padding-bottom:var(--wp--preset--spacing--70)">
+<!-- wp:group {"layout":{"type":"constrained"}} -->
+<div class="wp-block-group">
+<!-- wp:paragraph {"className":"is-style-eyebrow"} -->
+<p class="is-style-eyebrow">Where we come from</p>
 <!-- /wp:paragraph -->
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Our Nazarene heritage</h2>
@@ -251,9 +417,24 @@
 <!-- wp:paragraph -->
 <p><a href="https://nazarene.org/what-we-believe/">Learn more about what Nazarenes believe</a></p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"align":"full","backgroundColor":"stone","style":{"spacing":{"padding":{"top":"var:preset|spacing|70","bottom":"var:preset|spacing|70"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull has-stone-background-color has-background" style="padding-top:var(--wp--preset--spacing--70);padding-bottom:var(--wp--preset--spacing--70)">
+<!-- wp:group {"layout":{"type":"constrained"}} -->
+<div class="wp-block-group">
+<!-- wp:paragraph {"className":"is-style-eyebrow"} -->
+<p class="is-style-eyebrow">Since 1983</p>
+<!-- /wp:paragraph -->
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Our history</h2>
 <!-- /wp:heading -->
 <!-- wp:paragraph -->
 <p>Pella Nazarene began with a simple handwritten question in November 1982: “Why can’t we have a Church of the Nazarene in Pella?” After prayer and conversation with the town’s only Nazarene family, District Superintendent Dr. Forrest Whitlatch believed the answer was, “Why not?” The church held its first worship service on January 9, 1983, in the Pella Memorial Building, with 41 people in attendance. Just months later, Rev. Dave Childers became the church’s first pastor, and the young congregation quickly became self-supporting and rooted in the community. In October 1983, Pella Nazarene officially organized with 27 charter members. On June 16, 1985, the church celebrated its first service in a new building, another milestone in God’s faithfulness. Since then, Pella Nazarene has continued to grow under dedicated pastoral leadership and committed laypeople, sustained by the presence and power of the Holy Spirit.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
