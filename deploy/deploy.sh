@@ -61,13 +61,9 @@ if [[ -d "$CACHE_DIR" ]]; then
 		/var/www/pellanazarene) SITE="production" ;;
 		*) SITE="" ;;
 	esac
-	if [[ -n "$SITE" && -x /usr/local/sbin/pn-clear-cache ]]; then
-		# Separate deploy users (docs/setup.md section 5): only this fixed-path helper may clear the cache.
+	if [[ -n "$SITE" ]]; then
+		# Each site's deploy user may clear only its own cache, through this fixed-path helper (docs/setup.md section 5).
 		sudo -n /usr/local/sbin/pn-clear-cache "$SITE"
-	elif [[ -n "$SITE" ]]; then
-		# A server not yet moved to separate deploy users: the administrative deploy user clears it directly.
-		# Remove this branch once both sites run under their own users.
-		sudo -n find "$CACHE_DIR" -type f -delete
 	else
 		find "$CACHE_DIR" -type f -delete
 	fi
