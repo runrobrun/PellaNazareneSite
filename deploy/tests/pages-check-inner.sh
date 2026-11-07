@@ -119,7 +119,7 @@ expect_eq "the Blog page is the posts page" "$(wp post get "$(wp option get page
 expect_eq "Home is the front page" "$(wp option get show_on_front) $(wp post get "$(wp option get page_on_front)" --field=post_name)" "page home"
 expect_eq "all are published" "$(wp post list --post_type=page --post_status=publish --format=count)" "12"
 
-expect_eq "all 12 photos are in the media library" "$(wp post list --post_type=attachment --format=count)" "12"
+expect_eq "all 13 photos are in the media library" "$(wp post list --post_type=attachment --format=count)" "13"
 expect_eq "each photo has its alt text from the manifest" "$(wp post meta get "$(wp post list --post_type=attachment --meta_key=_pn_photo --meta_value=staff-floyd-ware --field=ID)" _wp_attachment_image_alt)" "Floyd Ware, associate pastor"
 
 echo "== 2. Running it again changes nothing"
@@ -128,7 +128,7 @@ out="$(create)"
 expect_eq "no new pages" "$(pages)" "12"
 expect_contains "says it kept them" "$out" "Kept 'about-us'"
 expect_lacks "creates nothing the second time" "$out" "Created"
-expect_eq "no photo is added twice" "$(wp post list --post_type=attachment --format=count)" "12"
+expect_eq "no photo is added twice" "$(wp post list --post_type=attachment --format=count)" "13"
 expect_eq "no page was modified" "$(wp post list --post_type=page --format=csv --fields=ID,post_modified | md5sum)" "$before"
 echo "   (staff edit a page)"
 id="$(wp post list --post_type=page --name=kids --field=ID)"

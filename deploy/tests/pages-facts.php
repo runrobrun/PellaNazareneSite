@@ -46,7 +46,7 @@ check( 'brand palette was read from theme.json', count( $brand ) >= 5, count( $b
 $pages = array(
 	'/'           => array( 'Home', 'Loving people. Growing together.', array( 'Plan a Visit', 'Watch Online', 'Todd &amp; Cindy Olson', 'Find your place', 'Latest message', 'Lighthouse Student Ministry', 'Windmill Cafe', 'Give generously' ) ),
 	'/new-here/'  => array( 'New Here', 'We’d love to meet you', array( 'Plan your visit', 'Where do I park?', 'Prairie Street', 'Connect card' ) ),
-	'/about-us/'  => array( 'About Us', 'A church family in Pella', array( 'Honest Fellowship', 'Whitlatch', 'Vermeer', 'Floyd Ware', 'Statement of beliefs' ) ),
+	'/about-us/'  => array( 'About Us', 'A church family in Pella', array( 'Honest Fellowship', 'Whitlatch', 'Vermeer', 'Micah Hammann', 'Floyd Ware', 'Statement of beliefs' ) ),
 	'/kids/'      => array( 'Kids', 'A place kids love', array( 'birth through age 12', 'background checks' ) ),
 	'/giving/'    => array( 'Giving', 'Thank you for your support', array( 'Colossians 3:23-24', 'Building fund', 'World missions' ) ),
 	'/contact/'   => array( 'Contact', 'We would love to hear from you', array( '(641) 628-1818', 'pellanazarene@gmail.com', 'Monday 1', 'Central' ) ),
@@ -193,7 +193,7 @@ foreach ( $give as $h ) {
 $contact = main_text( dom( $html_of['/contact/'] ) );
 check( 'Contact hours are Mon 1-4, Wed 9-12 and Fri 9-12', (bool) preg_match( '/Monday 1.{1,3}4\s*PM, Wednesday 9\s*AM.{1,3}12\s*PM, Friday 9\s*AM.{1,3}12\s*PM Central/u', $contact ), 'hours text not found' );
 // Photos in total, the hero preload, and that the files really are served as WebP.
-$expected_photos = array( '/' => 5, '/new-here/' => 3, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 1, '/blog/' => 0, '/prayer/' => 0, '/privacy/' => 0 );
+$expected_photos = array( '/' => 5, '/new-here/' => 3, '/about-us/' => 7, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 1, '/blog/' => 0, '/prayer/' => 0, '/privacy/' => 0 );
 foreach ( $expected_photos as $path => $n ) {
 	$found = dom( $html_of[ $path ] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->length;
 	check( "$path shows $n photo(s)", $n === $found, "$found found" );

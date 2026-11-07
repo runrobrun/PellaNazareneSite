@@ -61,6 +61,14 @@
 			"rights": "Staff headshot from the old website (uploaded 2026-05); reused with the church's approval."
 		},
 		{
+			"slug": "staff-micah-hammann",
+			"source": "docs/Photos/staff-micah-hammann-2026-11.jpg",
+			"max": 640,
+			"square": 0,
+			"alt": "Micah Hammann, director of young adults, youth and worship",
+			"rights": "Staff headshot taken in the sanctuary, provided by the church (2026-11); source is already cropped to head and shoulders to match the other staff photos."
+		},
+		{
 			"slug": "staff-floyd-ware",
 			"source": "docs/photos-source/old-site/2026_05_floydwweb.webp",
 			"max": 640,
