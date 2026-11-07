@@ -252,6 +252,13 @@ Decisions (2026-10-21): two-factor is **required for everyone who can edit conte
 - Verified on staging 2026-10-23: the Two Factor plugin is installed (pinned 0.17.0), the login throttle and file blocks are live (6 requests allowed then HTTP 429; `readme.html` is 403), and the first account (`hammannr`) enrolled by hand with the authenticator app and backup codes. Remaining: the other staff enroll on first sign-in (`docs/runbook.md`); production gets the same at cutover.
 - Review of the rest of `pn-site.php` and the sermon plugin is SEC-3.
 
+### SEC-5 Separate deploy users for staging and production · M · code in main; server move todo · before cutover
+Found in review of the production deploys (PR #39): both sites deployed as the one `deploy` user, which has passwordless sudo, so code merged to `main` could reach production during its automatic staging deploy.
+- **Code (in `main`, from Copilot's commit 6da5b5f merged with PR #39):** a dedicated, unprivileged CI user per site (`pn-staging-deploy`, `pn-production-deploy`) whose only sudo commands are that site's deploy wrapper and cache clearer; the root-owned wrapper runs Git, `deploy.sh` and WP-CLI as that user, never as root; separate PHP-FPM pools and users (`pn-staging-php`, `pn-production-php`) so staging's PHP cannot read production's `wp-config.php`; Redis ACL users limited to their own keys.
+- **Review findings, fixed in the SEC-5 fix PR (tested against Redis 7.0.15 and Redis Object Cache 3.0.0):** (1) the Redis users refused `INFO`, which the plugin runs while connecting, so the object cache never connected; now `+info`. (2) `wp cache flush` (every deploy) used `FLUSHDB`, which the users may not run, so deploys would fail; each site now sets `WP_REDIS_SELECTIVE_FLUSH`. (3) The plugin must be 3.0.0 or newer for the Redis username with PhpRedis (noted in `plugins.txt`). Checked: the staging Redis user cannot read production keys or run `FLUSHALL`.
+- **The server move:** `docs/deploy-isolation-migration.md`, a step-by-step for the existing server (snapshot first; staging only, production is built this way at cutover). Staging is down a few minutes during it.
+- **After the move:** remove the fallback in `deploy/deploy.sh` that clears the cache as the admin user; content scripts run with `PN_WP_USER=pn-staging-php`.
+
 ### SEC-2 Automated updates and vulnerability monitoring · S · todo
 CI deploys never touch third-party plugins (see `docs/setup.md` section 5), so this story also owns the plugin path: pin versions in `plugins.txt`, a documented manual or scheduled `install-plugins.sh` run, and a staging check before production.
 - Core minor/security auto-updates on; plugin update policy documented in `plugins.txt`.

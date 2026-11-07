@@ -8,6 +8,8 @@
 # and the form tests are written against this version; update on purpose and re-run deploy/tests/forms-check.sh.
 fluentform 6.2.16
 wp-mail-smtp
+# Redis Object Cache: 3.0.0 or newer is required. Older versions ignore WP_REDIS_USERNAME with PhpRedis, so the
+# per-site Redis users (scripts/bootstrap-server.sh) cannot log in and the cache silently stays off.
 redis-cache
 # Required by wp-content/mu-plugins/pn-security.php (two-factor sign-in). Pinned: security
 # plugins change behavior between versions; update on purpose and test on staging first.

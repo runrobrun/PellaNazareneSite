@@ -53,6 +53,7 @@ define( 'WP_REDIS_USERNAME', 'pn-production' );
 define( 'WP_REDIS_PASSWORD', '…' ); // from /root/pella-secrets/redis-production.pw
 define( 'WP_REDIS_DATABASE', 0 );
 define( 'WP_REDIS_PREFIX', 'pn_production_' );
+define( 'WP_REDIS_SELECTIVE_FLUSH', true ); // its Redis user may not run FLUSHDB; needs Redis Object Cache 3.0.0 or newer for the username
 define( 'PN_YOUTUBE_CHANNEL_ID', 'UC…' );
 define( 'PN_YOUTUBE_API_KEY', '…' );      // only for the one-time sermon backfill; see docs/sermons.md
 define( 'PN_ANTHROPIC_API_KEY', '…' );   // only when companion posts are turned on
@@ -77,6 +78,8 @@ define( 'PN_ANTHROPIC_API_KEY', '…' );   // only when companion posts are turn
 - Then copy `deploy/nginx.conf.example` to `/etc/nginx/sites-available/`, adjust and enable it, and run `nginx -t && systemctl reload nginx`.
 
 ## 5. GitHub deploys
+
+> **Existing server?** These steps build a new one. To move the running staging site to the separate deploy users, follow `docs/deploy-isolation-migration.md` instead.
 
 Merging to `main` deploys to **staging** automatically after CI passes (`.github/workflows/deploy.yml`). The same commit then goes to **production** only after a person approves it in GitHub, and only once production deploys are switched on (below).
 

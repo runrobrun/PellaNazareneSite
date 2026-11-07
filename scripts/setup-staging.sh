@@ -99,6 +99,8 @@ run_wp config set --path="$WP" WP_REDIS_PASSWORD "$REDIS_PASSWORD"
 unset REDIS_PASSWORD
 run_wp config set --path="$WP" WP_REDIS_DATABASE 1 --raw
 run_wp config set --path="$WP" WP_REDIS_PREFIX pn_staging_
+# Empty only this site's keys: its Redis user may not run FLUSHDB (scripts/bootstrap-server.sh).
+run_wp config set --path="$WP" WP_REDIS_SELECTIVE_FLUSH true --raw
 
 echo "==> Install WordPress"
 if ! run_wp core is-installed --path="$WP" 2>/dev/null; then
