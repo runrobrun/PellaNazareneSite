@@ -174,6 +174,7 @@ Header (logo, 7-item menu, **Plan a Visit** button, hamburger on phones), footer
 
 ### FE-3 Staff and ministry pages · S · todo
 Use `patterns/staff-member.php`; pages for pastors, ministries, and "I'm new" visitor information.
+- **Done (2026-11):** Micah Hammann, Director of Young Adults, Youth & Worship, added to About Us after Rob, with a new headshot (`staff-micah-hammann`). **Still open:** Micah's email (add it under his bio, like the others, when he has one).
 
 ### FE-4 Accessibility pass · M · todo
 Keyboard navigation, focus states, landmarks, alt text, form labels, reduced motion. WCAG 2.2 AA on key pages.

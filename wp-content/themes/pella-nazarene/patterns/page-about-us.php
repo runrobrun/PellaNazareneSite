@@ -246,6 +246,32 @@ echo pn_page_header( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEs
 <div class="wp-block-columns are-vertically-aligned-top">
 <!-- wp:column {"verticalAlignment":"top","width":"30%"} -->
 <div class="wp-block-column is-vertically-aligned-top" style="flex-basis:30%">
+<?php echo pn_photo_block( 'staff-micah-hammann', 'avatar', '1/1' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
+</div>
+<!-- /wp:column -->
+<!-- wp:column {"verticalAlignment":"top","width":"70%"} -->
+<div class="wp-block-column is-vertically-aligned-top" style="flex-basis:70%">
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Micah Hammann</h3>
+<!-- /wp:heading -->
+<!-- wp:paragraph {"fontSize":"small"} -->
+<p class="has-small-font-size"><strong>Director of Young Adults, Youth &amp; Worship</strong></p>
+<!-- /wp:paragraph -->
+<!-- wp:paragraph -->
+<p>Micah Hammann is from right here in Pella, Iowa. He works as a field tech support specialist for the Pella School District and is taking classes at Nazarene Bible College. In his spare time you’ll find him playing guitar or gathered around a table for board games and deck-building card games.</p>
+<!-- /wp:paragraph -->
+</div>
+<!-- /wp:column -->
+</div>
+<!-- /wp:columns -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className":"pn-panel","backgroundColor":"stone","layout":{"type":"default"}} -->
+<div class="wp-block-group pn-panel has-stone-background-color has-background">
+<!-- wp:columns {"verticalAlignment":"top"} -->
+<div class="wp-block-columns are-vertically-aligned-top">
+<!-- wp:column {"verticalAlignment":"top","width":"30%"} -->
+<div class="wp-block-column is-vertically-aligned-top" style="flex-basis:30%">
 <?php echo pn_photo_block( 'staff-floyd-ware', 'avatar', '1/1' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_photo_block(). ?>
 </div>
 <!-- /wp:column -->

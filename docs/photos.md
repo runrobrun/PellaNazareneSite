@@ -9,7 +9,7 @@ Twelve photos are used on the pages. The web-sized files live in the theme (`wp-
 | `home-hero` | Home, beside the opening text (loads first) | Church photo, Sunday service 2026-09-13 |
 | `new-here-welcome`, `new-here-online` | New Here: "In person" and "Online"; `new-here-welcome` also on Home ("Who we are") | Church photos, 2026-09-13 and 2026-10-18 |
 | `about-community`, `about-worship` | About Us; also the Groups and New here cards on Home | Church photos (trivia night; Sunday service) |
-| `staff-*` (four) | About Us, beside each bio | Staff headshots from the old website (2026-05) |
+| `staff-*` (five) | About Us, beside each bio | Staff headshots from the old website (2026-05); Micah Hammann's provided by the church (2026-11) |
 | `kids-welcome`, `kids-celebrate`, `kids-play` | Kids; `kids-welcome` also the Kids card on Home | Old website; **likely template stock photos, licence not confirmed** |
 
 **Wanted for the home page** (stand-ins are used until then): Todd & Cindy greeting people, for "Who we are", and a small group or Sunday class, for the Groups card. Add each like the others (below) and change the slug in `patterns/page-home.php`.
