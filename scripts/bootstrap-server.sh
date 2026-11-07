@@ -50,10 +50,13 @@ STAGING_HASH="$(printf '%s' "$STAGING_PASSWORD" | sha256sum | awk '{print $1}')"
 PRODUCTION_HASH="$(printf '%s' "$PRODUCTION_PASSWORD" | sha256sum | awk '{print $1}')"
 ADMIN_HASH="$(printf '%s' "$ADMIN_PASSWORD" | sha256sum | awk '{print $1}')"
 unset STAGING_PASSWORD PRODUCTION_PASSWORD ADMIN_PASSWORD
+# Each site may touch only its own keys and no server-wide commands, except INFO: the Redis Object Cache plugin
+# (3.0.0) runs INFO while connecting and stays disconnected if it is refused. Each site's wp-config.php also sets
+# WP_REDIS_SELECTIVE_FLUSH, because the plugin otherwise empties its cache with FLUSHDB, which these users may not run.
 cat > /etc/redis/users.acl <<EOF
 user default off
-user pn-staging on #$STAGING_HASH ~pn_staging_* +@all -@dangerous
-user pn-production on #$PRODUCTION_HASH ~pn_production_* +@all -@dangerous
+user pn-staging on #$STAGING_HASH ~pn_staging_* +@all -@dangerous +info
+user pn-production on #$PRODUCTION_HASH ~pn_production_* +@all -@dangerous +info
 user pn-admin on #$ADMIN_HASH ~* +@all
 EOF
 chown root:redis /etc/redis/users.acl
