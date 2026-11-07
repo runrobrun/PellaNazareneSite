@@ -246,7 +246,11 @@ wp post update "$res_id" --post_content='<!-- wp:paragraph --><p>Links coming so
 plain_page="$(curl -s "$BASE/resources/")"
 expect_contains "a page without its own header shows the template title" "$plain_page" '<h1 class="pn-page-title wp-block-post-title">Resources</h1>'
 expect_eq "...as its only h1" "$(grep -o '<h1[ >]' <<<"$plain_page" | wc -l | tr -d ' ')" "1"
-wp post update "$res_id" --post_content="$res_content" --quiet
+wp post update "$res_id" --post_content="$res_content" --post_password=secret --quiet
+protected_page="$(curl -s "$BASE/resources/")"
+expect_contains "a password-protected page keeps its template title" "$protected_page" '<h1 class="pn-page-title wp-block-post-title">Resources</h1>'
+expect_contains "...and shows the password form instead of its content" "$protected_page" 'post_password'
+wp post update "$res_id" --post_content="$res_content" --post_password='' --quiet
 home_content="$(wp post get "$home_id" --field=post_content)"
 wp post update "$home_id" --post_content='<!-- wp:image {"id":123,"className":"pn-photo--hero"} --><figure class="wp-block-image pn-photo--hero"><img src="/missing.webp" alt=""></figure><!-- /wp:image -->' --quiet
 home_without_h1="$(curl -s "$BASE/")"

@@ -250,7 +250,7 @@ add_filter(
 		}
 		$post_id = (int) ( $instance->context['postId'] ?? 0 );
 		$page_id = (int) get_queried_object_id();
-		return ( $post_id === $page_id && pn_post_has_h1( $page_id ) ) ? '' : $html;
+		return ( $post_id === $page_id && ! post_password_required( $page_id ) && pn_post_has_h1( $page_id ) ) ? '' : $html;
 	},
 	10,
 	3
