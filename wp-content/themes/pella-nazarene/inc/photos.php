@@ -187,10 +187,9 @@ function pn_front_page_hero_id(): int {
 	return $find_hero( parse_blocks( (string) get_post_field( 'post_content', $front_page_id ) ) );
 }
 
-/** Whether the current front page contains a level-one Heading block. */
-function pn_front_page_has_h1(): bool {
-	$front_page_id = (int) get_option( 'page_on_front' );
-	if ( ! $front_page_id ) {
+/** Whether a post's own content contains a level-one Heading block (a page header or the home hero). */
+function pn_post_has_h1( int $post_id ): bool {
+	if ( ! $post_id ) {
 		return false;
 	}
 	$find_h1 = static function ( array $blocks ) use ( &$find_h1 ): bool {
@@ -204,11 +203,12 @@ function pn_front_page_has_h1(): bool {
 		}
 		return false;
 	};
-	return $find_h1( parse_blocks( (string) get_post_field( 'post_content', $front_page_id ) ) );
+	return $find_h1( parse_blocks( (string) get_post_field( 'post_content', $post_id ) ) );
 }
 
 // WordPress skips lazy-loading for the first three images on every page. Here only the home page's hero and a
-// blog post's featured image load right away; every other photo waits until it is near the screen.
+// blog post's featured image load right away; every other photo waits until it is near the screen. On the other
+// pages the first section puts its words before its photo, so on phones the photo is below the first screen.
 add_filter(
 	'wp_omit_loading_attr_threshold',
 	function () {
@@ -239,11 +239,19 @@ add_action(
 	2
 );
 
-// The hero carries the home page's h1 itself (over the photo), so the template's title block is not shown a second
-// time. A front page without the hero shows its title as usual.
+// The home hero and each page's navy header carry the page's h1 themselves, so the template's own level-one title
+// is not shown a second time. Only the title of the page being viewed is affected, never titles in a list of posts;
+// a page whose content has no h1 shows its title as usual.
 add_filter(
 	'render_block_core/post-title',
-	function ( $html ) {
-		return ( is_front_page() && pn_front_page_has_h1() ) ? '' : $html;
-	}
+	function ( $html, $block, $instance = null ) {
+		if ( 1 !== (int) ( $block['attrs']['level'] ?? 2 ) || ! is_page() ) {
+			return $html;
+		}
+		$post_id = (int) ( $instance->context['postId'] ?? 0 );
+		$page_id = (int) get_queried_object_id();
+		return ( $post_id === $page_id && ! post_password_required( $page_id ) && pn_post_has_h1( $page_id ) ) ? '' : $html;
+	},
+	10,
+	3
 );

@@ -235,9 +235,23 @@ expect_eq "the signed-in visit really was signed in" "$(grep -c 'wp-admin-bar\|w
 echo "== 5. The pages as visitors see them"
 wp option update page_on_front "$(wp post list --post_type=page --name=about-us --field=ID)" --quiet
 alternate_front="$(curl -s "$BASE/")"
-expect_contains "a staff-selected front page shows its page title" "$alternate_front" '<h1 class="wp-block-post-title">About Us</h1>'
+expect_contains "a staff-selected front page shows its own header h1" "$alternate_front" '<h1 class="wp-block-heading pn-page-header__title">A church family in Pella</h1>'
+expect_lacks "...and not the template title as well" "$alternate_front" '<h1 class="wp-block-post-title">About Us</h1>'
 expect_lacks "a front page without a hero does not preload an image" "$alternate_front" 'rel="preload" as="image"'
 wp option update page_on_front "$home_id" --quiet
+# A page staff write without the navy header still shows its title from the template, once.
+res_id="$(wp post list --post_type=page --name=resources --field=ID)"
+res_content="$(wp post get "$res_id" --field=post_content)"
+wp post update "$res_id" --post_content='<!-- wp:paragraph --><p>Links coming soon.</p><!-- /wp:paragraph -->' --quiet
+plain_page="$(curl -s "$BASE/resources/")"
+expect_contains "a page without its own header shows the template title" "$plain_page" '<h1 class="pn-page-title wp-block-post-title">Resources</h1>'
+expect_eq "...as its only h1" "$(grep -o '<h1[ >]' <<<"$plain_page" | wc -l | tr -d ' ')" "1"
+wp post update "$res_id" --post_content="$res_content" --post_password=secret --quiet
+protected_page="$(curl -s "$BASE/resources/")"
+# WordPress itself labels the title of a password-protected page "Protected: ...".
+expect_contains "a password-protected page keeps its template title" "$protected_page" '<h1 class="pn-page-title wp-block-post-title">Protected: Resources</h1>'
+expect_contains "...and shows the password form instead of its content" "$protected_page" 'post_password'
+wp post update "$res_id" --post_content="$res_content" --post_password='' --quiet
 home_content="$(wp post get "$home_id" --field=post_content)"
 wp post update "$home_id" --post_content='<!-- wp:image {"id":123,"className":"pn-photo--hero"} --><figure class="wp-block-image pn-photo--hero"><img src="/missing.webp" alt=""></figure><!-- /wp:image -->' --quiet
 home_without_h1="$(curl -s "$BASE/")"

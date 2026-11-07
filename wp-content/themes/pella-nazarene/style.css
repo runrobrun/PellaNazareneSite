@@ -2,7 +2,7 @@
 Theme Name:   Pella Nazarene
 Description:  Child theme of Twenty Twenty-Five for pellanazarene.org.
 Template:     twentytwentyfive
-Version:      0.2.1
+Version:      0.3.0
 Requires PHP: 8.1
 Text Domain:  pella-nazarene
 */
@@ -84,6 +84,7 @@ Text Domain:  pella-nazarene
 
 /* On navy, the navy focus ring would vanish: use white. */
 .pn-hero a:focus-visible,
+.pn-page-header a:focus-visible,
 .pn-infobar a:focus-visible {
 	outline: 3px solid var(--wp--preset--color--base);
 	outline-offset: 3px;
@@ -268,6 +269,137 @@ p.is-style-eyebrow + h2.wp-block-heading {
 		padding: 0;
 		border: 0;
 	}
+}
+
+/* ---- Inner pages (FE-6): the same look as the home page ---- */
+
+/* Every page opens with a navy header: eyebrow, the page's h1, one line, sometimes buttons. */
+.pn-page-header {
+	padding-top: clamp(3rem, 7vw, 5.5rem);
+	padding-bottom: clamp(3rem, 7vw, 5.5rem);
+}
+
+.pn-page-header__content > * {
+	max-width: 44rem;
+}
+
+.pn-page-header .pn-page-header__title {
+	margin: 0.25rem 0 1rem;
+	color: var(--wp--preset--color--base);
+	font-size: clamp(2.25rem, 5vw, 3.5rem);
+	line-height: 1.08;
+	letter-spacing: -0.02em;
+}
+
+.pn-page-header .wp-block-buttons {
+	margin-top: 1.75rem;
+}
+
+/* The blog and sermon lists start right under their header. */
+.pn-page-header + .wp-block-query {
+	margin-top: var(--wp--preset--spacing--60);
+}
+
+/* A page without its own header still shows the template's title, with room above it. */
+.pn-page-title {
+	margin-top: var(--wp--preset--spacing--60);
+}
+
+/* A panel: a rounded block of key facts set on a band (white on stone, stone on white). */
+.pn-panel {
+	padding: clamp(1.5rem, 3vw, 2.25rem);
+	border-radius: 12px;
+}
+
+.pn-panel > :first-child {
+	margin-top: 0;
+}
+
+/* Tiles: a grid of small white boxes (values, beliefs, links), as many across as fit. */
+.pn-tiles {
+	margin-top: 2rem;
+	gap: 1.25rem;
+}
+
+.pn-tile {
+	padding: 1.5rem 1.75rem;
+	border-radius: 12px;
+	box-shadow: 0 1px 3px color-mix(in srgb, var(--wp--preset--color--accent-3) 12%, transparent);
+}
+
+.pn-tile > :first-child {
+	margin-top: 0;
+}
+
+.pn-tile > h3.wp-block-heading {
+	margin-bottom: 0.5rem;
+	font-size: var(--wp--preset--font-size--large);
+}
+
+/* A navy band (a statement such as the mission): white headings and text, white links. */
+.pn-band-navy h2,
+.pn-band-navy h3 {
+	color: var(--wp--preset--color--base);
+}
+
+.pn-band-navy a {
+	color: var(--wp--preset--color--base);
+}
+
+.pn-band-navy a:focus-visible {
+	outline: 3px solid var(--wp--preset--color--base);
+	outline-offset: 3px;
+}
+
+/* Staff: one panel per person, photo beside the bio. */
+.pn-staff > .pn-panel + .pn-panel {
+	margin-top: 1.5rem;
+}
+
+.pn-staff .pn-panel .wp-block-columns {
+	margin: 0;
+}
+
+/* Questions: the Details blocks as one tidy list with a rust plus/minus. */
+.pn-faq .wp-block-details {
+	margin: 0;
+	padding: 1.1rem 0;
+	border-bottom: 1px solid var(--wp--preset--color--accent-1);
+}
+
+.pn-faq .wp-block-details:first-of-type {
+	border-top: 1px solid var(--wp--preset--color--accent-1);
+}
+
+.pn-faq .wp-block-details summary {
+	position: relative;
+	padding-right: 2.5rem;
+	color: var(--wp--preset--color--accent-3);
+	font-weight: 800;
+	list-style: none;
+	cursor: pointer;
+}
+
+.pn-faq .wp-block-details summary::-webkit-details-marker {
+	display: none;
+}
+
+.pn-faq .wp-block-details summary::after {
+	content: "+";
+	position: absolute;
+	top: -0.1em;
+	right: 0.25rem;
+	color: var(--wp--preset--color--rust);
+	font-size: 1.5em;
+	line-height: 1;
+}
+
+.pn-faq .wp-block-details[open] summary::after {
+	content: "\2013";
+}
+
+.pn-faq .wp-block-details > :not(summary) {
+	margin-top: 0.75rem;
 }
 
 .pn-service-info {

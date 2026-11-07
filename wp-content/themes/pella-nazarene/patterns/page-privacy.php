@@ -4,12 +4,20 @@
  * Slug: pella-nazarene/page-privacy
  * Categories: pella-nazarene
  * Inserter: false
- * Description: What the website does and does not do with visitors' information.
+ * Description: What the website does with visitors’ information. In the look of the home page (FE-6).
  */
 ?>
-<!-- wp:paragraph {"className":"is-style-subheading"} -->
-<p class="is-style-subheading">Plain answers about what this website does with your information.</p>
-<!-- /wp:paragraph -->
+<?php
+echo pn_page_header( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside pn_page_header().
+	'Privacy',
+	'Your privacy',
+	'Plain answers about what this website does with your information.'
+);
+?>
+<!-- wp:group {"align":"full","style":{"spacing":{"padding":{"top":"var:preset|spacing|70","bottom":"var:preset|spacing|70"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull" style="padding-top:var(--wp--preset--spacing--70);padding-bottom:var(--wp--preset--spacing--70)">
+<!-- wp:group {"layout":{"type":"constrained"}} -->
+<div class="wp-block-group">
 <!-- wp:paragraph {"fontSize":"small"} -->
 <p class="has-small-font-size"><em>Last updated October 2026.</em></p>
 <!-- /wp:paragraph -->
@@ -79,3 +87,7 @@
 <!-- wp:paragraph -->
 <p>If we change how the site works with your information, we will update this page and the date at the top.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->

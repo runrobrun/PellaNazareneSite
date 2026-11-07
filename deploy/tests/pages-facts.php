@@ -45,17 +45,17 @@ check( 'brand palette was read from theme.json', count( $brand ) >= 5, count( $b
 
 $pages = array(
 	'/'           => array( 'Home', 'Loving people. Growing together.', array( 'Plan a Visit', 'Watch Online', 'Todd &amp; Cindy Olson', 'Find your place', 'Latest message', 'Lighthouse Student Ministry', 'Windmill Cafe', 'Give generously' ) ),
-	'/new-here/'  => array( 'New Here', 'New Here', array( 'Plan your visit', 'Where do I park?', 'Prairie Street', 'Connect card' ) ),
-	'/about-us/'  => array( 'About Us', 'About Us', array( 'Honest Fellowship', 'Whitlatch', 'Vermeer', 'Floyd Ware', 'Statement of beliefs' ) ),
-	'/kids/'      => array( 'Kids', 'Kids', array( 'birth through age 12', 'background checks' ) ),
-	'/giving/'    => array( 'Giving', 'Giving', array( 'Colossians 3:23-24', 'Building fund', 'World missions' ) ),
-	'/contact/'   => array( 'Contact', 'Contact', array( '(641) 628-1818', 'pellanazarene@gmail.com', 'Monday 1', 'Central' ) ),
-	'/resources/' => array( 'Resources', 'Resources', array( 'Nazarene Discipleship International', 'The Preaching Collaborative' ) ),
-	'/events/'    => array( 'Events', 'Events', array( 'Sunday School', 'Connections Sunday School Class', 'Lighthouse Student Ministry', 'Midweek Prayer Meeting', 'Coffee Time', 'Windmill Cafe', '9:30–10:15 AM', '5:30–7:00 PM', '10:30–11:30 AM', '7:00–8:00 PM', 'Central', 'See the full calendar' ) ),
-	'/small-groups/' => array( 'Small Groups', 'Small Groups', array( 'Find a group', 'Connect card', '9:30' ) ),
+	'/new-here/'  => array( 'New Here', 'We’d love to meet you', array( 'Plan your visit', 'Where do I park?', 'Prairie Street', 'Connect card' ) ),
+	'/about-us/'  => array( 'About Us', 'A church family in Pella', array( 'Honest Fellowship', 'Whitlatch', 'Vermeer', 'Floyd Ware', 'Statement of beliefs' ) ),
+	'/kids/'      => array( 'Kids', 'A place kids love', array( 'birth through age 12', 'background checks' ) ),
+	'/giving/'    => array( 'Giving', 'Thank you for your support', array( 'Colossians 3:23-24', 'Building fund', 'World missions' ) ),
+	'/contact/'   => array( 'Contact', 'We would love to hear from you', array( '(641) 628-1818', 'pellanazarene@gmail.com', 'Monday 1', 'Central' ) ),
+	'/resources/' => array( 'Resources', 'Help for every step of faith', array( 'Nazarene Discipleship International', 'The Preaching Collaborative' ) ),
+	'/events/'    => array( 'Events', 'What’s happening', array( 'Sunday School', 'Connections Sunday School Class', 'Lighthouse Student Ministry', 'Midweek Prayer Meeting', 'Coffee Time', 'Windmill Cafe', '9:30–10:15 AM', '5:30–7:00 PM', '10:30–11:30 AM', '7:00–8:00 PM', 'Central', 'See the full calendar' ) ),
+	'/small-groups/' => array( 'Small Groups', 'Find your people', array( 'Find a group', 'Connect card', '9:30' ) ),
 	'/blog/'      => array( 'Blog', 'Blog', array( 'News and encouragement', 'Welcome to our new website' ) ),
-	'/privacy/'   => array( 'Privacy', 'Privacy', array( 'Google Analytics', 'Global Privacy Control', 'not</strong> kept', 'Prayer requests', '12 months', 'opt out' ) ),
-	'/prayer/'    => array( 'Prayer Request', 'Prayer Request', array( 'honored to pray', 'not kept on this website', 'call 911', '628-1818' ) ),
+	'/privacy/'   => array( 'Privacy', 'Your privacy', array( 'Google Analytics', 'Global Privacy Control', 'not</strong> kept', 'Prayer requests', '12 months', 'opt out' ) ),
+	'/prayer/'    => array( 'Prayer Request', 'We would be honored to pray with you', array( 'honored to pray', 'not kept on this website', 'call 911', '628-1818' ) ),
 );
 $bad_words = array( 'lorem ipsum', 'omega church', 'brunson', 'will & gloria', 'gloria jackson', 'eastern', '8:30', '8:00 -', 'onine', 'activites', 'link to be added', 'wedensday', 'text-to-give', 'text to give' );
 
@@ -185,7 +185,7 @@ check( 'Small Groups sends people to Church Center Groups', in_array( 'https://p
 check( 'Small Groups has no old demo group names', false === stripos( main_text( dom( $html_of['/small-groups/'] ) ), 'Brunson' ), 'demo names present' );
 // Giving: every give button goes to Church Center.
 $give = array_filter( array_column( $all_links['/giving/'] ?? array(), 0 ), fn( $h ) => str_contains( $h, 'churchcenter' ) );
-check( 'Giving has 3 give buttons', 3 === count( $give ), count( $give ) . ' found' );
+check( 'Giving has 4 give buttons', 4 === count( $give ), count( $give ) . ' found' );
 foreach ( $give as $h ) {
 	check( 'Giving button goes to Church Center giving', 'https://pella-nazarene.churchcenter.com/giving' === $h, $h );
 }
@@ -193,7 +193,7 @@ foreach ( $give as $h ) {
 $contact = main_text( dom( $html_of['/contact/'] ) );
 check( 'Contact hours are Mon 1-4, Wed 9-12 and Fri 9-12', (bool) preg_match( '/Monday 1.{1,3}4\s*PM, Wednesday 9\s*AM.{1,3}12\s*PM, Friday 9\s*AM.{1,3}12\s*PM Central/u', $contact ), 'hours text not found' );
 // Photos in total, the hero preload, and that the files really are served as WebP.
-$expected_photos = array( '/' => 5, '/new-here/' => 2, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 0, '/blog/' => 0, '/prayer/' => 0, '/privacy/' => 0 );
+$expected_photos = array( '/' => 5, '/new-here/' => 3, '/about-us/' => 6, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 1, '/blog/' => 0, '/prayer/' => 0, '/privacy/' => 0 );
 foreach ( $expected_photos as $path => $n ) {
 	$found = dom( $html_of[ $path ] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->length;
 	check( "$path shows $n photo(s)", $n === $found, "$found found" );
