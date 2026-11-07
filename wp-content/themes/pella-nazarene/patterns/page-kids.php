@@ -59,7 +59,7 @@ echo pn_page_header( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEs
 <!-- /wp:heading -->
 </div>
 <!-- /wp:group -->
-<!-- wp:group {"align":"wide","className":"pn-tiles","layout":{"type":"grid","minimumColumnWidth":"20rem"}} -->
+<!-- wp:group {"align":"wide","className":"pn-tiles","layout":{"type":"grid","columnCount":2,"minimumColumnWidth":"20rem"}} -->
 <div class="wp-block-group alignwide pn-tiles">
 <!-- wp:group {"className":"pn-tile","backgroundColor":"base","layout":{"type":"default"}} -->
 <div class="wp-block-group pn-tile has-base-background-color has-background">
