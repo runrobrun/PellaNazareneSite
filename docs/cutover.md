@@ -11,7 +11,7 @@ Write the answers here (no passwords; say where the password lives instead).
 | What | Answer |
 |---|---|
 | Where the old site is hosted, and where its login is kept | _TBD_ |
-| DNS host and where its login is kept | DNS Made Easy (or Cloudflare, see decision 1) |
+| DNS host and where its login is kept | Moving from DNS Made Easy to Cloudflare (decision 1: (a)); steps in `docs/cloudflare-dns-move.md`; nameservers moved 2026-11-07 |
 | Current DNS records for `pellanazarene.org` and `www` (type, value, TTL), copied before anything changes | _TBD_ |
 | Linode server IP (IPv4, and IPv6 if used) | _TBD_ |
 | Cutover date and time | _TBD_ (see "When") |
@@ -20,7 +20,7 @@ Write the answers here (no passwords; say where the password lives instead).
 
 ## Decisions to make first
 
-1. **DNS and certificates (INF-3).** Either (a) move DNS to Cloudflare and put the site behind it, or (b) stay on DNS Made Easy and use a Let's Encrypt certificate on the server, no CDN. The steps below say where the two differ. If (a), move DNS to Cloudflare **at least a week before** cutover, as its own step: copy every record across, leave the proxy **off** (grey cloud) so the old site keeps working exactly as before, then change the nameservers at the registrar.
+1. **DNS and certificates (INF-3).** **Decided 2026-11-07: (a) Cloudflare**; the DNS move is `docs/cloudflare-dns-move.md`. The choice was: either (a) move DNS to Cloudflare and put the site behind it, or (b) stay on DNS Made Easy and use a Let's Encrypt certificate on the server, no CDN. The steps below say where the two differ. If (a), move DNS to Cloudflare **at least a week before** cutover, as its own step: copy every record across, leave the proxy **off** (grey cloud) so the old site keeps working exactly as before, then change the nameservers at the registrar.
 2. **How content reaches the live site.** Recommended: **copy the staging database** (step 4), because staging holds everything staff have reviewed: page edits, published sermons, photos, blog post, and each person's two-factor setup. The alternative, building the live site fresh with the scripts and redoing every staff edit by hand, risks losing work. Either way, staging edits stop at the content freeze.
 3. **When.** A weekday morning, Tuesday to Thursday, with someone from the office reachable. Not Saturday night or Sunday, when people look up service times.
 

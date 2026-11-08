@@ -37,7 +37,8 @@ Separate staging environment on the same Linode, isolated from production.
 - Script to refresh staging from production: DB copy with `wp search-replace` of the URL, uploads sync, and scrubbing of user emails and form entries.
 - Documented in `docs/setup.md` and `docs/runbook.md`.
 
-### INF-3 Domain, DNS, CDN, and TLS · S · todo · needs INF-1
+### INF-3 Domain, DNS, CDN, and TLS · S · doing · needs INF-1
+**Decision (Rob, 2026-11-07): (a), move DNS to Cloudflare.** Step one, moving the DNS records with the proxy off, is `docs/cloudflare-dns-move.md`; the site goes behind Cloudflare at cutover (`docs/cutover.md` step 6a). **Nameservers moved to Cloudflare 2026-11-07** (all records DNS only, answers checked, staging certificate renewal dry run passed); settles until 2026-11-14. Still to do after that: origin certificate, real-IP config, Full (strict), HSTS.
 **Decision needed:** the domain's DNS is hosted at DNS Made Easy, not Cloudflare. The docs and `deploy/nginx.conf.example` assume Cloudflare (origin cert, Full strict, real-IP). Either (a) move DNS to Cloudflare (free; gives CDN, DDoS protection, and caching), or (b) stay on DNS Made Easy and use Let's Encrypt on the server with no CDN. Then update `docs/setup.md`, `CLAUDE.md`, and the Nginx example to match.
 - Cloudflare in front, origin certificate installed, SSL mode Full (strict).
 - Nginx real-IP config for Cloudflare (`cloudflare-realip.conf`).
