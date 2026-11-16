@@ -29,8 +29,8 @@ Write the answers here (no passwords; say where the password lives instead).
 Every **must** box ticked, or the date moves. **Should** boxes can slip past launch if written down here with a date.
 
 **Must**
-- [ ] Staff have signed off every page (MIG-3), including the open questions: parking and kids-age wording, the New Here welcome video, the staff emails on About Us.
-- [ ] Staff have confirmed the five weekly event times (MIG-7).
+- [ ] Staff have signed off every page (MIG-3), including the open questions: parking and kids-age wording and the staff emails on About Us (the welcome video was replaced 2026-11-16).
+- [x] Staff have confirmed the five weekly event times (MIG-7), 2026-11-16.
 - [ ] Floyd Ware's full bio is in, or the cut-off sentence is removed (MIG-4).
 - [ ] At least one real blog post is published, so `/blog/` is not empty (FEAT-7).
 - [ ] Sermons reviewed and published on staging; all four old-site sermons (Pentecost, God's Messenger, Vision Sunday 1 and 2) have published targets, with `pn_legacy_slug` set where needed so their old URLs reach the individual sermon pages (`docs/sermons.md`, "Overrides"; `docs/redirects.md`).
