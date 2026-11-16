@@ -48,7 +48,7 @@ case "${BREAK:-}" in
 <h2 class="wp-block-heading">Our mission</h2>' '<!-- wp:heading {"level":1} -->
 <h1 class="wp-block-heading">Our mission</h1>' ;;
 	lost-link)   break_it $T/patterns/page-resources.php '<li><a href="https://nazarene.org/the-cause/">The Cause</a></li>' '' ;;
-	iframe)      break_it $T/patterns/page-new-here.php '[pn_sermon_video id="EK0MuwDegjI"]' '<iframe src="https://www.youtube.com/embed/EK0MuwDegjI"></iframe>' ;;
+	iframe)      break_it $T/patterns/page-new-here.php '[pn_sermon_video id="Woo47EbtMJw"]' '<iframe src="https://www.youtube.com/embed/Woo47EbtMJw"></iframe>' ;;
 	hardcolor)   break_it $T/patterns/page-kids.php '<p class="is-style-subheading">Your kids' '<p class="is-style-subheading" style="color:#ff0000">Your kids' ;;
 	no-header)   break_it $T/templates/archive-pn_sermon.html '{"slug":"header","tagName":"header"}' '{"slug":"header","theme":"twentytwentyfive"}' ;;
 	no-alt)      break_it $T/assets/images/photos/manifest.json '"alt": "Todd Olson, co-pastor"' '"alt": ""' ;;

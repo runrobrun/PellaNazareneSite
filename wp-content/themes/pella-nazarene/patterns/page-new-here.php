@@ -25,7 +25,7 @@ echo pn_page_header( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEs
 <!-- wp:column {"verticalAlignment":"center"} -->
 <div class="wp-block-column is-vertically-aligned-center">
 <!-- wp:shortcode -->
-[pn_sermon_video id="EK0MuwDegjI"]
+[pn_sermon_video id="Woo47EbtMJw"]
 <!-- /wp:shortcode -->
 </div>
 <!-- /wp:column -->
