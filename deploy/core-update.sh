@@ -9,10 +9,10 @@
 # Steps: skip if up to date -> back up the core files and the database -> update -> update the
 # database -> verify every core file against WordPress.org's checksums -> clear caches -> health check.
 # If anything after the backup fails, the old core files are put back from the local copy (no
-# download needed). The database backup is imported only if the update changed the database
-# version, so a rollback does not undo unrelated changes (a staff edit, a sermon import) made in
-# the meantime. The run then fails, so `systemctl --failed` and the journal show it. If the files
-# cannot be put back, it stops with RECOVERY NEEDED and leaves the database alone.
+# download needed). The database backup is kept but never imported automatically, so a rollback
+# cannot undo changes (a staff edit, a sermon import) made in the meantime; restoring it is a
+# manual decision (docs/setup.md section 5). The run then fails, so `systemctl --failed` and the
+# journal show it. If the files cannot be put back, it stops with RECOVERY NEEDED.
 set -euo pipefail
 
 [[ $EUID -eq 0 ]] || { echo "pn-core-update runs as root (from its systemd timer, or with sudo)." >&2; exit 1; }
