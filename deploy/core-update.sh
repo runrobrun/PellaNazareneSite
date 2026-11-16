@@ -78,7 +78,6 @@ install -d -o root -g root -m 700 "$BACKUPS"
 STAMP="core-$OLD-$(date +%Y%m%d-%H%M%S)"
 BACKUP_FILE="$BACKUPS/$STAMP.sql.gz"
 FILES_BACKUP="$BACKUPS/$STAMP.files.tar.gz"
-OLD_DB_VERSION="$(pn_wp option get db_version)"
 # Owner-only: the dump contains password hashes. The core files (everything but wp-content and
 # wp-config.php) are copied too, so a rollback never depends on downloading anything.
 ( umask 077
@@ -132,12 +131,7 @@ roll_back() {
 		echo "$SITE: restore by hand from $FILES_BACKUP (and $BACKUP_FILE if needed); see docs/setup.md section 5." >&2
 		exit 5
 	fi
-	# Import the database backup only if the update changed the database version; otherwise the
-	# database is still right for $OLD, and importing would undo changes made since the backup.
-	if [[ "$(pn_wp option get db_version 2>/dev/null || echo unknown)" != "$OLD_DB_VERSION" ]]; then
-		echo "$SITE: the update changed the database; restoring it from $BACKUP_FILE" >&2
-		gunzip -c "$BACKUP_FILE" | pn_wp db import - || { echo "$SITE: RECOVERY NEEDED: could not restore the database from $BACKUP_FILE." >&2; exit 5; }
-	fi
+	echo "$SITE: database backup retained at $BACKUP_FILE and not restored automatically; review the live database and restore it manually only if needed." >&2
 	clear_caches || echo "$SITE: could not clear the caches after the rollback; clear them by hand." >&2
 	exit 1
 }

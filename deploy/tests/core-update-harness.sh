@@ -18,7 +18,7 @@ printf 'password: stub\n' > $T/secrets/staging-basic-auth.txt
 touch $T/www/staging/.deploy.lock
 # --- stubs ---------------------------------------------------------------
 # The installed version lives in the site's own files (wp-includes/version.php), so a rollback
-# from the file backup really changes it. /t/state holds the database and its db_version.
+# from the file backup really changes it. /t/state holds the database.
 cat > $T/bin/wp <<'EOF2'
 #!/usr/bin/env bash
 S=/t/state; W=/t/www/staging/public; args=()
@@ -29,7 +29,6 @@ case "${args[*]}" in
   "core check-update --minor --format=count")
     [[ -n "${FAKE_CHECK_FAIL:-}" ]] && exit 1
     [[ "$(cat $W/wp-includes/version.php)" == "$(cat $S/offer)" ]] && echo 0 || echo 1;;
-  "option get db_version") cat $S/dbver;;
   "db export -") cat $S/db;;
   "db import -") cat > $S/db;;
   "core update --minor")
@@ -38,7 +37,7 @@ case "${args[*]}" in
     [[ -n "${FAKE_STAFF_EDIT:-}" ]] && echo "staff-edit" > $S/db
     if [[ -n "${FAKE_BREAK_RESTORE:-}" ]]; then rm -f $W/index.php; mkdir -p $W/index.php/x; fi
     exit 0;;
-  "core update-db") [[ -n "${FAKE_SCHEMA:-}" ]] && { echo 2 > $S/dbver; echo "db-after-update" > $S/db; }; exit 0;;
+  "core update-db") [[ -n "${FAKE_SCHEMA:-}" ]] && echo "db-after-update" > $S/db; exit 0;;
   "core verify-checksums") [[ -n "${FAKE_CHECKSUM_FAIL:-}" ]] && exit 1; exit 0;;
   "cache flush") [[ -n "${FAKE_CACHE_FAIL:-}" ]] && exit 1; exit 0;;
   *) echo "unexpected wp call: ${args[*]}" >&2; exit 9;;
@@ -62,7 +61,7 @@ reset() {  # reset <installed> <offered>
 	echo "$1" > "$W/wp-includes/version.php"; echo admin > "$W/wp-admin/admin.php"; echo index > "$W/index.php"
 	echo photo > "$W/wp-content/uploads/photo.jpg"; echo secret > "$W/wp-config.php"
 	chown -R pn-staging-deploy: "$W"
-	echo "$2" > $T/state/offer; echo "db-before" > $T/state/db; echo 1 > $T/state/dbver
+	echo "$2" > $T/state/offer; echo "db-before" > $T/state/db
 	chmod -R a+rwX $T/state; : > $T/wp.log; chmod a+rw $T/wp.log; touch $T/cache/pellanazarene-staging/page
 }
 run() { OUT="$(env "$@" bash $T/core-update.sh staging 2>&1)"; RC=$?; }
@@ -121,7 +120,8 @@ reset 7.1.3 7.1.4; run FAKE_CODE=500 FAKE_SCHEMA=1
 check "fails" "$RC" 1
 check "says which page failed" "$(grep -c 'returned HTTP 500' <<<"$OUT")" 1
 check "files back to 7.1.3" "$(version)" 7.1.3
-check "database restored from the backup" "$(cat $T/state/db)" db-before
+check "database is retained for review" "$(cat $T/state/db)" db-after-update
+check "database is not restored automatically" "$(grep -c 'not restored automatically' <<<"$OUT")" 1
 
 echo "Clearing the caches fails"
 reset 7.1.3 7.1.4; run FAKE_CACHE_FAIL=1
