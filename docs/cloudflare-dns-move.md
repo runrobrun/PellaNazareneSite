@@ -106,7 +106,7 @@ dig +short staging.pellanazarene.org @1.1.1.1         # the Linode address
 ## If something breaks
 
 - **A single record is missing or wrong:** add or fix it in Cloudflare **DNS → Records**. The change is live within minutes.
-- **Lots is wrong, or email stops:** at the registrar, put the old DNS Made Easy nameservers from step 1 back. The DNS Made Easy zone was never changed, so everything returns to how it was as computers pick up the change, usually within a few hours.
+- **Lots is wrong, or email stops:** if DNSSEC is enabled in Cloudflare, first remove its **DS record** at the registrar and wait for the record's cached TTL to expire while Cloudflare continues signing. Then put the old DNS Made Easy nameservers from step 1 back. The DNS Made Easy zone was never changed, so everything returns to how it was as computers pick up the change, usually within a few hours.
 
 ## Afterwards
 
