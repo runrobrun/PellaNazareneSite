@@ -193,7 +193,7 @@ foreach ( $give as $h ) {
 $contact = main_text( dom( $html_of['/contact/'] ) );
 check( 'Contact hours are Mon 2-5, Wed 4-7 and Fri 9-12', (bool) preg_match( '/Monday 2.{1,3}5\s*PM, Wednesday 4.{1,3}7\s*PM, Friday 9\s*AM.{1,3}12\s*PM Central/u', $contact ), 'hours text not found' );
 // Photos in total, the hero preload, and that the files really are served as WebP.
-$expected_photos = array( '/' => 5, '/new-here/' => 3, '/about-us/' => 7, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 1, '/blog/' => 0, '/prayer/' => 0, '/privacy/' => 0 );
+$expected_photos = array( '/' => 5, '/new-here/' => 3, '/about-us/' => 7, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 1, '/blog/' => 1, '/prayer/' => 0, '/privacy/' => 0 );
 foreach ( $expected_photos as $path => $n ) {
 	$found = dom( $html_of[ $path ] )->query( "//main//img[not(ancestor::*[contains(@class, 'pn-video')])]" )->length;
 	check( "$path shows $n photo(s)", $n === $found, "$found found" );
@@ -224,6 +224,11 @@ check( 'Hero has a small size for phones (600px or less)', (bool) preg_match( '/
 
 // The blog: published posts only, a readable post page, an RSS feed, and a menu link on every page.
 $blog_x = dom( $html_of['/blog/'] );
+// The blog list shows each post's featured image as a small, sized, lazy thumbnail.
+$thumb = $blog_x->query( "//main//*[contains(@class, 'pn-post-card__image')]//img" )->item( 0 );
+check( 'Blog list shows the featured image as a thumbnail', null !== $thumb, 'no thumbnail' );
+check( 'The thumbnail has width, height, srcset and sizes', '' !== (string) $thumb?->getAttribute( 'width' ) && '' !== (string) $thumb?->getAttribute( 'height' ) && '' !== (string) $thumb?->getAttribute( 'srcset' ) && '' !== (string) $thumb?->getAttribute( 'sizes' ), 'missing size attributes' );
+check( 'The thumbnail does not use a full-size file', ! preg_match( '/-scaled\.|\d{4}x\d{3,4}\./', (string) $thumb?->getAttribute( 'src' ) ), (string) $thumb?->getAttribute( 'src' ) );
 check( 'Blog index does not show the draft post', false === strpos( $html_of['/blog/'], 'A draft post' ), 'draft leaked onto the blog' );
 $post_link = (string) $blog_x->query( "//main//h2//a[contains(., 'Welcome to our new website')]" )->item( 0 )?->getAttribute( 'href' );
 check( 'Blog index links to the post', '' !== $post_link, 'no link to the post' );

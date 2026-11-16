@@ -219,7 +219,8 @@ Sitemap, meta titles and descriptions, Open Graph images, `Church` schema.org ma
 - **Done in the FEAT-5 PR:** `pn-seo.php`: page titles ("Kids | Pella Nazarene"), a description for every page (pages get an Excerpt box; `create-pages.sh` fills missing ones), Open Graph and Twitter tags with a 1200x630 church photo (sermons use their YouTube picture), `Church` JSON-LD on the home page (address, phone, email, office hours, worship and small-group times, social pages). The sitemap and robots.txt are WordPress's own, tested. The hours in the data are tested against what Contact shows. Docs: `docs/seo.md`.
 - **At launch:** submit the sitemap in Google Search Console, check the live source and a shared link preview, make the Google Business Profile match, confirm "Discourage search engines" is off.
 
-### FEAT-7 Blog · S · in review (built; staff to write the first real post before launch)
+### FEAT-7 Blog · S · done (first post "Stop Striving, Start Abiding" published on staging 2026-11-16)
+- **Blog list thumbnails (2026-11):** each post in the `/blog/` list shows its featured image as a 240 px, 3:2 thumbnail beside the text (stacked on phones; posts without one show text only). Set it under **Featured image** when writing a post.
 Set up a blog at `/blog/` starting empty (old posts are not migrated).
 - Blog index and single-post templates in the theme, matching the design system; categories only if staff want them.
 - Pastors (Author) can draft and Editor publishes; RSS feed works.

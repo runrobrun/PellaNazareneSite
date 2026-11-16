@@ -32,7 +32,7 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 - [ ] Staff have signed off every page (MIG-3), including the open questions: parking and kids-age wording and the staff emails on About Us (the welcome video was replaced 2026-11-16).
 - [x] Staff have confirmed the five weekly event times (MIG-7), 2026-11-16.
 - [x] Floyd Ware's bio approved as it stands (MIG-4), 2026-11-16.
-- [ ] At least one real blog post is published, so `/blog/` is not empty (FEAT-7).
+- [x] At least one real blog post is published, so `/blog/` is not empty (FEAT-7), 2026-11-16.
 - [ ] Sermons reviewed and published on staging; all four old-site sermons (Pentecost, God's Messenger, Vision Sunday 1 and 2) have published targets, with `pn_legacy_slug` set where needed so their old URLs reach the individual sermon pages (`docs/sermons.md`, "Overrides"; `docs/redirects.md`).
 - [ ] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`).
 - [ ] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`).
