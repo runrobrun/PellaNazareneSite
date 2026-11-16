@@ -1,0 +1,12 @@
+# Daily check for WordPress core maintenance and security releases (%i: staging or production).
+[Unit]
+Description=Daily WordPress core security updates for %i
+
+[Timer]
+# Early morning Central, at a slightly different minute each day; a missed run (server off) runs at boot.
+OnCalendar=*-*-* 03:15 America/Chicago
+RandomizedDelaySec=45min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

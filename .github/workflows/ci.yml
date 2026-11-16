@@ -58,6 +58,10 @@ jobs:
       - name: CI deploy wrapper tests
         run: docker run --rm -v "$PWD":/work:ro ubuntu:24.04 bash /work/deploy/tests/ci-deploy-harness.sh
 
+      # The WordPress core updater (up to date, offline, update, three kinds of rollback, deploy lock).
+      - name: Core update tests
+        run: docker run --rm -v "$PWD":/work:ro ubuntu:24.04 bash /work/deploy/tests/core-update-harness.sh
+
       # The setup scripts must also work in the old bash that comes with a Mac (3.2).
       - name: Setup scripts in old bash
         run: deploy/tests/script-args-check.sh

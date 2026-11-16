@@ -46,7 +46,7 @@ Add to `public/wp-config.php`:
 
 ```php
 define( 'DISABLE_WP_CRON', true );
-define( 'WP_AUTO_UPDATE_CORE', true );
+define( 'WP_AUTO_UPDATE_CORE', false ); // WordPress can't write its own files; pn-core-update installs security releases (section 5).
 define( 'DISALLOW_FILE_EDIT', true );
 define( 'WP_REDIS_HOST', '127.0.0.1' );
 define( 'WP_REDIS_USERNAME', 'pn-production' );
@@ -100,6 +100,24 @@ One-time setup:
 4. Production deploys stay off until the repository variable `PRODUCTION_DEPLOYS` is `on` (Settings → Secrets and variables → Actions → Variables). Set it at cutover (`docs/cutover.md`, step 7). Until then the production job is skipped on every merge. To pause production deploys later, set it to anything else.
 5. To approve a deploy: Actions → the Deploy run → **Review deployments** → production → Approve. A deploy left unapproved expires after 30 days; nothing reaches the live site without the click.
 6. To revoke, delete the `pella-ci-deploy-production` line from `/home/pn-production-deploy/.ssh/authorized_keys`.
+
+**WordPress security updates.** Because PHP cannot write the site's files, WordPress cannot install its own updates (and its "Update Now" button asks for FTP details). Instead, a daily systemd timer runs `/usr/local/sbin/pn-core-update <site>` (`deploy/core-update.sh`) at about 3:15–4:00 AM Central. It installs **maintenance and security releases only** (7.1.3 → 7.1.4), never a new major version (7.2), which stays a deliberate, tested change. It runs WP-CLI as the site's deploy account, waits for any running deploy, saves the database and a copy of the core files to `/var/backups/pn-<site>-db/core-<old version>-*` (`.sql.gz` and `.files.tar.gz`, five of each kept), then updates, updates the database, checks every core file against WordPress.org's checksums, clears the caches and checks the home and login pages. If anything fails, it puts the old core files back from that copy (no download needed) and the run fails. The database backup is retained but **never restored automatically**: staff requests and the independent WP-Cron runner can write to the database during the update, so automatic restore could discard newer changes. Check the journal for the backup path and review the live database; restore the backup manually only if needed using `sudo gunzip -c /path/from/journal.sql.gz | sudo -u pn-<site>-deploy wp --path=/var/www/<site>/public db import -`. If WordPress.org can't be reached, or the update check fails, it changes nothing and the run fails, instead of saying "up to date".
+
+1. After `setup-ci-deploy.sh` for a site, from that site's checkout: `scripts/setup-core-updates.sh staging` (or `production`). It installs the updater and the timer, and checks once right away.
+2. To see what happened: `systemctl list-timers 'pn-core-update@*'` (next run) and `journalctl -u pn-core-update@staging -n 20` (last runs). `systemctl --failed` lists a failed run.
+3. To update right now: `sudo systemctl start pn-core-update@staging`.
+4. To pause it (for example before a risky change): `sudo systemctl disable --now pn-core-update@production.timer`; `enable --now` turns it back on.
+5. If a run ends with **RECOVERY NEEDED** (exit 5), it could not put the old files back and left the database alone. Pause the timer (step 4), then restore by hand as the deploy account, using the newest backup the message names:
+   ```bash
+   W=/var/www/pellanazarene/public B=/var/backups/pn-production-db/core-7.1.3-YYYYMMDD-HHMMSS
+   sudo -u pn-production-deploy rm -rf "$W/wp-admin" "$W/wp-includes"
+   sudo cat "$B.files.tar.gz" | sudo -u pn-production-deploy tar -C "$W" -xzf -
+   # only after reviewing the live database and deciding it must be restored:
+   sudo cat "$B.sql.gz" | gunzip | sudo -u pn-production-deploy wp --path="$W" db import -
+   sudo /usr/local/sbin/pn-clear-cache production
+   ```
+
+Plugins are not updated this way; they stay at the versions pinned in `plugins.txt` (SEC-2).
 
 ## Nginx and PHP-FPM tuning
 

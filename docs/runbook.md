@@ -37,12 +37,14 @@ wp --path=/var/www/pellanazarene/public two-factor disable <username> --yes
 - Events: the regular weekly events are on the **Events** page (edit them there if a time changes); everything else, including one-time events and sign-ups, goes in Planning Center, and the page links to that calendar. Small groups are managed in Church Center Groups.
 - Blog: a pastor writes under **Posts → Add New** and uses **Submit for Review**; the office admin (Editor) reads it and clicks **Publish**. The blog is at `/blog/` and its feed at `/feed/`. Pastors cannot publish on their own.
 - Before launch, and again right after: `scripts/check-filler.sh` looks for leftovers from the old site (sample content, wrong hours); how to run it and fix what it finds: `docs/filler-check.md`
+- WordPress security releases install themselves overnight (staging and production). To check: `journalctl -u pn-core-update@production -n 20` on the server; details and how to pause it: `docs/setup.md` section 5
 - Review new sermon drafts each week (Sermons in the admin) and publish them; how the import works and how to import the history: `docs/sermons.md`
 
 ## If something breaks
 - Site is down
 - Forms stopped sending email: `docs/forms.md` (the usual cause is the Gmail app password)
 - Sermons stopped importing
+- A WordPress update failed: `systemctl --failed` shows `pn-core-update@<site>`; `journalctl -u pn-core-update@<site> -n 40` says why. Usually the site is already back on the old version; if it says RECOVERY NEEDED, follow `docs/setup.md` section 5, step 5. Fix the cause, then `sudo systemctl start pn-core-update@<site>`
 - Restore from last night's backup
 
 ## Who to call

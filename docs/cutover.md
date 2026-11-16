@@ -61,6 +61,7 @@ The old site keeps serving visitors the whole time. Follow `docs/setup.md`; the 
   - (a) Cloudflare: create the origin certificate, install it at the paths in the vhost, write the real-IP config (`/etc/nginx/snippets/cloudflare-realip.conf`, not in the repo yet: `set_real_ip_from` for each range at cloudflare.com/ips, and `real_ip_header CF-Connecting-IP;`) and uncomment its include in the vhost. The login throttle needs real IPs, so this comes before launch.
   - (b) Let's Encrypt: it cannot check the server until DNS points here. To avoid a few minutes of browser warnings at the switch, get a temporary certificate now with a DNS check (`sudo certbot certonly --manual --preferred-challenges dns -d pellanazarene.org -d www.pellanazarene.org`, then add the TXT record it asks for at DNS Made Easy). It will not renew itself, so it is replaced in step 6.
 - [ ] Cron: `deploy/crontab.example` installed for `pn-production-php`; `/var/backups/pellanazarene` created and owned by that user.
+- [ ] Automatic WordPress security updates, once `scripts/setup-ci-deploy.sh production` has run: `scripts/setup-core-updates.sh production` (`docs/setup.md` section 5). It ends by showing the next run time.
 - [ ] Look at it privately: add a line to your computer's hosts file (`<Linode IP> pellanazarene.org`), browse it, then remove the line.
 
 ## 3. Lower the DNS time-to-live (at least 48 hours before cutover)

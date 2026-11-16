@@ -1,0 +1,10 @@
+# Installs WordPress core maintenance and security releases for one site (%i: staging or production).
+# Installed by scripts/setup-core-updates.sh; started by pn-core-update@%i.timer.
+[Unit]
+Description=WordPress core security updates for %i
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/pn-core-update %i
