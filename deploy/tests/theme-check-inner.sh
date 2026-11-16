@@ -152,7 +152,7 @@ has "YouTube link"                                    "$N" 'href="https://www.yo
 has "service times are in the footer"                 "$N" "Worship 10:30"
 has "street address is in the footer"                 "$N" "303 University Street"
 has "phone number is a tap-to-call link"              "$N" 'href="tel:+16416281818"'
-has "office hours are in the footer"                  "$N" "Monday 1"
+has "office hours are in the footer"                  "$N" "Monday 2"
 has "copyright year is current"                       "$N" "© $(date +%Y) Pella Church of the Nazarene"
 expect_eq "exactly one header landmark" "$(grep -o '<header' <<<"$N" | wc -l | tr -d ' ')" "1"
 expect_eq "exactly one main landmark"   "$(grep -o '<main' <<<"$N" | wc -l | tr -d ' ')" "1"

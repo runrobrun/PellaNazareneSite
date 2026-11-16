@@ -25,8 +25,8 @@ function pn_church_info(): array {
 		),
 		// Office hours: day, opens, closes (24-hour, Central time).
 		'office_hours' => array(
-			array( 'Monday', '13:00', '16:00' ),
-			array( 'Wednesday', '09:00', '12:00' ),
+			array( 'Monday', '14:00', '17:00' ),
+			array( 'Wednesday', '16:00', '19:00' ),
 			array( 'Friday', '09:00', '12:00' ),
 		),
 		// Weekly services: name, day, starts (24-hour, Central time).

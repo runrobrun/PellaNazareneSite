@@ -49,7 +49,7 @@ $pages = array(
 	'/about-us/'  => array( 'About Us', 'A church family in Pella', array( 'Honest Fellowship', 'Whitlatch', 'Vermeer', 'Micah Hammann', 'Floyd Ware', 'Statement of beliefs' ) ),
 	'/kids/'      => array( 'Kids', 'A place kids love', array( 'birth through age 12', 'background checks' ) ),
 	'/giving/'    => array( 'Giving', 'Thank you for your support', array( 'Colossians 3:23-24', 'Building fund', 'World missions' ) ),
-	'/contact/'   => array( 'Contact', 'We would love to hear from you', array( '(641) 628-1818', 'pellanazarene@gmail.com', 'Monday 1', 'Central' ) ),
+	'/contact/'   => array( 'Contact', 'We would love to hear from you', array( '(641) 628-1818', 'pellanazarene@gmail.com', 'Monday 2', 'Central' ) ),
 	'/resources/' => array( 'Resources', 'Help for every step of faith', array( 'Nazarene Discipleship International', 'The Preaching Collaborative' ) ),
 	'/events/'    => array( 'Events', 'What’s happening', array( 'Sunday School', 'Connections Sunday School Class', 'Lighthouse Student Ministry', 'Midweek Prayer Meeting', 'Coffee Time', 'Windmill Cafe', '9:30–10:15 AM', '5:30–7:00 PM', '10:30–11:30 AM', '7:00–8:00 PM', 'Central', 'See the full calendar' ) ),
 	'/small-groups/' => array( 'Small Groups', 'Find your people', array( 'Find a group', 'Connect card', '9:30' ) ),
@@ -191,7 +191,7 @@ foreach ( $give as $h ) {
 }
 // Contact: office hours come from the one shared source and say Central.
 $contact = main_text( dom( $html_of['/contact/'] ) );
-check( 'Contact hours are Mon 1-4, Wed 9-12 and Fri 9-12', (bool) preg_match( '/Monday 1.{1,3}4\s*PM, Wednesday 9\s*AM.{1,3}12\s*PM, Friday 9\s*AM.{1,3}12\s*PM Central/u', $contact ), 'hours text not found' );
+check( 'Contact hours are Mon 2-5, Wed 4-7 and Fri 9-12', (bool) preg_match( '/Monday 2.{1,3}5\s*PM, Wednesday 4.{1,3}7\s*PM, Friday 9\s*AM.{1,3}12\s*PM Central/u', $contact ), 'hours text not found' );
 // Photos in total, the hero preload, and that the files really are served as WebP.
 $expected_photos = array( '/' => 5, '/new-here/' => 3, '/about-us/' => 7, '/kids/' => 3, '/giving/' => 0, '/contact/' => 0, '/resources/' => 0, '/events/' => 0, '/small-groups/' => 1, '/blog/' => 0, '/prayer/' => 0, '/privacy/' => 0 );
 foreach ( $expected_photos as $path => $n ) {
