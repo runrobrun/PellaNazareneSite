@@ -68,8 +68,8 @@ case "${BREAK:-}" in
 	ga-everywhere) break_it wp-content/mu-plugins/pn-analytics.php "'production' === wp_get_environment_type()" "true" ;;
 	ga-for-staff)  break_it wp-content/mu-plugins/pn-analytics.php "&& ! is_user_logged_in()" "" ;;
 	ga-ignores-gpc) break_it wp-content/mu-plugins/pn-analytics.php "navigator.globalPrivacyControl === true || " "" ;;
-	wrong-hours)  break_it $T/parts/service-info.html 'Wednesday 9&nbsp;AM–&#8288;12&nbsp;PM' 'Wednesday 1–&#8288;4&nbsp;PM' ;;
-	hours-drift)  break_it wp-content/mu-plugins/pn-seo.php "array( 'Wednesday', '09:00', '12:00' )," "array( 'Wednesday', '09:30', '12:00' )," ;;
+	wrong-hours)  break_it $T/parts/service-info.html 'Wednesday 4–&#8288;7&nbsp;PM' 'Wednesday 9&nbsp;AM–&#8288;12&nbsp;PM' ;;
+	hours-drift)  break_it wp-content/mu-plugins/pn-seo.php "array( 'Wednesday', '16:00', '19:00' )," "array( 'Wednesday', '16:30', '19:00' )," ;;
 	no-description) break_it wp-content/mu-plugins/pn-seo.php "return pn_seo_shorten( \$text );" "return '';" ;;
 	no-share-image) break_it wp-content/mu-plugins/pn-seo.php "photos/og-default.jpg" "photos/missing.jpg" ;;
 	same-words)  break_it $T/patterns/page-home.php '>Full calendar →</a>' '>Find a group →</a>' ;;
