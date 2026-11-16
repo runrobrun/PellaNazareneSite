@@ -6,10 +6,13 @@
 # Why it exists: since SEC-5 the site's PHP user cannot write the site's files, so WordPress's own
 # background updates can never install anything. This runs WP-CLI as the site's deploy user instead.
 #
-# Steps: skip if up to date -> back up the database -> update -> update the database -> verify every
-# core file against WordPress.org's checksums -> clear caches -> health check. If anything after the
-# backup fails, the old version's files and the database backup are put back and the run fails, so
-# `systemctl status pn-core-update@<site>` and the journal show it.
+# Steps: skip if up to date -> back up the core files and the database -> update -> update the
+# database -> verify every core file against WordPress.org's checksums -> clear caches -> health check.
+# If anything after the backup fails, the old core files are put back from the local copy (no
+# download needed). The database backup is imported only if the update changed the database
+# version, so a rollback does not undo unrelated changes (a staff edit, a sermon import) made in
+# the meantime. The run then fails, so `systemctl --failed` and the journal show it. If the files
+# cannot be put back, it stops with RECOVERY NEEDED and leaves the database alone.
 set -euo pipefail
 
 [[ $EUID -eq 0 ]] || { echo "pn-core-update runs as root (from its systemd timer, or with sudo)." >&2; exit 1; }
@@ -61,23 +64,37 @@ if ! curl -sf -o /dev/null --max-time 30 "https://api.wordpress.org/core/version
 	echo "$SITE: cannot reach api.wordpress.org to check for updates (WordPress $OLD)." >&2
 	exit 3
 fi
-if [[ "$(pn_wp core check-update --minor --format=count)" == "0" ]]; then
+if ! COUNT="$(pn_wp core check-update --minor --format=count)" || [[ ! "$COUNT" =~ ^[0-9]+$ ]]; then
+	echo "$SITE: the update check failed (WordPress $OLD); changing nothing." >&2
+	exit 3
+fi
+if [[ "$COUNT" == "0" ]]; then
 	echo "$SITE: WordPress $OLD is up to date."
 	exit 0
 fi
 
 echo "$SITE: updating WordPress $OLD"
 install -d -o root -g root -m 700 "$BACKUPS"
-BACKUP_FILE="$BACKUPS/core-$OLD-$(date +%Y%m%d-%H%M%S).sql.gz"
-# Owner-only: the dump contains password hashes.
-( umask 077; pn_wp db export - | gzip > "$BACKUP_FILE" )
-# Keep the five most recent update backups.
-find "$BACKUPS" -name 'core-*.sql.gz' -type f -printf '%T@ %p\n' | sort -rn | tail -n +6 | cut -d' ' -f2- | xargs -r rm -f
+STAMP="core-$OLD-$(date +%Y%m%d-%H%M%S)"
+BACKUP_FILE="$BACKUPS/$STAMP.sql.gz"
+FILES_BACKUP="$BACKUPS/$STAMP.files.tar.gz"
+OLD_DB_VERSION="$(pn_wp option get db_version)"
+# Owner-only: the dump contains password hashes. The core files (everything but wp-content and
+# wp-config.php) are copied too, so a rollback never depends on downloading anything.
+( umask 077
+  pn_wp db export - | gzip > "$BACKUP_FILE"
+  runuser -u "$DEPLOY_USER" -- tar -C "$WP" --exclude=./wp-content --exclude=./wp-config.php -czf - . > "$FILES_BACKUP" )
+tar -tzf "$FILES_BACKUP" ./wp-includes/version.php >/dev/null || { echo "$SITE: the core file backup is unreadable; changing nothing." >&2; exit 1; }
+# Keep the five most recent update backups of each kind.
+for kind in sql.gz files.tar.gz; do
+	find "$BACKUPS" -name "core-*.$kind" -type f -printf '%T@ %p\n' | sort -rn | tail -n +6 | cut -d' ' -f2- | xargs -r rm -f
+done
 
 clear_caches() {
-	pn_wp cache flush || true
-	[[ -d "$CACHE_DIR" ]] && find "$CACHE_DIR" -type f -delete
-	return 0
+	pn_wp cache flush || return 1
+	if [[ -d "$CACHE_DIR" ]]; then
+		find "$CACHE_DIR" -type f -delete || return 1
+	fi
 }
 
 # One request over this machine's own loopback; prints the status code.
@@ -107,16 +124,27 @@ healthy() {
 }
 
 roll_back() {
-	echo "$SITE: update failed; restoring WordPress $OLD and the database backup" >&2
-	pn_wp core download --version="$OLD" --skip-content --force || echo "$SITE: could not restore the $OLD files" >&2
-	gunzip -c "$BACKUP_FILE" | pn_wp db import - || echo "$SITE: could not restore the database from $BACKUP_FILE" >&2
-	clear_caches
+	echo "$SITE: update failed; putting back WordPress $OLD from $FILES_BACKUP" >&2
+	# Remove the two core folders first so no file from the new version is left behind in them.
+	if ! runuser -u "$DEPLOY_USER" -- rm -rf "$WP/wp-admin" "$WP/wp-includes" \
+		|| ! runuser -u "$DEPLOY_USER" -- tar -C "$WP" -xzf - < "$FILES_BACKUP"; then
+		echo "$SITE: RECOVERY NEEDED: could not put back the $OLD files. The database was left as it is." >&2
+		echo "$SITE: restore by hand from $FILES_BACKUP (and $BACKUP_FILE if needed); see docs/setup.md section 5." >&2
+		exit 5
+	fi
+	# Import the database backup only if the update changed the database version; otherwise the
+	# database is still right for $OLD, and importing would undo changes made since the backup.
+	if [[ "$(pn_wp option get db_version 2>/dev/null || echo unknown)" != "$OLD_DB_VERSION" ]]; then
+		echo "$SITE: the update changed the database; restoring it from $BACKUP_FILE" >&2
+		gunzip -c "$BACKUP_FILE" | pn_wp db import - || { echo "$SITE: RECOVERY NEEDED: could not restore the database from $BACKUP_FILE." >&2; exit 5; }
+	fi
+	clear_caches || echo "$SITE: could not clear the caches after the rollback; clear them by hand." >&2
 	exit 1
 }
 
 pn_wp core update --minor || roll_back
 pn_wp core update-db || roll_back
 pn_wp core verify-checksums || roll_back
-clear_caches
+clear_caches || roll_back
 healthy || roll_back
 echo "$SITE: WordPress $OLD -> $(pn_wp core version)"

@@ -44,7 +44,7 @@ wp --path=/var/www/pellanazarene/public two-factor disable <username> --yes
 - Site is down
 - Forms stopped sending email: `docs/forms.md` (the usual cause is the Gmail app password)
 - Sermons stopped importing
-- A WordPress update failed: `systemctl --failed` shows `pn-core-update@<site>`; `journalctl -u pn-core-update@<site> -n 40` says why. The site is already back on the old version. Fix the cause, then `sudo systemctl start pn-core-update@<site>`
+- A WordPress update failed: `systemctl --failed` shows `pn-core-update@<site>`; `journalctl -u pn-core-update@<site> -n 40` says why. Usually the site is already back on the old version; if it says RECOVERY NEEDED, follow `docs/setup.md` section 5, step 5. Fix the cause, then `sudo systemctl start pn-core-update@<site>`
 - Restore from last night's backup
 
 ## Who to call
