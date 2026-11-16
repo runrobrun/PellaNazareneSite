@@ -31,7 +31,7 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 **Must**
 - [ ] Staff have signed off every page (MIG-3), including the open questions: parking and kids-age wording and the staff emails on About Us (the welcome video was replaced 2026-11-16).
 - [x] Staff have confirmed the five weekly event times (MIG-7), 2026-11-16.
-- [ ] Floyd Ware's full bio is in, or the cut-off sentence is removed (MIG-4).
+- [x] Floyd Ware's bio approved as it stands (MIG-4), 2026-11-16.
 - [ ] At least one real blog post is published, so `/blog/` is not empty (FEAT-7).
 - [ ] Sermons reviewed and published on staging; all four old-site sermons (Pentecost, God's Messenger, Vision Sunday 1 and 2) have published targets, with `pn_legacy_slug` set where needed so their old URLs reach the individual sermon pages (`docs/sermons.md`, "Overrides"; `docs/redirects.md`).
 - [ ] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`).
@@ -39,7 +39,7 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 - [ ] Real email addresses agreed for the Contact form and for prayer requests (`docs/forms.md`).
 - [ ] Pre-launch security scan done, every high and medium finding fixed or written down (SEC-4).
 - [ ] Server: a Linode snapshot taken, then SSH locked (`scripts/bootstrap-server.sh deploy --lock-ssh`), and Linode backups switched on (INF-1).
-- [ ] Decision 1 made, and if Cloudflare, DNS already moved and settled.
+- [x] Decision 1 made (Cloudflare); DNS moved 2026-11-07 and settled by 2026-11-14.
 
 **Should**
 - [ ] Production deploys from GitHub set up but still switched off (`docs/setup.md` section 5: a separate production key, the `production` environment with required reviewers). Step 2 deploys by hand; automatic deploys are switched on after the switch (step 7).
