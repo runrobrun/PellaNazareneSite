@@ -14,15 +14,15 @@ Write the answers here (no passwords; say where the password lives instead).
 | DNS host and where its login is kept | Moving from DNS Made Easy to Cloudflare (decision 1: (a)); steps in `docs/cloudflare-dns-move.md`; nameservers moved 2026-11-07 |
 | Current DNS records for `pellanazarene.org` and `www` (type, value, TTL), copied before anything changes | _TBD_ |
 | Linode server IP (IPv4, and IPv6 if used) | _TBD_ |
-| Cutover date and time | _TBD_ (see "When") |
-| Who runs it / who on staff decides go or no-go | Rob Hammann / _TBD_ |
+| Cutover date and time | **Friday 2026-11-20, morning** (decided 2026-11-17; see "When") |
+| Who runs it / who on staff decides go or no-go | Rob Hammann, both (Rob is the church office and its tech support) |
 | Old site kept until | Cutover date + 60 days |
 
 ## Decisions to make first
 
 1. **DNS and certificates (INF-3).** **Decided 2026-11-07: (a) Cloudflare**; the DNS move is `docs/cloudflare-dns-move.md`. The choice was: either (a) move DNS to Cloudflare and put the site behind it, or (b) stay on DNS Made Easy and use a Let's Encrypt certificate on the server, no CDN. The steps below say where the two differ. If (a), move DNS to Cloudflare **at least a week before** cutover, as its own step: copy every record across, leave the proxy **off** (grey cloud) so the old site keeps working exactly as before, then change the nameservers at the registrar.
 2. **How content reaches the live site.** Recommended: **copy the staging database** (step 4), because staging holds everything staff have reviewed: page edits, published sermons, photos, blog post, and each person's two-factor setup. The alternative, building the live site fresh with the scripts and redoing every staff edit by hand, risks losing work. Either way, staging edits stop at the content freeze.
-3. **When.** A weekday morning, Tuesday to Thursday, with someone from the office reachable. Not Saturday night or Sunday, when people look up service times.
+3. **When.** **Decided 2026-11-17: Friday 2026-11-20, morning.** Pella Nazarene is a very small church and Rob is both the office and the tech support, so the usual "Tuesday to Thursday with the office reachable" rule reduces to "a weekday morning Rob is free". Never Saturday night or Sunday, when people look up service times. Schedule: build the live site (step 2) Wednesday 11-18; test it privately and freeze and copy content (steps 3 to 5) Thursday 11-19; switch (step 6) Friday 11-20 morning, leaving the weekend to watch it before Sunday.
 
 ## 1. Go or no-go (one week before)
 
@@ -34,11 +34,11 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 - [x] Floyd Ware's bio approved as it stands (MIG-4), 2026-11-16.
 - [x] At least one real blog post is published, so `/blog/` is not empty (FEAT-7), 2026-11-16.
 - [x] Sermons reviewed and published on staging (the full "I AM" series), 2026-11-16. Staff decided not to migrate the four old-site sermons (Pentecost, God's Messenger, Vision Sunday 1 and 2): their old addresses go to the Sermons list, and `deploy/redirects/expected.csv` expects exactly that. (If they are ever imported, update those four rows to `/sermons/*`.)
-- [ ] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`).
-- [ ] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`).
+- [x] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`), 2026-11-17: 127 columns, 22 pages and the code. WordPress's starter posts ("Hello world!", "Sample Page", the "Privacy Policy" draft) were deleted first.
+- [x] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`), 2026-11-17: all 51 rows passed.
 - [x] Real email addresses agreed for the Contact form and for prayer requests (`docs/forms.md`), 2026-11-16. They are passed to `create-forms.sh` on the server, never stored in the repo.
-- [ ] Pre-launch security scan done, every high and medium finding fixed or written down (SEC-4): `docs/security-scan.md`. The code review is done; the server check and outside scans are still to run.
-- [ ] Server: a Linode snapshot taken, then SSH locked (`scripts/bootstrap-server.sh deploy --lock-ssh`), and Linode backups switched on (INF-1).
+- [x] Pre-launch security scan done, every high and medium finding fixed or written down (SEC-4), 2026-11-17: `docs/security-scan.md`. No high or medium findings. Fluent Forms 6.2.17 installed on staging 2026-11-17 and a Contact test message recorded. SSL Labs A, security headers A; A+ for both once HSTS is on, a week after cutover ("Afterwards").
+- [x] Server: a Linode snapshot taken (2026-11-16), SSH locked (2026-11-16: `sshd -T`, read by `scripts/security-check-server.sh`, shows the effective `permitrootlogin no`, `passwordauthentication no` and `kbdinteractiveauthentication no`), and Linode backups switched on (2026-11-17) (INF-1).
 - [x] Decision 1 made (Cloudflare); DNS moved 2026-11-07 and settled by 2026-11-14.
 
 **Should**
@@ -152,7 +152,7 @@ curl -sI https://pellanazarene.org/ | grep -i -E 'x-cache|x-robots'   # run twic
 - [ ] Search and sharing: the five launch steps in `docs/seo.md` (submit `https://pellanazarene.org/wp-sitemap.xml`, check the source, share a link to yourself, Google Business Profile, "Discourage search engines" off).
 - [ ] Staging still asks for a password and still says `noindex`.
 - [ ] Real visitor addresses reach the site through Cloudflare: load the home page from your phone (cellular), then on the server `sudo tail -3 /var/log/nginx/access.log` shows your phone's address (the one https://ifconfig.me shows on the phone), not one from the ranges at https://www.cloudflare.com/ips/. Otherwise the login throttle and the forms' spam limit would treat every visitor as one. (SEC-4, finding 3)
-- [ ] The SSL Labs and security-headers checks from `docs/security-scan.md` section 3 on `pellanazarene.org`: SSL Labs A or better, HSTS present.
+- [ ] The SSL Labs and security-headers checks from `docs/security-scan.md` section 3 on `pellanazarene.org`: SSL Labs A or better. HSTS is not on yet (it comes a week later, under "Afterwards"), so A, not A+, is expected now.
 - [ ] Switch on deploys to the live site: in GitHub, Settings → Secrets and variables → Actions → **Variables**, add the repository variable `PRODUCTION_DEPLOYS` with the value `on`. From the next merge, each change goes to staging, then waits for an approval in the Actions tab before it reaches the live site.
 - [ ] Tell staff the new site is live and that edits now happen at `pellanazarene.org/wp-admin`.
 
@@ -179,7 +179,7 @@ If edits were made on the new site before rolling back, they are kept there; not
   ```bash
   sudo awk '$9 == 404 {print $7}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head -20
   ```
-- [ ] Turn on HSTS once HTTPS has been fine for a week (`docs/setup.md`, Nginx section).
+- [ ] Turn on HSTS once HTTPS has been fine for a week (`docs/setup.md`, Nginx section). Then re-test `pellanazarene.org` on SSL Labs and securityheaders.com: expect A+ on both, and record it in `docs/security-scan.md`.
 
 **After 60 days**
 - [ ] With staff agreement, cancel the old hosting. Keep the backup from step 6.
