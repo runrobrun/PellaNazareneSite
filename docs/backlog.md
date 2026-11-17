@@ -94,7 +94,7 @@ Implement the redirects from the inventory as 301s in Nginx (config kept in `dep
 - About 200 empty taxonomy archives (`u_topic`, `u_scripture`, `u_group-details`, event and group tags/categories) return 410 or redirect to `/sermons/`.
 - Redirect test script runs against staging and production.
 
-### MIG-3 Migrate the 7 pages · M · in review (content in; staff sign-off, photos and the forms are still open, see below) · needs INF-2, FE-2
+### MIG-3 Migrate the 7 pages · M · done (staff signed off every page 2026-11-16; form recipients agreed) · needs INF-2, FE-2
 Home, New Here, About Us, Kids, Giving, Contact, Resources (about 3,100 words). Move by hand into block patterns.
 - Home: replace the hero slider that repeats one slide six times with a single hero; drop the FAQ block that duplicates New Here; featured sermon comes from the sermon plugin, not hard-coded.
 - Giving: keep the Church Center link `pella-nazarene.churchcenter.com/giving`; add the missing text-to-give link or remove the mention.

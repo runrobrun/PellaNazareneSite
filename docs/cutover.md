@@ -29,14 +29,14 @@ Write the answers here (no passwords; say where the password lives instead).
 Every **must** box ticked, or the date moves. **Should** boxes can slip past launch if written down here with a date.
 
 **Must**
-- [ ] Staff have signed off every page (MIG-3), including the open questions: parking and kids-age wording and the staff emails on About Us (the welcome video was replaced 2026-11-16).
+- [x] Staff have signed off every page (MIG-3), 2026-11-16, including the parking and kids-age wording. Micah Hammann's email is added to About Us when he has one; it does not hold up launch.
 - [x] Staff have confirmed the five weekly event times (MIG-7), 2026-11-16.
 - [x] Floyd Ware's bio approved as it stands (MIG-4), 2026-11-16.
 - [x] At least one real blog post is published, so `/blog/` is not empty (FEAT-7), 2026-11-16.
-- [ ] Sermons reviewed and published on staging; all four old-site sermons (Pentecost, God's Messenger, Vision Sunday 1 and 2) have published targets, with `pn_legacy_slug` set where needed so their old URLs reach the individual sermon pages (`docs/sermons.md`, "Overrides"; `docs/redirects.md`).
+- [x] Sermons reviewed and published on staging (the full "I AM" series), 2026-11-16. Staff decided not to migrate the four old-site sermons (Pentecost, God's Messenger, Vision Sunday 1 and 2): their old addresses go to the Sermons list, and `deploy/redirects/expected.csv` expects exactly that. (If they are ever imported, update those four rows to `/sermons/*`.)
 - [ ] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`).
 - [ ] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`).
-- [ ] Real email addresses agreed for the Contact form and for prayer requests (`docs/forms.md`).
+- [x] Real email addresses agreed for the Contact form and for prayer requests (`docs/forms.md`), 2026-11-16. They are passed to `create-forms.sh` on the server, never stored in the repo.
 - [ ] Pre-launch security scan done, every high and medium finding fixed or written down (SEC-4).
 - [ ] Server: a Linode snapshot taken, then SSH locked (`scripts/bootstrap-server.sh deploy --lock-ssh`), and Linode backups switched on (INF-1).
 - [x] Decision 1 made (Cloudflare); DNS moved 2026-11-07 and settled by 2026-11-14.
