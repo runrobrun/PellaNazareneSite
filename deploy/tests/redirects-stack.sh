@@ -36,10 +36,8 @@ wp plugin activate pn-sermons --quiet
 wp rewrite structure '/%postname%/' --hard --quiet
 # Fixtures: what the migrated site will contain
 sermon() { wp post create --post_type=pn_sermon --post_status="${3:-publish}" --post_title="$1" --post_name="$2" --porcelain; }
-sermon "Pentecost Promised, Proclaimed, and Practiced" pentecost-promised-proclaimed-and-practiced >/dev/null
-sermon "Vision Sunday #1" vision-sunday-1-living-out-our-mission >/dev/null
-sermon "Vision Sunday #2" vision-sunday-2-living-out-our-mission >/dev/null
-id="$(sermon "God's Messenger" gods-messenger-malachi-3-1-4)";  wp post meta add "$id" pn_legacy_slug gods-messenger-malachi-31-4 >/dev/null
+# The four old-site sermons are not migrated (staff decision 2026-11-16), so they are absent here too and
+# their old addresses must reach the list. The legacy-slug lookup is still covered by "The New Title".
 id="$(sermon "The New Title" the-new-title)";                    wp post meta add "$id" pn_legacy_slug old-title-with-a-different-slug >/dev/null
 sermon "A draft nobody may see" draft-sermon draft >/dev/null
 for n in "Todd Olson" "Cindy Olson" "Rob Hammann" "Floyd Ware"; do wp term create pn_speaker "$n" --slug="$(tr 'A-Z ' 'a-z-' <<<"$n")" >/dev/null; done

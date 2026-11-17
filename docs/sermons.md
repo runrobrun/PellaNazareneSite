@@ -81,7 +81,7 @@ Two small files control the exceptions; change them in a pull request:
 - `data/sermon-rules.json`: the speakers (with the spellings they appear under), the series (with a match phrase), and words to ignore. "Holiness in the House: A Study in Titus" collects every video whose description names "Holiness in the House".
 - `data/sermon-overrides.json`: hand-set details for particular videos, matched by YouTube ID or service date: the Pentecost sermon (with its real description), God's Messenger, and Vision Sunday 1 and 2. Overrides also record each sermon's **old address**, so a link to the old site goes to the right new sermon (MIG-2).
 
-If a Vision Sunday video is not found on the channel, those two overrides simply do not apply, and their old addresses fall back to the Sermons page. Check `docs/redirects.md` before cutover.
+Staff decided on 2026-11-16 not to migrate these four old sermons; they were never imported on staging, and their old addresses go to the Sermons page (`deploy/redirects/expected.csv`). If they are ever imported, the overrides still give them their old addresses; then change those four rows back to `/sermons/*`. Check `docs/redirects.md` before cutover.
 
 ## Troubleshooting
 

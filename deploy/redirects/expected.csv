@@ -39,10 +39,10 @@ path,status,location,fallback,layer,note
 /news/faith-over-fear/,301,/blog/,,nginx,old template post
 /news/biblical-giving/,301,/blog/,,nginx,old template post
 /sermons-t/,301,/sermons/,,nginx,sermon list
-/sermons-t/pentecost-promised-proclaimed-and-practiced/,301,/sermons/*,/sermons/,php,sermon (new page or legacy slug)
-/sermons-t/gods-messenger-malachi-31-4/,301,/sermons/*,/sermons/,php,sermon (new page or legacy slug)
-/sermons-t/vision-sunday-2-living-out-our-mission/,301,/sermons/*,/sermons/,php,sermon (new page or legacy slug)
-/sermons-t/vision-sunday-1-living-out-our-mission/,301,/sermons/*,/sermons/,php,sermon (new page or legacy slug)
+/sermons-t/pentecost-promised-proclaimed-and-practiced/,301,/sermons/,,php,old sermon not migrated (staff decision 2026-11-16) so it goes to the list
+/sermons-t/gods-messenger-malachi-31-4/,301,/sermons/,,php,old sermon not migrated (staff decision 2026-11-16) so it goes to the list
+/sermons-t/vision-sunday-2-living-out-our-mission/,301,/sermons/,,php,old sermon not migrated (staff decision 2026-11-16) so it goes to the list
+/sermons-t/vision-sunday-1-living-out-our-mission/,301,/sermons/,,php,old sermon not migrated (staff decision 2026-11-16) so it goes to the list
 /sermons-t/u_speaker/todd-olson/,301,/sermons/speaker/todd-olson/,/sermons/,php,speaker
 /sermons-t/u_speaker/cindy-olson/,301,/sermons/speaker/cindy-olson/,/sermons/,php,speaker
 /sermons-t/u_speaker/rob-hammann/,301,/sermons/speaker/rob-hammann/,/sermons/,php,speaker
