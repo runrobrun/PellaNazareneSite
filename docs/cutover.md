@@ -37,7 +37,7 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 - [ ] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`).
 - [ ] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`).
 - [x] Real email addresses agreed for the Contact form and for prayer requests (`docs/forms.md`), 2026-11-16. They are passed to `create-forms.sh` on the server, never stored in the repo.
-- [ ] Pre-launch security scan done, every high and medium finding fixed or written down (SEC-4).
+- [ ] Pre-launch security scan done, every high and medium finding fixed or written down (SEC-4): `docs/security-scan.md`. The code review is done; the server check and outside scans are still to run.
 - [ ] Server: a Linode snapshot taken, then SSH locked (`scripts/bootstrap-server.sh deploy --lock-ssh`), and Linode backups switched on (INF-1).
 - [x] Decision 1 made (Cloudflare); DNS moved 2026-11-07 and settled by 2026-11-14.
 
@@ -151,6 +151,8 @@ curl -sI https://pellanazarene.org/ | grep -i -E 'x-cache|x-robots'   # run twic
 - [ ] Google Analytics: the four checks in `docs/analytics.md` (tag once in the source, Realtime shows your visit, absent when signed in, absent on staging).
 - [ ] Search and sharing: the five launch steps in `docs/seo.md` (submit `https://pellanazarene.org/wp-sitemap.xml`, check the source, share a link to yourself, Google Business Profile, "Discourage search engines" off).
 - [ ] Staging still asks for a password and still says `noindex`.
+- [ ] Real visitor addresses reach the site through Cloudflare: load the home page from your phone (cellular), then on the server `sudo tail -3 /var/log/nginx/access.log` shows your phone's address (the one https://ifconfig.me shows on the phone), not one from the ranges at https://www.cloudflare.com/ips/. Otherwise the login throttle and the forms' spam limit would treat every visitor as one. (SEC-4, finding 3)
+- [ ] The SSL Labs and security-headers checks from `docs/security-scan.md` section 3 on `pellanazarene.org`: SSL Labs A or better, HSTS present.
 - [ ] Switch on deploys to the live site: in GitHub, Settings → Secrets and variables → Actions → **Variables**, add the repository variable `PRODUCTION_DEPLOYS` with the value `on`. From the next merge, each change goes to staging, then waits for an approval in the Actions tab before it reaches the live site.
 - [ ] Tell staff the new site is live and that edits now happen at `pellanazarene.org/wp-admin`.
 

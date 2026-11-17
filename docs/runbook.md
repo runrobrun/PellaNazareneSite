@@ -38,6 +38,7 @@ wp --path=/var/www/pellanazarene/public two-factor disable <username> --yes
 - Blog: a pastor writes under **Posts → Add New**, adds a **Featured image** (it becomes the thumbnail in the blog list), and uses **Submit for Review**; the office admin (Editor) reads it and clicks **Publish**. The blog is at `/blog/` and its feed at `/feed/`. Pastors cannot publish on their own.
 - Before launch, and again right after: `scripts/check-filler.sh` looks for leftovers from the old site (sample content, wrong hours); how to run it and fix what it finds: `docs/filler-check.md`
 - WordPress security releases install themselves overnight (staging and production). To check: `journalctl -u pn-core-update@production -n 20` on the server; details and how to pause it: `docs/setup.md` section 5
+- Once a year, and after big changes: re-run the security check (`scripts/security-check-server.sh production` on the server) and the outside scans in `docs/security-scan.md`, and add the results there
 - Review new sermon drafts each week (Sermons in the admin) and publish them; how the import works and how to import the history: `docs/sermons.md`
 
 ## If something breaks
