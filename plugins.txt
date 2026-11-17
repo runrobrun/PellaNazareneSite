@@ -6,7 +6,8 @@
 # calendar. The plugin also claims the /events/ address, so deactivate and delete it on any server that still has it.
 # Fluent Forms: the Contact and Prayer Request forms. Pinned: scripts/create-forms.sh writes straight to its tables
 # and the form tests are written against this version; update on purpose and re-run deploy/tests/forms-check.sh.
-fluentform 6.2.16
+# 6.2.17 (2026-11): fixes a low-severity unauthenticated broken-access-control flaw in <= 6.2.16 found by WPScan (SEC-4).
+fluentform 6.2.17
 wp-mail-smtp
 # Redis Object Cache: 3.0.0 or newer is required. Older versions ignore WP_REDIS_USERNAME with PhpRedis, so the
 # per-site Redis users (scripts/bootstrap-server.sh) cannot log in and the cache silently stays off.
