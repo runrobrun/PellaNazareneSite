@@ -34,11 +34,11 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 - [x] Floyd Ware's bio approved as it stands (MIG-4), 2026-11-16.
 - [x] At least one real blog post is published, so `/blog/` is not empty (FEAT-7), 2026-11-16.
 - [x] Sermons reviewed and published on staging (the full "I AM" series), 2026-11-16. Staff decided not to migrate the four old-site sermons (Pentecost, God's Messenger, Vision Sunday 1 and 2): their old addresses go to the Sermons list, and `deploy/redirects/expected.csv` expects exactly that. (If they are ever imported, update those four rows to `/sermons/*`.)
-- [ ] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`).
-- [ ] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`).
+- [x] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`), 2026-11-17: 127 columns, 22 pages and the code. WordPress's starter posts ("Hello world!", "Sample Page", the "Privacy Policy" draft) were deleted first.
+- [x] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`), 2026-11-17: all 51 rows passed.
 - [x] Real email addresses agreed for the Contact form and for prayer requests (`docs/forms.md`), 2026-11-16. They are passed to `create-forms.sh` on the server, never stored in the repo.
-- [ ] Pre-launch security scan done, every high and medium finding fixed or written down (SEC-4): `docs/security-scan.md`. The code review is done; the server check and outside scans are still to run.
-- [ ] Server: a Linode snapshot taken, then SSH locked (`scripts/bootstrap-server.sh deploy --lock-ssh`), and Linode backups switched on (INF-1).
+- [x] Pre-launch security scan done, every high and medium finding fixed or written down (SEC-4), 2026-11-17: `docs/security-scan.md`. No high or medium findings; Fluent Forms updated to 6.2.17; SSL Labs A, security headers A (A+ once HSTS is on at cutover).
+- [x] Server: a Linode snapshot taken (2026-11-16), SSH locked to keys only (confirmed by `scripts/security-check-server.sh`, 2026-11-16), and Linode backups switched on (2026-11-17) (INF-1).
 - [x] Decision 1 made (Cloudflare); DNS moved 2026-11-07 and settled by 2026-11-14.
 
 **Should**

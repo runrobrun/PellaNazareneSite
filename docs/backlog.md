@@ -141,7 +141,7 @@ The old site has only 4 sermons; the YouTube channel (@pellanazarene) is the rea
 - **Done in the MIG-7 PR:** `/events/` lists the five regular weekly events with Central times (from the old site) and links to the live Church Center calendar and event sign-ups; "Wedensday" fixed; the Coffee Time directions link is a real map search. `/small-groups/` is a short page that explains groups and links to Church Center Groups (decision with staff: link out, no listings built here). All six filler event pages and all six filler group pages are dropped (old addresses already redirect, MIG-2). `scripts/create-pages.sh` now creates nine pages. The Events Calendar plugin is removed from `plugins.txt`. **Staff to confirm:** the five weekly times are still right in Planning Center (they were copied from the old site, which also lists Sunday School and Small Groups both at 9:30). **On each server:** deactivate and delete The Events Calendar plugin (it claims `/events/`).
 - Small groups: the old page shows 0 groups and all 6 group pages are filler (including demo names Paul & Olivia Brunson and Will & Gloria Jackson). Nothing to migrate; decide with staff whether to build real groups here or link out to Planning Center Groups (see FEAT-4).
 
-### MIG-8 Drop template filler · S · in review (the check is built; run it on staging and again after cutover)
+### MIG-8 Drop template filler · S · done on staging (clean 2026-11-17: database, 22 pages, code); run it again right after cutover
 Do not migrate: the 4 old blog posts (dated 2021-01-27, one mentions "Omega Church"; the new blog starts empty, see FEAT-7), the News index, the 6 event pages, the 6 group pages, and all empty taxonomy archives. Verify nothing from the filler (demo names, Lorem ipsum, "Omega Church") appears on staging before launch with a grep of the database.
 - **Done in the MIG-8 PR:** nothing from the filler was migrated (the pages, events, groups and posts were never brought over). `scripts/check-filler.sh` is the verification: it searches the whole database (every text column, drafts and trash included), every published page as a visitor sees it, and the code, for the leftovers listed in `deploy/filler.txt`, and for WordPress's own sample content. Tested against real WordPress with leftovers planted in 17 places (`deploy/tests/filler-check.sh`, in CI). How to run it and fix findings: `docs/filler-check.md`. **To do:** run it on staging (and right after cutover on the live site) and clear anything it finds.
 
@@ -271,7 +271,7 @@ CI deploys never touch third-party plugins (see `docs/setup.md` section 5), so t
 ### SEC-3 Security audit of existing custom code · M · todo
 Run `/security-review` and a manual audit over `pn-sermons`, `pn-site.php`, and the theme: escaping, nonces, capability checks, the YouTube import and Anthropic API call paths, settings storage.
 
-### SEC-4 Pre-launch security scan · S · doing (code review done 2026-11-16; server check and outside scans to run) · needs MIG-3
+### SEC-4 Pre-launch security scan · S · done (2026-11-17: no high or medium findings; see docs/security-scan.md) · needs MIG-3
 The record is `docs/security-scan.md`. The code and config review found no high or medium issues; two low ones were fixed (Nginx now blocks logs, dumps and backup files; a baseline Content-Security-Policy). `scripts/security-check-server.sh` is the read-only server check.
 Scan staging (e.g. WPScan, `nikto`/ZAP baseline, SSL Labs, securityheaders.com). Fix or document every high and medium finding before cutover.
 
