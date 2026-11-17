@@ -22,7 +22,11 @@ fail() { echo "  FAIL  $*"; failc=$((failc + 1)); }
 pn_wp() { sudo -u "$PHP_USER" env WP_CLI_CACHE_DIR="/tmp/wp-cli-$PHP_USER" wp --path="$WP" "$@" 2>/dev/null; }
 
 echo "== Firewall and open ports"
-if sudo ufw status | grep -q '^Status: active'; then ok "ufw is active"; else fail "ufw is not active"; fi
+ufwv="$(sudo ufw status verbose)"
+if grep -q '^Status: active' <<<"$ufwv"; then ok "ufw is active"; else fail "ufw is not active"; fi
+# Explicit rules mean nothing if everything else is let in by default.
+grep -qE '^Default: (deny|reject) \(incoming\)' <<<"$ufwv" && ok "ufw blocks incoming by default" \
+	|| fail "ufw's default incoming policy is not deny: $(grep '^Default:' <<<"$ufwv")"
 extra="$(sudo ufw status | awk '/ALLOW/ {print $1}' | sed 's#/.*##' | sort -u | grep -vxE '22|80|443|OpenSSH|Nginx Full|Nginx HTTP|Nginx HTTPS' || true)"
 [[ -z "$extra" ]] && ok "ufw allows only 22, 80 and 443" || fail "ufw also allows: $(tr '\n' ' ' <<<"$extra")"
 public="$(sudo ss -tlnH | awk '{print $4}' | grep -vE '^(127\.|\[::1\]|::1)' | sed 's/.*://' | sort -un | grep -vxE '22|80|443' || true)"
@@ -45,15 +49,29 @@ echo "== WordPress ($SITE)"
 [[ -f "$WP/wp-config.php" ]] || { fail "no WordPress at $WP"; echo; echo "Summary: $okc ok, $warnc warn, $failc FAIL"; exit 1; }
 v="$(pn_wp core version)"; ok "WordPress $v"
 if pn_wp core verify-checksums >/dev/null; then ok "core files match WordPress.org"; else fail "core files differ from WordPress.org (wp core verify-checksums)"; fi
-bad_plugins="$(pn_wp plugin verify-checksums --all --format=csv 2>/dev/null | tail -n +2 | cut -d, -f1 | sort -u | grep -v '^pn-sermons$' || true)"
-[[ -z "$bad_plugins" ]] && ok "plugin files match WordPress.org" || warn "plugin files differ or can't be checked: $(tr '\n' ' ' <<<"$bad_plugins")"
+# Our own pn-sermons plugin is not on WordPress.org, so it is left out. A run that fails without
+# listing any file is reported as a failure, never as "matches".
+if out="$(sudo -u "$PHP_USER" env WP_CLI_CACHE_DIR="/tmp/wp-cli-$PHP_USER" wp --path="$WP" plugin verify-checksums --all --exclude=pn-sermons --format=csv 2>&1)"; then
+	ok "plugin files match WordPress.org"
+else
+	differ="$(grep -E '^[a-z0-9-]+,' <<<"$out" | grep -v '^plugin_name,' | cut -d, -f1 | sort -u | tr '\n' ' ')"
+	if [[ -n "$differ" ]]; then fail "plugin files differ from WordPress.org: $differ"; else fail "plugin checksums could not be verified: $(tail -1 <<<"$out")"; fi
+fi
 while IFS=, read -r name status version update; do
 	if [[ "$update" == "available" ]]; then warn "plugin $name $version has an update (review, then pin it in plugins.txt)"; else ok "plugin $name $version ($status)"; fi
 done < <(pn_wp plugin list --fields=name,status,version,update --format=csv | tail -n +2)
+# Read straight from wp-config.php (no database needed). Depending on the WP-CLI version a constant set to
+# true comes back as "true" or "1", so accept every spelling; a missing constant counts as off.
+const_on() {
+	local v
+	v="$(pn_wp config get "$1" || true)"
+	v="${v,,}"; v="${v//[\"\']/}"
+	[[ "$v" == "true" || "$v" == "1" ]]
+}
 for c in DISALLOW_FILE_EDIT FORCE_SSL_ADMIN; do
-	[[ "$(pn_wp config get "$c" 2>/dev/null)" == "1" ]] && ok "$c is on" || fail "$c is not on in wp-config.php"
+	const_on "$c" && ok "$c is on" || fail "$c is not on in wp-config.php"
 done
-[[ "$(pn_wp config get WP_DEBUG 2>/dev/null || echo)" =~ ^(|0)$ ]] && ok "WP_DEBUG is off" || fail "WP_DEBUG is on"
+const_on WP_DEBUG && fail "WP_DEBUG is on" || ok "WP_DEBUG is off"
 [[ -e "$WP/wp-content/debug.log" ]] && warn "wp-content/debug.log exists (Nginx blocks it; delete it if not needed)" || ok "no debug.log"
 mode="$(sudo stat -c '%a %U:%G' "$WP/wp-config.php")"
 [[ "$mode" =~ ^(640|600|440|400)\  ]] && ok "wp-config.php is $mode" || fail "wp-config.php is $mode (should be 640, not world-readable)"

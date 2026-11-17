@@ -31,6 +31,33 @@ The record of the scan the cutover go/no-go list asks for: every high and medium
 | 3 | Info (cutover) | The forms' rate limit and Nginx's login limit count visitors by IP address. Behind Cloudflare, every visitor would look like a Cloudflare server unless Nginx is told the real address. | **Already planned:** the cutover checklist (step 2) installs `cloudflare-realip.conf`. Its check now confirms the real address shows up in the access log. |
 | 4 | Info (cutover) | No `Strict-Transport-Security` (HSTS) header yet. | **Already planned** for cutover with Cloudflare (INF-3). It is left off staging on purpose, so a mistake there can't lock browsers out. |
 
+## Before scanning: put the new Nginx config on staging
+
+A deploy only ships WordPress code, so this PR's Nginx changes (the blocked file types and the CSP header) reach the server by hand. On the server as `deploy`:
+
+```bash
+cd /var/www/staging/repo
+# 1. The shared snippets, including the security headers. It backs up, tests and rolls back by itself.
+scripts/apply-server-tuning.sh
+# 2. The staging site file, rebuilt from the template (the old one is kept beside it).
+sudo cp -a /etc/nginx/sites-available/staging.conf /etc/nginx/sites-available/staging.conf.before-sec-4
+sed -e "s|@DOMAIN@|staging.pellanazarene.org|g" -e "s|@WEBROOT@|/var/www/staging/public|g" \
+  deploy/nginx/staging.conf.template | sudo tee /etc/nginx/sites-available/staging.conf >/dev/null
+sudo nginx -t && sudo systemctl reload nginx \
+  || { sudo cp -a /etc/nginx/sites-available/staging.conf.before-sec-4 /etc/nginx/sites-available/staging.conf; sudo nginx -t && sudo systemctl reload nginx; echo "Rolled back"; }
+# 3. Check: a CSP header, and the blocked file types refused (403), not passed to WordPress.
+#    It asks for the staging gate password once and never puts it on a command line.
+read -rsp 'Staging gate password: ' G; echo
+auth() { printf 'user = "church:%s"\n' "$G"; }
+curl -sI --config <(auth) https://staging.pellanazarene.org/ | grep -i content-security-policy
+for f in /wp-content/debug.log /backup.sql /wp-config.php.bak; do
+  echo "$f $(curl -s -o /dev/null -w '%{http_code}' --config <(auth) "https://staging.pellanazarene.org$f")"
+done
+unset G
+```
+
+Expect the `content-security-policy:` line and `403` three times. Production gets the same files when it is built (`docs/cutover.md` step 2).
+
 ## 2. Server check
 
 On the server as `deploy`, from the site's checkout:
@@ -39,7 +66,7 @@ On the server as `deploy`, from the site's checkout:
 cd /var/www/staging/repo && scripts/security-check-server.sh staging
 ```
 
-It changes nothing. It checks the firewall and open ports, SSH settings, fail2ban, operating-system updates, WordPress core and plugin files against WordPress.org, wp-config settings and permissions, whether PHP can write core files, PHP files in uploads, the user list, the automatic core updates, and the secrets folder. Paste the output under "Results". Every **FAIL** must be fixed or written down before cutover; **WARN** lines are worth a look.
+It changes nothing. It checks the firewall (including that incoming traffic is denied by default) and open ports, SSH settings, fail2ban, operating-system updates, WordPress core and plugin files against WordPress.org, wp-config settings and permissions, whether PHP can write core files, PHP files in uploads, the user list, the automatic core updates, and the secrets folder. Paste the output under "Results". Every **FAIL** must be fixed or written down before cutover; **WARN** lines are worth a look.
 
 ## 3. Outside scans of staging
 
@@ -51,12 +78,12 @@ From a Mac with Docker running. Staging sits behind the gate password, so give i
      --http-auth church:GATE --enumerate vp,vt,cb,dbe --random-user-agent \
      --api-token YOUR_FREE_TOKEN
    ```
-2. **ZAP baseline** (a passive scan of the pages for common web problems; it doesn't attack anything):
+2. **ZAP baseline** (a passive scan of the pages for common web problems; it doesn't attack anything). The single quotes around `Basic $AUTH` matter: ZAP splits this option again, and they keep the whole password header together:
    ```bash
    AUTH=$(printf 'church:%s' 'GATE' | base64)
    docker run --rm -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
      -t https://staging.pellanazarene.org -I \
-     -z "-config replacer.full_list(0).description=gate -config replacer.full_list(0).enabled=true -config replacer.full_list(0).matchtype=REQ_HEADER -config replacer.full_list(0).matchstr=Authorization -config replacer.full_list(0).regex=false -config replacer.full_list(0).replacement=Basic $AUTH"
+     -z "-config replacer.full_list(0).description=gate -config replacer.full_list(0).enabled=true -config replacer.full_list(0).matchtype=REQ_HEADER -config replacer.full_list(0).matchstr=Authorization -config replacer.full_list(0).regex=false -config replacer.full_list(0).replacement='Basic $AUTH'"
    ```
 3. **SSL Labs:** open https://www.ssllabs.com/ssltest/ and test `staging.pellanazarene.org`; aim for A or A+. Repeat for `pellanazarene.org` after cutover, where Cloudflare's certificate is the one tested.
 4. **Security headers:** open https://securityheaders.com and test `https://staging.pellanazarene.org/`. It sees the gate's 401 page, which carries the same headers. Expect a missing HSTS (finding 4) and a CSP note (finding 2).
