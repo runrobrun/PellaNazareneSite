@@ -47,6 +47,11 @@ expect_eq "PHP file in uploads"           "$(req /wp-content/uploads/evil.php)" 
 expect_eq "PHP file in uploads, odd case" "$(req /wp-content/uploads/evil.PHP)" "403"
 expect_eq "xmlrpc.php"                    "$(req /xmlrpc.php)" "403"
 expect_eq ".git directory"                "$(req /.git/config)" "403"
+expect_eq "debug log"                     "$(req /wp-content/debug.log)" "403"
+expect_eq "database dump"                 "$(req /backup.sql)" "403"
+expect_eq "compressed database dump"      "$(req /wp-content/uploads/site.sql.gz)" "403"
+expect_eq "editor leftover"               "$(req /wp-config.php.bak)" "403"
+expect_eq "editor swap file"              "$(req /wp-config.php.swp)" "403"
 
 echo "== Brand icon"
 expect_eq "/favicon.ico is served" "$(req /favicon.ico)" "200"
@@ -54,7 +59,7 @@ expect_eq "...and it is the brand icon (same bytes as the theme's file)" "$(curl
 
 echo "== Headers"
 hdrs="$(curl -sk -D - -o /dev/null --resolve "$D:443:127.0.0.1" -u church:secret "https://$D/style.css" | tr -d '\r')"
-for h in "x-content-type-options: nosniff" "x-frame-options: SAMEORIGIN" "referrer-policy:" "permissions-policy:" "x-robots-tag: noindex"; do
+for h in "x-content-type-options: nosniff" "x-frame-options: SAMEORIGIN" "referrer-policy:" "permissions-policy:" "x-robots-tag: noindex" "content-security-policy: base-uri 'self'; object-src 'none'; frame-ancestors 'self'"; do
   grep -qiF "$h" <<<"$hdrs" && ok "header present: $h" || bad "header missing: $h"
 done
 grep -qiE '^server: nginx$' <<<"$hdrs" && ok "Nginx version hidden" || bad "Server header shows a version: $(grep -i '^server' <<<"$hdrs")"

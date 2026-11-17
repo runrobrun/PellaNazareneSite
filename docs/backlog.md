@@ -271,7 +271,8 @@ CI deploys never touch third-party plugins (see `docs/setup.md` section 5), so t
 ### SEC-3 Security audit of existing custom code · M · todo
 Run `/security-review` and a manual audit over `pn-sermons`, `pn-site.php`, and the theme: escaping, nonces, capability checks, the YouTube import and Anthropic API call paths, settings storage.
 
-### SEC-4 Pre-launch security scan · S · todo · needs MIG-3
+### SEC-4 Pre-launch security scan · S · doing (code review done 2026-11-16; server check and outside scans to run) · needs MIG-3
+The record is `docs/security-scan.md`. The code and config review found no high or medium issues; two low ones were fixed (Nginx now blocks logs, dumps and backup files; a baseline Content-Security-Policy). `scripts/security-check-server.sh` is the read-only server check.
 Scan staging (e.g. WPScan, `nikto`/ZAP baseline, SSL Labs, securityheaders.com). Fix or document every high and medium finding before cutover.
 
 ---

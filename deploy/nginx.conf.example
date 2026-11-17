@@ -67,6 +67,8 @@ server {
 	location ~* ^/(?:wp-config\.php|wp-config-sample\.php|readme\.html|license\.txt)$ { deny all; }
 	location ~ /\.(?!well-known) { deny all; }
 	location ~* /wp-content/uploads/.*\.php$ { deny all; }
+	# Logs, database dumps and editor or backup leftovers are never served, wherever they end up (SEC-4).
+	location ~* \.(?:log|sql|sql\.gz|bak|old|orig|swp)$ { deny all; }
 
 	location ~ \.php$ {
 		include snippets/fastcgi-php.conf;
