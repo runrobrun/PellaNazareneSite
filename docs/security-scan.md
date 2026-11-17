@@ -5,8 +5,8 @@ The record of the scan the cutover go/no-go list asks for: every high and medium
 | Part | Who | Status |
 |---|---|---|
 | 1. Review of our own code and server config | Claude, 2026-11-16 | Done: no high or medium findings; two low findings fixed |
-| 2. Server check (`scripts/security-check-server.sh`) | Rob, on the server | To do |
-| 3. Outside scans of staging (WPScan, ZAP baseline, SSL Labs, security headers) | Rob, from a Mac with Docker | To do |
+| 2. Server check (`scripts/security-check-server.sh`) | Rob, on the server | Done 2026-11-16: 0 FAIL |
+| 3. Outside scans of staging (WPScan, ZAP baseline, SSL Labs, security headers) | Rob, from a Mac with Docker | WPScan done 2026-11-16 (one low finding, fixed); ZAP, SSL Labs and headers to do |
 
 ## 1. Code and configuration review
 
@@ -70,17 +70,24 @@ It changes nothing. It checks the firewall (including that incoming traffic is d
 
 ## 3. Outside scans of staging
 
-From a Mac with Docker running. Staging sits behind the gate password, so give it to each tool. Replace `GATE` with the password (user `church`).
+From a Mac with Docker running, in one Terminal window. Staging sits behind the gate password (user `church`). Read it once, without typing it into a command; this is the zsh form, which is the Mac's default shell (in bash, `read -rsp 'Staging gate password: ' G`):
+
+```zsh
+read -rs "G?Staging gate password: "; echo
+echo "password length: ${#G}"     # must be more than 0
+```
+
+Then, in the same window:
 
 1. **WPScan** (known WordPress, plugin and theme vulnerabilities). A free API token from wpscan.com adds the vulnerability database; without one it only lists versions.
    ```bash
-   docker run --rm wpscanteam/wpscan --url https://staging.pellanazarene.org \
-     --http-auth church:GATE --enumerate vp,vt,cb,dbe --random-user-agent \
+   docker run --rm wpscanteam/wpscan --update --url https://staging.pellanazarene.org \
+     --http-auth "church:$G" --enumerate vp,vt,cb,dbe --random-user-agent \
      --api-token YOUR_FREE_TOKEN
    ```
 2. **ZAP baseline** (a passive scan of the pages for common web problems; it doesn't attack anything). The single quotes around `Basic $AUTH` matter: ZAP splits this option again, and they keep the whole password header together:
    ```bash
-   AUTH=$(printf 'church:%s' 'GATE' | base64)
+   AUTH=$(printf 'church:%s' "$G" | base64)
    docker run --rm -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
      -t https://staging.pellanazarene.org -I \
      -z "-config replacer.full_list(0).description=gate -config replacer.full_list(0).enabled=true -config replacer.full_list(0).matchtype=REQ_HEADER -config replacer.full_list(0).matchstr=Authorization -config replacer.full_list(0).regex=false -config replacer.full_list(0).replacement='Basic $AUTH'"
@@ -94,8 +101,8 @@ Paste each tool's summary here, then list each high or medium finding with its f
 
 | Tool | Date | Result | High/medium findings and outcome |
 |---|---|---|---|
-| Server check | | | |
-| WPScan | | | |
+| Server check | 2026-11-16 | 32 ok, 4 warn, 0 FAIL. SSH already key-only; ufw default deny; core and plugin files match WordPress.org | No FAIL. Warnings: one OS security update (installs overnight) and three plugin updates (see WPScan). Also found The Events Calendar still installed on staging although MIG-7 removed it; **deleted 2026-11-16** |
+| WPScan | 2026-11-16 | WordPress 7.1.4 (latest); no config backups or DB exports reachable; one plugin vulnerability | **Fluent Forms < 6.2.17, unauthenticated missing authorization** (Patchstack rates it low, "unlikely to be exploited"). **Fixed:** pinned to 6.2.17 (`plugins.txt`); the CI forms tests pass on it; install on staging after merge (see the PR). Info only, accepted: the WordPress version shows in the RSS feed's generator tag (public on WordPress.org anyway, and kept current nightly); `wp-cron.php` and the must-use plugin folder are reachable (normal for WordPress; cron also runs from the server's own cron); `X-Robots-Tag` appears twice on staging (harmless, staging only) |
 | ZAP baseline | | | |
 | SSL Labs | | | |
 | Security headers | | | |
