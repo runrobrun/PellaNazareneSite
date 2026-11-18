@@ -140,7 +140,8 @@ run_wp plugin delete akismet hello --quiet 2>/dev/null || true
 echo "==> File ownership (code: $CI_USER:$PHP_USER, not writable by PHP; uploads: www-data + ACL)"
 sudo chown -R "$CI_USER:$PHP_USER" "$WP" "$ROOT/repo"
 sudo find "$WP" -type d -exec chmod 755 {} +
-sudo find "$WP" -type f -exec chmod 644 {} +
+# Leave wp-config.php out: even a moment at 644 would let other accounts read production's secrets.
+sudo find "$WP" -type f ! -path "$WP/wp-config.php" -exec chmod 644 {} +
 sudo chmod 640 "$WP/wp-config.php"
 sudo setfacl -m u:deploy:r-- "$WP/wp-config.php"
 sudo install -d -o www-data -g www-data -m 755 "$WP/wp-content/uploads"
@@ -158,11 +159,12 @@ run_wp theme activate pella-nazarene --quiet
 run_wp redis enable --quiet 2>/dev/null || echo "NOTE: Redis object cache not enabled yet; check 'wp redis status'."
 
 echo "==> Cloudflare: real visitor IPs"
-tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+tmp="$(mktemp)"; vtmp="$(mktemp)"; trap 'rm -f "$tmp" "$vtmp"' EXIT
 { echo "# Real visitor IPs behind Cloudflare. Written by scripts/setup-production.sh from https://www.cloudflare.com/ips/"
   echo "# on $(date +%F); re-run the script to refresh. Only Cloudflare's own ranges may set the visitor address."
   for list in ips-v4 ips-v6; do
-	curl -fsS --max-time 20 "https://www.cloudflare.com/$list" | tr -d '\r' | while read -r range; do
+	# "|| [[ -n ... ]]" keeps the last range when the list has no final newline.
+	curl -fsS --max-time 20 "https://www.cloudflare.com/$list" | tr -d '\r' | while read -r range || [[ -n "$range" ]]; do
 		[[ -z "$range" ]] && continue
 		[[ "$range" =~ ^[0-9a-fA-F:.]+/[0-9]{1,3}$ ]] || { echo "Unexpected line from Cloudflare: $range" >&2; exit 1; }
 		echo "set_real_ip_from $range;"
@@ -170,7 +172,6 @@ tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
   done
   echo "real_ip_header CF-Connecting-IP;"; } > "$tmp"
 [[ "$(grep -c '^set_real_ip_from' "$tmp")" -ge 10 ]] || { echo "Cloudflare's IP list looks incomplete; nothing changed." >&2; exit 1; }
-sudo install -m 644 -o root -g root "$tmp" "$REALIP"
 
 echo "==> Nginx live site"
 if ! sudo test -s "$CERT" || ! sudo test -s "$CERT_KEY"; then
@@ -181,22 +182,34 @@ if ! sudo test -s "$CERT" || ! sudo test -s "$CERT_KEY"; then
 fi
 sudo chmod 600 "$CERT_KEY"
 sed -e 's|^\t# include /etc/nginx/snippets/cloudflare-realip.conf;|\tinclude /etc/nginx/snippets/cloudflare-realip.conf;|' \
-	"$ROOT/repo/deploy/nginx.conf.example" > "$tmp"
-grep -q '^	include /etc/nginx/snippets/cloudflare-realip.conf;' "$tmp" || { echo "Could not enable the real-IP include in the vhost." >&2; exit 1; }
-[[ -f "$VHOST" ]] && sudo cp -a "$VHOST" "$VHOST.before-$(date +%Y%m%d-%H%M%S)"
-sudo install -m 644 -o root -g root "$tmp" "$VHOST"
-sudo ln -sf "$VHOST" /etc/nginx/sites-enabled/pellanazarene.conf
+	"$ROOT/repo/deploy/nginx.conf.example" > "$vtmp"
+grep -q '^	include /etc/nginx/snippets/cloudflare-realip.conf;' "$vtmp" || { echo "Could not enable the real-IP include in the vhost." >&2; exit 1; }
+# Keep what is there now, so a failed test puts back exactly the working setup (on a re-run after
+# launch, removing the site would take it offline at the next reload).
+STAMP="$(date +%Y%m%d-%H%M%S)"
+LINK="/etc/nginx/sites-enabled/pellanazarene.conf"
+had_link=no; [[ -L "$LINK" ]] && had_link=yes
+had_vhost=no; [[ -f "$VHOST" ]] && { had_vhost=yes; sudo cp -a "$VHOST" "$VHOST.before-$STAMP"; }
+had_realip=no; [[ -f "$REALIP" ]] && { had_realip=yes; sudo cp -a "$REALIP" "$REALIP.before-$STAMP"; }
+sudo install -m 644 -o root -g root "$tmp" "$REALIP"
+sudo install -m 644 -o root -g root "$vtmp" "$VHOST"
+sudo ln -sf "$VHOST" "$LINK"
 if ! sudo nginx -t; then
-	sudo rm -f /etc/nginx/sites-enabled/pellanazarene.conf
-	echo "nginx -t failed; the live site was disabled again and Nginx was not reloaded." >&2
+	if [[ $had_realip == yes ]]; then sudo cp -a "$REALIP.before-$STAMP" "$REALIP"; else sudo rm -f "$REALIP"; fi
+	if [[ $had_vhost == yes ]]; then sudo cp -a "$VHOST.before-$STAMP" "$VHOST"; else sudo rm -f "$VHOST"; fi
+	[[ $had_link == yes ]] || sudo rm -f "$LINK"
+	echo "nginx -t failed: the previous Nginx setup was put back and Nginx was not reloaded." >&2
+	sudo nginx -t >/dev/null 2>&1 || echo "WARNING: the restored setup does not pass nginx -t either; do not reload Nginx." >&2
 	exit 1
 fi
 sudo systemctl reload nginx
 
 echo "==> Cron (as $PHP_USER): WP-Cron every 5 minutes, database backup nightly at 2:15"
+# The backup runs under bash with pipefail: a failed export never replaces a good file or
+# triggers the 14-day clean-up (cron's /bin/sh would hide the failure behind gzip's success).
 sudo tee /etc/cron.d/pella-production >/dev/null <<CRON
 */5 * * * * $PHP_USER cd $WP && WP_CLI_CACHE_DIR=/tmp/wp-cli-$PHP_USER /usr/local/bin/wp cron event run --due-now --quiet
-15 2 * * * $PHP_USER cd $WP && /usr/local/bin/wp db export - --quiet | gzip > $BACKUP_DIR/db-\$(date +\%F).sql.gz && find $BACKUP_DIR -name 'db-*.sql.gz' -mtime +14 -delete
+15 2 * * * $PHP_USER /bin/bash -o pipefail -c 'cd $WP && f=$BACKUP_DIR/db-\$(date +\%F).sql.gz && /usr/local/bin/wp db export - --quiet | gzip > "\$f.tmp" && mv "\$f.tmp" "\$f" && find $BACKUP_DIR -name "db-*.sql.gz" -mtime +14 -delete'
 CRON
 sudo chmod 644 /etc/cron.d/pella-production
 
