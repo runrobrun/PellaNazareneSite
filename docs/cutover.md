@@ -77,12 +77,25 @@ LIVE="sudo -u pn-production-deploy -H wp --path=$P"
 sudo install -d -o root -g root -m 700 /var/backups/pn-cutover
 
 # 1. Keep a copy of both databases as they are now (root-only, they hold password hashes).
-sudo -u pn-staging-php wp --path=$S db export - | sudo tee /var/backups/pn-cutover/staging.sql >/dev/null
-$LIVE db export - | sudo tee /var/backups/pn-cutover/live-before.sql >/dev/null
-sudo ls -l /var/backups/pn-cutover        # both files should be several MB, not 0
+#    pipefail makes a failed export count as a failure, not hide behind tee; each dump goes to a .tmp
+#    file and becomes the real backup only when it ends with the "Dump completed" line.
+set -o pipefail
+B=/var/backups/pn-cutover
+sudo -u pn-staging-php wp --path=$S db export - | sudo tee $B/staging.sql.tmp >/dev/null \
+  && $LIVE db export - | sudo tee $B/live-before.sql.tmp >/dev/null \
+  && sudo tail -1 $B/staging.sql.tmp | grep -q 'Dump completed' \
+  && sudo tail -1 $B/live-before.sql.tmp | grep -q 'Dump completed' \
+  && sudo mv $B/staging.sql.tmp $B/staging.sql && sudo mv $B/live-before.sql.tmp $B/live-before.sql \
+  && echo "BOTH BACKUPS OK" || echo "STOP: a backup failed or is incomplete. Do not go on; ask for help."
+sudo ls -l $B
+```
+
+**Go on only if it printed `BOTH BACKUPS OK`.** Without a complete `live-before.sql` there is no way back from the next step.
+
+```bash
 
 # 2. Copy the content and the media. Uploads stay owned by www-data, with the live PHP account's ACL.
-sudo cat /var/backups/pn-cutover/staging.sql | $LIVE db import -
+sudo cat $B/staging.sql | $LIVE db import -
 sudo rsync -a /var/www/staging/public/wp-content/uploads/ $P/wp-content/uploads/
 sudo chown -R www-data:www-data $P/wp-content/uploads
 sudo find $P/wp-content/uploads -type d -exec setfacl -m 'u:pn-production-php:rwx,d:u:pn-production-php:rwx' {} +
@@ -103,7 +116,7 @@ $LIVE post list --post_type=page --post_status=publish --format=count
 sudo -u pn-production-php test -w $P/wp-content/uploads && echo "uploads writable by PHP: ok"
 ```
 
-If anything in step 2 or 3 goes wrong, put the live database back with `sudo cat /var/backups/pn-cutover/live-before.sql | $LIVE db import -` and start step 4 again; nothing public has changed yet.
+If anything in step 2 or 3 goes wrong, put the live database back with `sudo cat /var/backups/pn-cutover/live-before.sql | $LIVE db import -` (the same `$LIVE` as above) and start step 4 again; nothing public has changed yet.
 
 Then, on the live copy: re-add the hosts-file line from step 2 **before opening `wp-admin` in your browser**, and keep it in place through step 5. Public DNS still points to the old site.
 - [ ] **Forms** (Fluent Forms → each form → Settings → Email Notifications): set the real Contact and prayer recipients, and delete any test messages under Entries.
