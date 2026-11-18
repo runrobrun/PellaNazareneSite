@@ -69,35 +69,48 @@ The old site keeps serving visitors the whole time. `scripts/setup-production.sh
 
 From here on, **nobody edits staging**. Tell staff; any change they need now is made on the live site after the switch.
 
-On the server, as `deploy`:
+On the server, as `deploy`. Each site's database is read and written through its own accounts (SEC-5): staging's PHP account reads staging, production's deploy account writes production, and the copies are kept in a root-only folder.
 
 ```bash
-sudo install -d -o deploy -m 700 /var/backups/pn-cutover
-# keep a copy of both databases as they are now
-wp --path=/var/www/staging/public db export /var/backups/pn-cutover/staging.sql
-wp --path=/var/www/pellanazarene/public db export /var/backups/pn-cutover/live-before.sql
+S=/var/www/staging/public  P=/var/www/pellanazarene/public
+LIVE="sudo -u pn-production-deploy -H wp --path=$P"
+sudo install -d -o root -g root -m 700 /var/backups/pn-cutover
 
-# copy the content and the media
-wp --path=/var/www/pellanazarene/public db import /var/backups/pn-cutover/staging.sql
-sudo rsync -a /var/www/staging/public/wp-content/uploads/ /var/www/pellanazarene/public/wp-content/uploads/
-sudo chown -R www-data:www-data /var/www/pellanazarene/public/wp-content/uploads
+# 1. Keep a copy of both databases as they are now (root-only, they hold password hashes).
+sudo -u pn-staging-php wp --path=$S db export - | sudo tee /var/backups/pn-cutover/staging.sql >/dev/null
+$LIVE db export - | sudo tee /var/backups/pn-cutover/live-before.sql >/dev/null
+sudo ls -l /var/backups/pn-cutover        # both files should be several MB, not 0
 
-# point it at the real address and open it to search engines
-cd /var/www/pellanazarene/public
-wp search-replace 'https://staging.pellanazarene.org' 'https://pellanazarene.org' --all-tables --precise --skip-columns=guid
-wp search-replace 'staging.pellanazarene.org' 'pellanazarene.org' --all-tables --precise --skip-columns=guid
-wp option update blog_public 1
-wp option update blogname 'Pella Nazarene'
-wp cache flush
-sudo find /var/cache/nginx/pellanazarene -type f -delete
+# 2. Copy the content and the media. Uploads stay owned by www-data, with the live PHP account's ACL.
+sudo cat /var/backups/pn-cutover/staging.sql | $LIVE db import -
+sudo rsync -a /var/www/staging/public/wp-content/uploads/ $P/wp-content/uploads/
+sudo chown -R www-data:www-data $P/wp-content/uploads
+sudo find $P/wp-content/uploads -type d -exec setfacl -m 'u:pn-production-php:rwx,d:u:pn-production-php:rwx' {} +
+sudo find $P/wp-content/uploads -type f -exec setfacl -m 'u:pn-production-php:rw-' {} +
+
+# 3. Point it at the real address, open it to search engines, clear the caches.
+$LIVE search-replace 'https://staging.pellanazarene.org' 'https://pellanazarene.org' --all-tables --precise --skip-columns=guid
+$LIVE search-replace 'staging.pellanazarene.org' 'pellanazarene.org' --all-tables --precise --skip-columns=guid
+$LIVE option update blog_public 1
+$LIVE option update blogname 'Pella Nazarene'
+$LIVE cache flush
+sudo -n /usr/local/sbin/pn-clear-cache production
+
+# 4. Quick checks.
+$LIVE option get home                     # https://pellanazarene.org
+$LIVE option get blog_public              # 1
+$LIVE post list --post_type=page --post_status=publish --format=count
+sudo -u pn-production-php test -w $P/wp-content/uploads && echo "uploads writable by PHP: ok"
 ```
+
+If anything in step 2 or 3 goes wrong, put the live database back with `sudo cat /var/backups/pn-cutover/live-before.sql | $LIVE db import -` and start step 4 again; nothing public has changed yet.
 
 Then, on the live copy: re-add the hosts-file line from step 2 **before opening `wp-admin` in your browser**, and keep it in place through step 5. Public DNS still points to the old site.
 - [ ] **Forms** (Fluent Forms → each form → Settings → Email Notifications): set the real Contact and prayer recipients, and delete any test messages under Entries.
 - [ ] **Users:** remove test accounts; check pastors are Author and the office admin is Editor. Everyone keeps their staging password and two-factor setup.
 - [ ] **Settings → Sermons:** channel ID present; **Check YouTube now** works.
-- [ ] `scripts/check-filler.sh /var/www/pellanazarene/public --repo /var/www/pellanazarene/repo` is clean (database and code; the page part runs after the switch).
-- [ ] No staging references remain outside preserved GUIDs: run `wp db search 'staging.pellanazarene' --all-tables` and confirm any remaining matches are only in `guid` columns, intentionally excluded from search-replace above.
+- [ ] `scripts/check-filler.sh /var/www/pellanazarene/public --repo /var/www/pellanazarene/repo` is clean (database and code; the page part runs after the switch). Run it as `deploy` from `/var/www/staging/repo`.
+- [ ] No staging references remain outside preserved GUIDs: run `$LIVE db search 'staging.pellanazarene' --all-tables` and confirm any remaining matches are only in `guid` columns, intentionally excluded from search-replace above.
 
 ## 5. Test it privately (the day before)
 
@@ -126,7 +139,7 @@ Then remove the hosts-file line.
 - [ ] Download a full backup of the old site from its host (files and database), and keep it with the church's records.
 - [ ] Write the old A/AAAA values in the table at the top (they are the rollback).
 - [ ] Change the records:
-  - (a) Cloudflare: set the `pellanazarene.org` A record to the Linode IPv4 address and update any existing AAAA record to the Linode IPv6 address (or remove it if IPv6 is not used); do the same for `www`. Turn the proxy **on** (orange cloud) for the web records. SSL/TLS mode **Full (strict)**.
+  - (a) Cloudflare: set the `pellanazarene.org` A record to the Linode IPv4 address and update any existing AAAA record to the Linode IPv6 address (or remove it if IPv6 is not used); do the same for `www`. Turn the proxy **on** (orange cloud) for the web records. SSL/TLS mode **Full (strict)**. (Since 2026-11-07 the zone has `www` as a CNAME to `pellanazarene.org`, so only the one A record changes. The SSL mode covers the whole domain, but `staging` stays grey (DNS only), so its Let's Encrypt certificate and renewals are unaffected.)
   - (b) DNS Made Easy: set the `pellanazarene.org` A record to the Linode IPv4 address and update any existing AAAA record to the Linode IPv6 address (or remove it if IPv6 is not used); do the same for `www`, or replace its address records with a CNAME to `pellanazarene.org`.
 - [ ] Wait 5 to 10 minutes, then check from outside: `dig +short pellanazarene.org` shows the new address (Cloudflare: one of its addresses), and the home page loads.
 - [ ] (b) only: replace the temporary certificate with one that renews itself: `sudo certbot certonly --webroot -w /var/www/pellanazarene/public -d pellanazarene.org -d www.pellanazarene.org --force-renewal`, `sudo nginx -t && sudo systemctl reload nginx`, and `sudo certbot renew --dry-run` succeeds.
