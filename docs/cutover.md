@@ -35,7 +35,7 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 - [x] At least one real blog post is published, so `/blog/` is not empty (FEAT-7), 2026-11-16.
 - [x] Sermons reviewed and published on staging (the full "I AM" series), 2026-11-16. Staff decided not to migrate the four old-site sermons (Pentecost, God's Messenger, Vision Sunday 1 and 2): their old addresses go to the Sermons list, and `deploy/redirects/expected.csv` expects exactly that. (If they are ever imported, update those four rows to `/sermons/*`.)
 - [ ] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`).
-- [ ] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`).
+- [x] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`), 2026-11-19: all 51 rows, with `--pages-must-exist`.
 - [x] Real email addresses agreed for the Contact form and for prayer requests (`docs/forms.md`), 2026-11-16. They are passed to `create-forms.sh` on the server, never stored in the repo.
 - [ ] Pre-launch security scan done, every high and medium finding fixed or written down (SEC-4): `docs/security-scan.md`. The code review is done; the server check and outside scans are still to run.
 - [ ] Server: a Linode snapshot taken, then SSH locked (`scripts/bootstrap-server.sh deploy --lock-ssh`), and Linode backups switched on (INF-1).
