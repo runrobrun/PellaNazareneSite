@@ -194,11 +194,12 @@ Asked for on 2026-11-06: the pages after the home page should use its accent col
 - **On staging after merge:** the pages must be reset to the new patterns, which **replaces any staff edits on those pages**: `PN_WP_USER=pn-staging-php PN_NGINX_CACHE_DIR=/var/cache/nginx/pellanazarene-staging scripts/create-pages.sh /var/www/staging/public --replace new-here about-us kids giving contact resources events small-groups prayer privacy` (done 2026-11-06, as `www-data` before the server moved to separate users).
 - **Staff to confirm:** the new headlines and one-line intros in each page header (they are the only new words), and "At the church" as the place for the weekly events on the Events page (as on the home page).
 
-### FEAT-1 Sermons: finish and polish · L · todo
+### FEAT-1 Sermons: finish and polish · L · doing (speaker photos in review)
 Sermon content comes from the YouTube import (MIG-6), not the old site.
 Finish `pn-sermons`: archive and single templates, series/speaker/scripture browsing, search and filters, YouTube auto-import via cron.
 - Click-to-load video facade (see Performance rules).
 - Companion-post drafts (Anthropic API) behind a setting, off by default, drafts only, never auto-published.
+- **Done (speaker photos):** each sermon card on the Sermons page shows the speaker's photo as a round badge on the bottom-left corner of the artwork, so one series' cards (all the same graphic) are told apart at a glance. Staff speakers use their About page photo automatically; any speaker can get a photo, or a different one, under Sermons → Speakers → Photo; guests with none get no badge. Not on a sermon's own page or a speaker's own page. Plugin 0.2.0, theme 0.4.0. See `docs/sermons.md`.
 
 ### FEAT-2 Events calendar · M · decided (see below) · pairs with MIG-7
 **Decision (MIG-7):** start light: the Events page lists the five regular weekly events by hand and links to the Church Center calendar (Planning Center stays the source of truth for everything else). An automatic upcoming-events list from Planning Center, and an embed, are deferred until the weekly list proves too limited. The Events Calendar plugin is not used and is out of `plugins.txt`. Original brief: Show Planning Center Calendar events on the site without duplicating data entry. Evaluate (1) Planning Center's embed/public feed, (2) importing its iCal feed into a lightweight WP list, and (3) keeping The Events Calendar plugin. Prefer the lightest option that meets performance targets; if The Events Calendar is not needed, remove `the-events-calendar` from `plugins.txt`. Embeds/feeds are cached and load on demand. Times display in Central.

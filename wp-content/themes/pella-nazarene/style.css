@@ -2,7 +2,7 @@
 Theme Name:   Pella Nazarene
 Description:  Child theme of Twenty Twenty-Five for pellanazarene.org.
 Template:     twentytwentyfive
-Version:      0.3.1
+Version:      0.4.0
 Requires PHP: 8.1
 Text Domain:  pella-nazarene
 */
@@ -321,6 +321,42 @@ p.is-style-eyebrow + h2.wp-block-heading {
 
 .pn-post-card__body > .wp-block-post-title {
 	margin-top: 0;
+}
+
+/* Sermon cards: the speaker's photo sits on the bottom-left corner of the artwork, half below it, with the
+   title beside it (inc/sermons.php). */
+.pn-has-speaker {
+	position: relative;
+	overflow: visible;
+}
+
+.pn-speaker-badge {
+	position: absolute;
+	left: 0.875rem;
+	bottom: -1.875rem;
+	width: 3.75rem;
+	height: 3.75rem;
+	border: 3px solid var(--wp--preset--color--base);
+	border-radius: 50%;
+	object-fit: cover;
+	background: var(--wp--preset--color--stone);
+	box-shadow: 0 2px 8px color-mix(in srgb, var(--wp--preset--color--navy-deep) 35%, transparent);
+}
+
+.pn-has-speaker + .wp-block-post-title {
+	padding-left: 5.375rem;
+}
+
+@media (max-width: 600px) {
+	.pn-speaker-badge {
+		width: 3.125rem;
+		height: 3.125rem;
+		bottom: -1.5625rem;
+	}
+
+	.pn-has-speaker + .wp-block-post-title {
+		padding-left: 4.625rem;
+	}
 }
 
 /* A page without its own header still shows the template's title, with room above it. */
