@@ -16,6 +16,8 @@ Everyone who can edit content (pastors, office staff, administrators) must use a
 
 **First login:** after entering the password the person lands on their Profile page. Scroll to **Two-Factor Options** and do **both** steps: (1) turn on the authenticator app, scan the QR code, and enter the 6-digit code to confirm; (2) **generate backup codes** and store them somewhere safe (a password manager). Nothing else in the admin opens until both are done. When the second step finishes, WordPress signs the person out once (this also ends any password-only session, such as one an attacker might have opened); they sign in again with their password and a code from the app.
 
+**Who has signed in:** **Users** has a **Last sign-in** column (administrators only): the date and time, Central, of each person's last complete sign-in, that is, after the authenticator code (or after the password for someone who hasn't set up two-factor yet). "Not yet" means no sign-in since the column was added on 2026-11-20, so it is also how to see which staff still have their first sign-in and two-factor setup to do. It is stored as the user meta `pn_last_sign_in` (`pn-site.php`).
+
 **Lost or replaced phone:** sign in with a backup code (each works once). Then set up the new phone and generate fresh backup codes.
 
 **No phone and no backup codes:** an administrator opens Users, Edit, Two-Factor Options, unchecks every method and saves. The person signs in with their password and sets 2FA up again. Or from the server:

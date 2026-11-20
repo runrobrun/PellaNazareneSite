@@ -240,8 +240,9 @@ Include the Google Analytics 4 tag, measurement ID **`G-3E45KJPG3G`** (a public 
 - Done when: the tag appears in production page source once, not on staging, and GA Realtime shows a test visit.
 - **Done in the FEAT-8 PR:** `pn-analytics.php` (live site only, anonymous visitors only, at the end of the page, async, quiet for GPC/DNT), the Privacy page and footer link, `docs/analytics.md`. Tests prove it is on once on production and off on staging/local/development, for staff, in the admin, on the login page and in the feed, and (in a real browser) off for GPC and Do Not Track. **Still to do at launch:** the live check in `docs/analytics.md` (source once, Realtime shows a visit) and the Content-Security-Policy allowance when that is added.
 
-### FEAT-6 Staff roles and editing experience · S · todo
+### FEAT-6 Staff roles and editing experience · S · doing (last sign-in column in review)
 Verify the `pn-site.php` role setup: pastors as Author, office admin as Editor. Short editor guide in `docs/runbook.md`.
+- **Done (last sign-in, 2026-11-20):** a **Last sign-in** column on the Users screen (`pn-site.php`), counted only once a sign-in is complete (after the authenticator code; after the password for someone without two-factor yet), so administrators can see who has signed in and who still has setup to do. Tested with real sign-ins in `deploy/tests/wp-integration.sh`. Roles checked at cutover: the four pastors are Authors. Still to do: the short editor guide.
 
 ---
 

@@ -259,6 +259,72 @@ add_action(
 
 /*
  * ---------------------------------------------------------------------------
+ * Last sign-in, on the Users screen
+ * ---------------------------------------------------------------------------
+ * So an administrator can see who has signed in, and when. A sign-in counts once it is complete: after the
+ * authenticator code for people who use two-factor, after the password for someone who hasn't set it up yet
+ * (their first sign-in). A password typed without the code is not counted. Recorded from 2026-11-20 on.
+ */
+const PN_LAST_SIGN_IN_META = 'pn_last_sign_in';
+
+/**
+ * Remember when a user finished signing in.
+ *
+ * @param WP_User $user The user.
+ */
+function pn_record_sign_in( $user ): void {
+	if ( $user instanceof WP_User ) {
+		update_user_meta( $user->ID, PN_LAST_SIGN_IN_META, time() );
+	}
+}
+
+add_action(
+	'wp_login',
+	function ( $user_login, $user ) {
+		// With two-factor on, this is only the password step; the code step is counted below.
+		if ( class_exists( 'Two_Factor_Core' ) && method_exists( 'Two_Factor_Core', 'is_user_using_two_factor' )
+			&& Two_Factor_Core::is_user_using_two_factor( $user->ID ) ) {
+			return;
+		}
+		pn_record_sign_in( $user );
+	},
+	10,
+	2
+);
+add_action( 'two_factor_user_authenticated', 'pn_record_sign_in' );
+
+add_filter(
+	'manage_users_columns',
+	function ( $columns ) {
+		$columns['pn_last_sign_in'] = __( 'Last sign-in', 'pella-nazarene' );
+		return $columns;
+	}
+);
+
+add_filter(
+	'manage_users_custom_column',
+	function ( $output, $column, $user_id ) {
+		if ( 'pn_last_sign_in' !== $column ) {
+			return $output;
+		}
+		$time = (int) get_user_meta( $user_id, PN_LAST_SIGN_IN_META, true );
+		if ( ! $time ) {
+			return esc_html__( 'Not yet', 'pella-nazarene' );
+		}
+		return sprintf(
+			'<time datetime="%1$s">%2$s</time><br><span class="description">%3$s</span>',
+			esc_attr( gmdate( 'c', $time ) ),
+			esc_html( wp_date( 'M j, Y g:i a', $time ) ), // Site time zone (Central).
+			/* translators: %s: time since, e.g. "3 hours". */
+			esc_html( sprintf( __( '%s ago', 'pella-nazarene' ), human_time_diff( $time ) ) )
+		);
+	},
+	10,
+	3
+);
+
+/*
+ * ---------------------------------------------------------------------------
  * Non-production safety (local and staging)
  * ---------------------------------------------------------------------------
  * Set WP_ENVIRONMENT_TYPE in wp-config.php ('local', 'staging'; production
