@@ -51,11 +51,11 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 
 The old site keeps serving visitors the whole time. `scripts/setup-production.sh` does the build, the same way `setup-staging.sh` built staging; three things come first because they involve a key, a certificate and a password that only you should handle. All commands run on the server as `deploy`, from the staging checkout (`cd /var/www/staging/repo`), unless they say "on your Mac".
 
-- [ ] **Production deploy account (SEC-5).** On your Mac, make a key used only for production deploys: `ssh-keygen -t ed25519 -N "" -C pella-ci-deploy-production -f ~/.ssh/pella_ci_deploy_production`. Show its public half with `cat ~/.ssh/pella_ci_deploy_production.pub` (one line starting `ssh-ed25519`; never share the file without `.pub`). On the server, paste that line between the quotes: `scripts/setup-ci-deploy.sh production "ssh-ed25519 AAAA... pella-ci-deploy-production"`. This creates `pn-production-deploy`, which owns the live site's code from the first minute; the GitHub side (the `production` environment and its secrets) is the "Should" item in step 1 and can follow.
-- [ ] **Cloudflare origin certificate.** Cloudflare dashboard → `pellanazarene.org` → **SSL/TLS → Origin Server → Create Certificate**: let Cloudflare generate the key (RSA 2048), hostnames `pellanazarene.org` and `*.pellanazarene.org`, 15 years → Create. On the server, paste each part into its file and save: `sudo install -d -m 755 /etc/ssl/cloudflare`, then `sudo nano /etc/ssl/cloudflare/pellanazarene.pem` (the **Origin Certificate**) and `sudo nano /etc/ssl/cloudflare/pellanazarene.key` (the **Private Key**; Cloudflare shows it only once). Then `sudo chmod 600 /etc/ssl/cloudflare/pellanazarene.key`. Do **not** change the SSL/TLS mode yet; that happens at the switch (step 6).
-- [ ] **Gmail app password** (needed before the switch, so the forms can email): create it for `pellanazarene@gmail.com` (`docs/forms.md`), then `sudo nano /root/pella-secrets/gmail-app-password`, paste the 16 characters, save, `sudo chmod 600 /root/pella-secrets/gmail-app-password`.
-- [ ] **Build:** `scripts/setup-production.sh ADMIN_USER ADMIN_EMAIL` (your own username and email). It is safe to re-run; it stops and says what's missing if a step above isn't done. It creates the `pellanazarene` database and user, WordPress with unique salts, `wp-config.php` (`WP_ENVIRONMENT_TYPE` production, which turns email and Google Analytics on; `DISABLE_WP_CRON`, `DISALLOW_FILE_EDIT`, `FORCE_SSL_ADMIN`; the production Redis user and `pn_production_` prefix; the Gmail settings; the YouTube channel), the SEC-5 file ownership, the pinned plugins and our code, the Cloudflare real-IP snippet (from cloudflare.com/ips), the Nginx vhost (tested before it is enabled), WP-Cron and the nightly database backup as `pn-production-php`, and the nightly WordPress security updates.
-- [ ] Check: `sudo -u pn-production-deploy -H wp --path=/var/www/pellanazarene/public plugin list --fields=name,status,version` shows Two Factor 0.17.0 and Fluent Forms 6.2.17 active and no The Events Calendar; `scripts/security-check-server.sh production` has no FAIL.
+- [x] **Production deploy account (SEC-5).** On your Mac, make a key used only for production deploys: `ssh-keygen -t ed25519 -N "" -C pella-ci-deploy-production -f ~/.ssh/pella_ci_deploy_production`. Show its public half with `cat ~/.ssh/pella_ci_deploy_production.pub` (one line starting `ssh-ed25519`; never share the file without `.pub`). On the server, paste that line between the quotes: `scripts/setup-ci-deploy.sh production "ssh-ed25519 AAAA... pella-ci-deploy-production"`. This creates `pn-production-deploy`, which owns the live site's code from the first minute; the GitHub side (the `production` environment and its secrets) is the "Should" item in step 1 and can follow.
+- [x] **Cloudflare origin certificate.** Cloudflare dashboard → `pellanazarene.org` → **SSL/TLS → Origin Server → Create Certificate**: let Cloudflare generate the key (RSA 2048), hostnames `pellanazarene.org` and `*.pellanazarene.org`, 15 years → Create. On the server, paste each part into its file and save: `sudo install -d -m 755 /etc/ssl/cloudflare`, then `sudo nano /etc/ssl/cloudflare/pellanazarene.pem` (the **Origin Certificate**) and `sudo nano /etc/ssl/cloudflare/pellanazarene.key` (the **Private Key**; Cloudflare shows it only once). Then `sudo chmod 600 /etc/ssl/cloudflare/pellanazarene.key`. Do **not** change the SSL/TLS mode yet; that happens at the switch (step 6).
+- [x] **Gmail app password** (needed before the switch, so the forms can email): create it for `pellanazarene@gmail.com` (`docs/forms.md`), then `sudo nano /root/pella-secrets/gmail-app-password`, paste the 16 characters, save, `sudo chmod 600 /root/pella-secrets/gmail-app-password`.
+- [x] **Build:** `scripts/setup-production.sh ADMIN_USER ADMIN_EMAIL` (your own username and email). It is safe to re-run; it stops and says what's missing if a step above isn't done. It creates the `pellanazarene` database and user, WordPress with unique salts, `wp-config.php` (`WP_ENVIRONMENT_TYPE` production, which turns email and Google Analytics on; `DISABLE_WP_CRON`, `DISALLOW_FILE_EDIT`, `FORCE_SSL_ADMIN`; the production Redis user and `pn_production_` prefix; the Gmail settings; the YouTube channel), the SEC-5 file ownership, the pinned plugins and our code, the Cloudflare real-IP snippet (from cloudflare.com/ips), the Nginx vhost (tested before it is enabled), WP-Cron and the nightly database backup as `pn-production-php`, and the nightly WordPress security updates.
+- [x] Check: `sudo -u pn-production-deploy -H wp --path=/var/www/pellanazarene/public plugin list --fields=name,status,version` shows Two Factor 0.17.0 and Fluent Forms 6.2.17 active and no The Events Calendar; `scripts/security-check-server.sh production` has no FAIL. 2026-11-19: plugins as listed; security check 34 ok, 0 warn, 0 FAIL.
 - [ ] Look at it privately: add a line to your Mac's hosts file (`sudo nano /etc/hosts`, then `172.237.145.140 pellanazarene.org`), browse `https://pellanazarene.org`, then remove the line. The browser warns about the certificate (an origin certificate is only trusted through Cloudflare); that is expected for this test only. It shows WordPress's starter content until step 4 copies staging over.
 
 ## 3. Lower the DNS time-to-live (at least 48 hours before cutover)
@@ -119,11 +119,11 @@ sudo -u pn-production-php test -w $P/wp-content/uploads && echo "uploads writabl
 If anything in step 2 or 3 goes wrong, put the live database back with `sudo cat /var/backups/pn-cutover/live-before.sql | $LIVE db import -` (the same `$LIVE` as above) and start step 4 again; nothing public has changed yet.
 
 Then, on the live copy: re-add the hosts-file line from step 2 **before opening `wp-admin` in your browser**, and keep it in place through step 5. Public DNS still points to the old site.
-- [ ] **Forms** (Fluent Forms → each form → Settings → Email Notifications): set the real Contact and prayer recipients, and delete any test messages under Entries.
-- [ ] **Users:** remove test accounts; check pastors are Author and the office admin is Editor. Everyone keeps their staging password and two-factor setup.
-- [ ] **Settings → Sermons:** channel ID present; **Check YouTube now** works.
-- [ ] `scripts/check-filler.sh /var/www/pellanazarene/public --repo /var/www/pellanazarene/repo` is clean (database and code; the page part runs after the switch). Run it as `deploy` from `/var/www/staging/repo`.
-- [ ] No staging references remain outside preserved GUIDs: run `$LIVE db search 'staging.pellanazarene' --all-tables` and confirm any remaining matches are only in `guid` columns, intentionally excluded from search-replace above.
+- [x] **Forms** (Fluent Forms → each form → Settings → Email Notifications): set the real Contact and prayer recipients, and delete any test messages under Entries.
+- [x] **Users:** remove test accounts; check pastors are Author and the office admin is Editor. Everyone keeps their staging password and two-factor setup.
+- [x] **Settings → Sermons:** channel ID present; **Check YouTube now** works.
+- [x] `scripts/check-filler.sh /var/www/pellanazarene/public --repo /var/www/pellanazarene/repo` is clean (database and code; the page part runs after the switch). Run it as `deploy` from `/var/www/staging/repo`. 2026-11-19: clean, 127 columns in 33 tables and the code.
+- [x] No staging references remain outside preserved GUIDs: run `$LIVE db search 'staging.pellanazarene' --all-tables` and confirm any remaining matches are only in `guid` columns, intentionally excluded from search-replace above. 2026-11-19: all 210 matches are `wp_posts.guid`.
 
 ## 5. Test it privately (the day before)
 
@@ -136,13 +136,15 @@ scripts/check-redirects.sh https://pellanazarene.org --resolve pellanazarene.org
 ```
 
 With the hosts-file line from step 2 in place, in a browser:
-- [ ] Every menu page opens with its photos: Home, New Here, About Us, Kids, Giving, Contact, Resources, Events, Small Groups, Blog, plus Prayer and Privacy.
-- [ ] Sermons list, one sermon, and its video plays only after a click.
-- [ ] Giving opens Church Center giving; Connect Card and Plan a Visit open the Church Center Connect Card.
-- [ ] A made-up address shows the friendly 404.
-- [ ] Send one message through Contact and one through Prayer Request; both arrive (check Spam the first time). Then **WP Mail SMTP → Tools → Email Test**. Delete the test Contact entry.
-- [ ] Sign in to `wp-admin` with password and authenticator code.
+- [x] Every menu page opens with its photos: Home, New Here, About Us, Kids, Giving, Contact, Resources, Events, Small Groups, Blog, plus Prayer and Privacy.
+- [x] Sermons list, one sermon, and its video plays only after a click.
+- [x] Giving opens Church Center giving; Connect Card and Plan a Visit open the Church Center Connect Card.
+- [x] A made-up address shows the friendly 404.
+- [x] Send one message through Contact and one through Prayer Request; both arrive (check Spam the first time). Then **WP Mail SMTP → Tools → Email Test**. Delete the test Contact entry.
+- [x] Sign in to `wp-admin` with password and authenticator code.
 - [ ] On a phone (same hosts trick is harder there, so this can wait until step 6).
+
+Done 2026-11-19: the admin and browser checks above passed, and `scripts/check-redirects.sh` with `--resolve` and `--pages-must-exist` passed all 51 rows. The phone check moves to step 7.
 
 Then remove the hosts-file line.
 
