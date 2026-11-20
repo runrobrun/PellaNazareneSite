@@ -100,6 +100,13 @@ expect_lacks "the 2FA setup route itself stays open" "$r" "pn_two_factor_require
 
 echo "== 6. Subscriber (cannot edit content): not forced"
 rm -f /tmp/j_rd; login reader 'Reader-pass-1!' /tmp/j_rd >/dev/null
+t="$(wp user meta get reader pn_last_sign_in 2>/dev/null)"
+[[ "$t" =~ ^[0-9]+$ ]] && ok "last sign-in: recorded at the password for someone without two-factor" || bad "last sign-in: recorded for someone without two-factor (got '$t')"
+col="$(wp eval '$c = apply_filters( "manage_users_columns", array() ); echo $c["pn_last_sign_in"] ?? "", "|", apply_filters( "manage_users_custom_column", "", "pn_last_sign_in", get_user_by( "login", "reader" )->ID ), "|", apply_filters( "manage_users_custom_column", "", "pn_last_sign_in", get_user_by( "login", "pastor" )->ID ), "|", apply_filters( "manage_users_custom_column", "keep", "other", 1 );')"
+expect_contains "Users screen: a Last sign-in column" "$col" "Last sign-in|"
+expect_contains "Users screen: the time it happened" "$col" "ago</span>"
+expect_contains "Users screen: never signed in shows Not yet" "$col" "|Not yet|"
+expect_contains "Users screen: other columns are left alone" "$col" "|keep"
 expect_eq "profile loads, no redirect" "$(get_code "$BASE/wp-admin/profile.php" /tmp/j_rd)" "200"
 n_rd="$(rest_nonce /tmp/j_rd reader)"
 expect_eq "subscriber REST works (not forced)" "$(rest_get /wp/v2/users/me /tmp/j_rd "$n_rd" | tail -1)" "200"
@@ -141,9 +148,11 @@ foreach ($codes as $code) {
 expect_eq "all backup codes may be exhausted without resetting enrollment" "$(wp eval "echo pn_user_needs_two_factor_setup(get_user_by('login','ed')) ? 'yes' : 'no';")" "no"
 
 echo "== 8. Enrolled editor: password alone is NOT enough; second factor is required"
+wp user meta delete ed pn_last_sign_in --quiet 2>/dev/null || true   # ed signed in before enrolling (section 3)
 rm -f /tmp/j_ed2; page="$(login ed 'Editor-pass-1!' /tmp/j_ed2)"
 expect_contains "password alone is NOT enough: asks for the code" "$page" 'name="authcode"'
 expect_eq "no admin access with password only" "$(get_code "$BASE/wp-admin/profile.php" /tmp/j_ed2)" "302"
+expect_eq "last sign-in: the password step alone is not counted" "$(wp user meta get ed pn_last_sign_in 2>/dev/null)" ""
 field() { grep -o "name=\"$2\"[^>]*value=\"[^\"]*\"" <<<"$1" | head -1 | sed 's/.*value="//;s/"$//'; }
 nonce="$(field "$page" wp-auth-nonce)"
 uid="$(field "$page" wp-auth-id)"
@@ -161,6 +170,8 @@ expect_contains "guessing is throttled (the plugin's brute-force protection)" "$
 sleep 4
 submit_code "$code" >/dev/null
 expect_eq "after the wait, the right code logs in: posts list loads" "$(get_code "$BASE/wp-admin/edit.php" /tmp/j_ed2)" "200"
+t="$(wp user meta get ed pn_last_sign_in 2>/dev/null)"
+[[ "$t" =~ ^[0-9]+$ ]] && (( $(date +%s) - t < 120 )) && ok "last sign-in: recorded after the code" || bad "last sign-in: recorded after the code (got '$t')"
 expect_eq "enrolled editor: admin-ajax works" "$(get_code "$BASE/wp-admin/admin-ajax.php?action=rest-nonce" /tmp/j_ed2)" "200"
 n_ed2="$(rest_nonce /tmp/j_ed2 ed)"
 expect_eq "enrolled editor: REST works" "$(rest_get /wp/v2/users/me /tmp/j_ed2 "$n_ed2" | tail -1)" "200"
