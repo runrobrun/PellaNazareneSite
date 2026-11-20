@@ -324,13 +324,14 @@ p.is-style-eyebrow + h2.wp-block-heading {
 }
 
 /* Sermon cards: the speaker's photo sits on the bottom-left corner of the artwork, half below it, with the
-   title beside it (inc/sermons.php). */
+   title beside it (inc/sermons.php). The badge selector outranks core's featured-image `img` rules
+   (`:where(img)` and the wide/full ones), whatever order the stylesheets load in. */
 .pn-has-speaker {
 	position: relative;
 	overflow: visible;
 }
 
-.pn-speaker-badge {
+.wp-block-post-featured-image.pn-has-speaker > .pn-speaker-badge {
 	position: absolute;
 	left: 0.875rem;
 	bottom: -1.875rem;
@@ -348,7 +349,7 @@ p.is-style-eyebrow + h2.wp-block-heading {
 }
 
 @media (max-width: 600px) {
-	.pn-speaker-badge {
+	.wp-block-post-featured-image.pn-has-speaker > .pn-speaker-badge {
 		width: 3.125rem;
 		height: 3.125rem;
 		bottom: -1.5625rem;
