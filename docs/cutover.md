@@ -12,7 +12,7 @@ Write the answers here (no passwords; say where the password lives instead).
 |---|---|
 | Where the old site is hosted, and where its login is kept | _TBD_ |
 | DNS host and where its login is kept | Moving from DNS Made Easy to Cloudflare (decision 1: (a)); steps in `docs/cloudflare-dns-move.md`; nameservers moved 2026-11-07 |
-| Current DNS records for `pellanazarene.org` and `www` (type, value, TTL), copied before anything changes | _TBD_ |
+| Current DNS records for `pellanazarene.org` and `www` (type, value, TTL), copied before anything changes | Before the switch: `pellanazarene.org` A to the old host's address, DNS only, TTL Auto; `www` CNAME to `pellanazarene.org`; no AAAA; no MX. The old address is kept in Rob's records and Cloudflare's audit log, not in git |
 | Linode server IP (IPv4, and IPv6 if used) | _TBD_ |
 | Cutover date and time | **Friday 2026-11-20, morning** (decided 2026-11-17; see "When") |
 | Who runs it / who on staff decides go or no-go | Rob Hammann, both (Rob is the church office and its tech support) |
@@ -42,7 +42,7 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 - [x] Decision 1 made (Cloudflare); DNS moved 2026-11-07 and settled by 2026-11-14.
 
 **Should**
-- [ ] Production deploys from GitHub set up but still switched off (`docs/setup.md` section 5: a separate production key, the `production` environment with required reviewers). Step 2 deploys by hand; automatic deploys are switched on after the switch (step 7).
+- [x] Production deploys from GitHub set up but still switched off (`docs/setup.md` section 5: a separate production key, the `production` environment with required reviewers). Step 2 deploys by hand; automatic deploys are switched on after the switch (step 7). Done 2026-11-20 at the switch: `production` environment with Rob as required reviewer, `main` only, its own `DEPLOY_USER`, `DEPLOY_HOST`, known hosts and production key.
 - [ ] Off-server backups and one restore tried on staging (OPS-1).
 - [ ] Uptime monitor on the home page and `wp-login.php` (OPS-2).
 - [ ] Performance numbers recorded on staging (PERF-1).
@@ -56,13 +56,13 @@ The old site keeps serving visitors the whole time. `scripts/setup-production.sh
 - [x] **Gmail app password** (needed before the switch, so the forms can email): create it for `pellanazarene@gmail.com` (`docs/forms.md`), then `sudo nano /root/pella-secrets/gmail-app-password`, paste the 16 characters, save, `sudo chmod 600 /root/pella-secrets/gmail-app-password`.
 - [x] **Build:** `scripts/setup-production.sh ADMIN_USER ADMIN_EMAIL` (your own username and email). It is safe to re-run; it stops and says what's missing if a step above isn't done. It creates the `pellanazarene` database and user, WordPress with unique salts, `wp-config.php` (`WP_ENVIRONMENT_TYPE` production, which turns email and Google Analytics on; `DISABLE_WP_CRON`, `DISALLOW_FILE_EDIT`, `FORCE_SSL_ADMIN`; the production Redis user and `pn_production_` prefix; the Gmail settings; the YouTube channel), the SEC-5 file ownership, the pinned plugins and our code, the Cloudflare real-IP snippet (from cloudflare.com/ips), the Nginx vhost (tested before it is enabled), WP-Cron and the nightly database backup as `pn-production-php`, and the nightly WordPress security updates.
 - [x] Check: `sudo -u pn-production-deploy -H wp --path=/var/www/pellanazarene/public plugin list --fields=name,status,version` shows Two Factor 0.17.0 and Fluent Forms 6.2.17 active and no The Events Calendar; `scripts/security-check-server.sh production` has no FAIL. 2026-11-19: plugins as listed; security check 34 ok, 0 warn, 0 FAIL.
-- [ ] Look at it privately: add a line to your Mac's hosts file (`sudo nano /etc/hosts`, then `172.237.145.140 pellanazarene.org`), browse `https://pellanazarene.org`, then remove the line. The browser warns about the certificate (an origin certificate is only trusted through Cloudflare); that is expected for this test only. It shows WordPress's starter content until step 4 copies staging over.
+- [x] Look at it privately: add a line to your Mac's hosts file (`sudo nano /etc/hosts`, then `172.237.145.140 pellanazarene.org`), browse `https://pellanazarene.org`, then remove the line. The browser warns about the certificate (an origin certificate is only trusted through Cloudflare); that is expected for this test only. It shows WordPress's starter content until step 4 copies staging over. Done 2026-11-19 during step 5.
 
 ## 3. Lower the DNS time-to-live (at least 48 hours before cutover)
 
-- [ ] At the DNS host, set the TTL of the `pellanazarene.org` and `www` address records (A, and AAAA if present) to 300 seconds. This makes the switch, and a rollback, take minutes instead of hours.
-- [ ] Before continuing, wait at least the previous TTL recorded at the top of this document. Start this step early enough to finish the wait before switching in step 6.
-- [ ] Leave every other record alone: **MX, TXT (SPF, Google verification), CNAME** and anything else stay exactly as they are, or church email may stop.
+- [x] At the DNS host, set the TTL of the `pellanazarene.org` and `www` address records (A, and AAAA if present) to 300 seconds. This makes the switch, and a rollback, take minutes instead of hours. Cloudflare's Auto TTL is 5 minutes; the 2026-11-20 switch showed up at once.
+- [x] Before continuing, wait at least the previous TTL recorded at the top of this document. Start this step early enough to finish the wait before switching in step 6.
+- [x] Leave every other record alone: **MX, TXT (SPF, Google verification), CNAME** and anything else stay exactly as they are, or church email may stop. 2026-11-20: only the A record and the proxy on `www` changed; `staging` still resolves straight to the server (DNS only).
 - [ ] Optional now: add the live site to **Google Search Console** as a domain property and verify it with the TXT record it gives (this does not affect the old site).
 
 ## 4. Content freeze and copy from staging (the day before)
@@ -142,7 +142,7 @@ With the hosts-file line from step 2 in place, in a browser:
 - [x] A made-up address shows the friendly 404.
 - [x] Send one message through Contact and one through Prayer Request; both arrive (check Spam the first time). Then **WP Mail SMTP → Tools → Email Test**. Delete the test Contact entry.
 - [x] Sign in to `wp-admin` with password and authenticator code.
-- [ ] On a phone (same hosts trick is harder there, so this can wait until step 6).
+- [x] On a phone (same hosts trick is harder there, so this can wait until step 6). Done 2026-11-20 in step 7.
 
 Done 2026-11-19: the admin and browser checks above passed, and `scripts/check-redirects.sh` with `--resolve` and `--pages-must-exist` passed all 51 rows. The phone check moves to step 7.
 
@@ -150,13 +150,13 @@ Then remove the hosts-file line.
 
 ## 6. Switch (cutover morning)
 
-- [ ] Take a Linode snapshot.
-- [ ] Download a full backup of the old site from its host (files and database), and keep it with the church's records.
-- [ ] Write the old A/AAAA values in the table at the top (they are the rollback).
-- [ ] Change the records:
+- [x] Take a Linode snapshot. 2026-11-20, before the switch.
+- [x] Download a full backup of the old site from its host (files and database), and keep it with the church's records. 2026-11-20, before the switch.
+- [x] Write the old A/AAAA values in the table at the top (they are the rollback). 2026-11-20.
+- [x] Change the records (2026-11-20):
   - (a) Cloudflare: set the `pellanazarene.org` A record to the Linode IPv4 address and update any existing AAAA record to the Linode IPv6 address (or remove it if IPv6 is not used); do the same for `www`. Turn the proxy **on** (orange cloud) for the web records. SSL/TLS mode **Full (strict)**. (Since 2026-11-07 the zone has `www` as a CNAME to `pellanazarene.org`, so only the one A record changes. The SSL mode covers the whole domain, but `staging` stays grey (DNS only), so its Let's Encrypt certificate and renewals are unaffected.)
   - (b) DNS Made Easy: set the `pellanazarene.org` A record to the Linode IPv4 address and update any existing AAAA record to the Linode IPv6 address (or remove it if IPv6 is not used); do the same for `www`, or replace its address records with a CNAME to `pellanazarene.org`.
-- [ ] Wait 5 to 10 minutes, then check from outside: `dig +short pellanazarene.org` shows the new address (Cloudflare: one of its addresses), and the home page loads.
+- [x] Wait 5 to 10 minutes, then check from outside: `dig +short pellanazarene.org` shows the new address (Cloudflare: one of its addresses), and the home page loads. 2026-11-20: Cloudflare's addresses from 1.1.1.1, 8.8.8.8 and the authoritative server; the home page loads through Cloudflare from the new server.
 - [ ] (b) only: replace the temporary certificate with one that renews itself: `sudo certbot certonly --webroot -w /var/www/pellanazarene/public -d pellanazarene.org -d www.pellanazarene.org --force-renewal`, `sudo nginx -t && sudo systemctl reload nginx`, and `sudo certbot renew --dry-run` succeeds.
 
 ## 7. Check the live site (first hour)
@@ -169,14 +169,16 @@ curl -sI https://www.pellanazarene.org/ | head -3   # 301 to https://pellanazare
 curl -sI https://pellanazarene.org/ | grep -i -E 'x-cache|x-robots'   # run twice: MISS then HIT; no X-Robots-Tag line
 ```
 
-- [ ] The browser checks from step 5 again, now on a phone over cellular too.
-- [ ] Google Analytics: the four checks in `docs/analytics.md` (tag once in the source, Realtime shows your visit, absent when signed in, absent on staging).
-- [ ] Search and sharing: the five launch steps in `docs/seo.md` (submit `https://pellanazarene.org/wp-sitemap.xml`, check the source, share a link to yourself, Google Business Profile, "Discourage search engines" off).
-- [ ] Staging still asks for a password and still says `noindex`.
-- [ ] Real visitor addresses reach the site through Cloudflare: load the home page from your phone (cellular), then on the server `sudo tail -3 /var/log/nginx/access.log` shows your phone's address (the one https://ifconfig.me shows on the phone), not one from the ranges at https://www.cloudflare.com/ips/. Otherwise the login throttle and the forms' spam limit would treat every visitor as one. (SEC-4, finding 3)
-- [ ] The SSL Labs and security-headers checks from `docs/security-scan.md` section 3 on `pellanazarene.org`: SSL Labs A or better. HSTS is not on yet (it comes a week later, under "Afterwards"), so A, not A+, is expected now.
-- [ ] Switch on deploys to the live site: in GitHub, Settings → Secrets and variables → Actions → **Variables**, add the repository variable `PRODUCTION_DEPLOYS` with the value `on`. From the next merge, each change goes to staging, then waits for an approval in the Actions tab before it reaches the live site.
-- [ ] Tell staff the new site is live and that edits now happen at `pellanazarene.org/wp-admin`.
+2026-11-20: redirects 51 passed, 0 failed; filler check clean (database, 22 pages, code); `http://`, `https://www.` and `http://www.` all 301 to `https://pellanazarene.org/`; `X-Cache: HIT`, no `X-Robots-Tag`.
+
+- [x] The browser checks from step 5 again, now on a phone over cellular too. 2026-11-20: pages and forms checked on a phone.
+- [x] Google Analytics: the four checks in `docs/analytics.md` (tag once in the source, Realtime shows your visit, absent when signed in, absent on staging). 2026-11-20: tag once in the source, Realtime showed the visit, absent when signed in and on staging.
+- [ ] Search and sharing: the five launch steps in `docs/seo.md` (submit `https://pellanazarene.org/wp-sitemap.xml`, check the source, share a link to yourself, Google Business Profile, "Discourage search engines" off). 2026-11-20: sitemap submitted, Search Console shows Success; robots.txt open. Still to confirm: shared-link preview, Google Business Profile link, "Discourage search engines" off.
+- [x] Staging still asks for a password and still says `noindex`. 2026-11-20: 401 with `X-Robots-Tag: noindex, nofollow, noarchive`.
+- [x] Real visitor addresses reach the site through Cloudflare: load the home page from your phone (cellular), then on the server `sudo tail -3 /var/log/nginx/access.log` shows your phone's address (the one https://ifconfig.me shows on the phone), not one from the ranges at https://www.cloudflare.com/ips/. Otherwise the login throttle and the forms' spam limit would treat every visitor as one. (SEC-4, finding 3) 2026-11-20: a request from the Mac was logged with the Mac's own public address, not a Cloudflare one.
+- [x] The SSL Labs and security-headers checks from `docs/security-scan.md` section 3 on `pellanazarene.org`: SSL Labs A or better. HSTS is not on yet (it comes a week later, under "Afterwards"), so A, not A+, is expected now. 2026-11-20: SSL Labs **A** on all four Cloudflare addresses, after setting Cloudflare's **Minimum TLS Version to 1.2** (it allowed 1.0 and 1.1, which capped the grade at B). The live site sends the same security headers that scored A on staging.
+- [x] Switch on deploys to the live site: in GitHub, Settings → Secrets and variables → Actions → **Variables**, add the repository variable `PRODUCTION_DEPLOYS` with the value `on`. From the next merge, each change goes to staging, then waits for an approval in the Actions tab before it reaches the live site. 2026-11-20: `PRODUCTION_DEPLOYS` is `on`.
+- [x] Tell staff the new site is live and that edits now happen at `pellanazarene.org/wp-admin`. 2026-11-20: the four pastors (Authors) emailed how to sign in, set their own password and turn on two-factor.
 
 ## If it goes wrong: rollback
 
