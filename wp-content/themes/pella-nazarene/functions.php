@@ -14,6 +14,7 @@ add_action(
 
 require_once get_theme_file_path( 'inc/photos.php' );
 require_once get_theme_file_path( 'inc/sections.php' );
+require_once get_theme_file_path( 'inc/sermons.php' );
 
 // Pattern category so staff find church patterns first in the inserter.
 add_action(

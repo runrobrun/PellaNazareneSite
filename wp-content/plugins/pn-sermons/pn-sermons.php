@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:       Pella Nazarene Sermons
- * Description:       Sermons with series, speakers, and scripture; imports sermons from YouTube (new ones automatically, the whole history with a command) as drafts for review; drafts companion blog posts.
- * Version:           0.1.1
+ * Description:       Sermons with series, speakers, and scripture; imports sermons from YouTube (new ones automatically, the whole history with a command) as drafts for review; drafts companion blog posts; a photo for each speaker.
+ * Version:           0.2.0
  * Requires at least: 6.6
  * Requires PHP:      8.1
  * Author:            Pella Nazarene
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PN_SERMONS_VERSION', '0.1.1' );
+define( 'PN_SERMONS_VERSION', '0.2.0' );
 define( 'PN_SERMONS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PN_SERMONS_URL', plugin_dir_url( __FILE__ ) );
 
@@ -23,12 +23,14 @@ require_once PN_SERMONS_DIR . 'includes/class-youtube-api.php';
 require_once PN_SERMONS_DIR . 'includes/class-youtube-import.php';
 require_once PN_SERMONS_DIR . 'includes/class-video.php';
 require_once PN_SERMONS_DIR . 'includes/class-companion.php';
+require_once PN_SERMONS_DIR . 'includes/class-speakers.php';
 
 PN_Sermons\Post_Types::init();
 PN_Sermons\Settings::init();
 PN_Sermons\YouTube_Import::init();
 PN_Sermons\Video::init();
 PN_Sermons\Companion::init();
+PN_Sermons\Speakers::init();
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once PN_SERMONS_DIR . 'includes/class-cli.php';

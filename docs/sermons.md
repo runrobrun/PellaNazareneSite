@@ -63,6 +63,16 @@ Under **Sermons** in the admin, open each draft and check the title, speaker, se
 
 To remove a sermon, put it in the **trash**; do not empty the trash. A trashed sermon is remembered, so the next import does not bring it back.
 
+## Speaker photos
+
+On the Sermons page each card shows the speaker's photo as a small round badge on the corner of the sermon artwork, so a page of one series (every card with the same graphic) still shows who preached each week. It is not shown on the sermon's own page, or on a speaker's own page, where every card would be the same face.
+
+- A staff speaker gets their staff photo from the About page automatically: the speaker's slug (`todd-olson`) matches the photo (`staff-todd-olson` in `wp-content/themes/pella-nazarene/assets/images/photos/manifest.json`).
+- For anyone else, or to use a different picture, go to **Sermons → Speakers**, edit the speaker, and use **Photo → Choose photo**. A square head-and-shoulders picture works best; it is shown at about 60 pixels. **Remove** goes back to the staff photo, or to no photo.
+- A speaker with no photo (a guest) gets no badge; the card looks as it did before.
+
+The photo field and its fallback are in the plugin (`includes/class-speakers.php`); the badge itself is the theme's (`inc/sermons.php`, styles in `style.css`). Changes show for visitors once the page cache expires.
+
 ## How the importer reads a video
 
 The descriptions are typed by hand, so the parser is forgiving and conservative. It looks at the first lines of the description for pieces separated by ` - `, `–`, `|` or `:`, and recognises:
