@@ -78,8 +78,11 @@ ssh-keygen -lF github.com | grep -v '^#' | head -3 || true
 echo "==> WordPress core"
 mkdir -p "$WP"
 if [[ ! -f "$WP/wp-settings.php" ]]; then
-	run_wp core download --path="$WP" --locale=en_US
+	# Not `wp core download`: its tar reader breaks 25 long file names in 7.x (see download-wordpress.sh).
+	if id "$CI_USER" &>/dev/null; then sudo -n -u "$CI_USER" "$ROOT/repo/scripts/download-wordpress.sh" "$WP"; else "$ROOT/repo/scripts/download-wordpress.sh" "$WP"; fi
 fi
+
+run_wp core verify-checksums --path="$WP" --quiet || { echo "WordPress core files don't match WordPress.org; see 'wp core verify-checksums'." >&2; exit 1; }
 
 echo "==> wp-config.php"
 if [[ ! -f "$WP/wp-config.php" ]]; then

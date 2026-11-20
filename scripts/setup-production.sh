@@ -77,9 +77,11 @@ if ! sudo test -d "$ROOT/repo/.git"; then
 fi
 
 echo "==> WordPress core"
+# Not `wp core download`: its tar reader breaks 25 long file names in 7.x (see download-wordpress.sh).
 if ! sudo test -f "$WP/wp-settings.php"; then
-	run_wp core download --locale=en_US --quiet
+	as_ci "$ROOT/repo/scripts/download-wordpress.sh" "$WP"
 fi
+run_wp core verify-checksums --quiet || { echo "WordPress core files don't match WordPress.org; see 'wp core verify-checksums'." >&2; exit 1; }
 
 echo "==> wp-config.php"
 if ! sudo test -f "$WP/wp-config.php"; then
