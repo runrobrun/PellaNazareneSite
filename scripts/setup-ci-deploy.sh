@@ -110,6 +110,8 @@ if [[ -d "$ROOT/repo" && -d "$ROOT/public" ]]; then
 			-exec setfacl -m "u:$PHP_USER:rw-" {} +
 	fi
 fi
+# The site folder may not exist yet (production before it is built); deploys keep their lock here.
+sudo install -d -o "$ADMIN_USER" -g www-data -m 755 "$ROOT"
 sudo touch "$ROOT/.deploy.lock"
 sudo chown "$CI_USER:$CI_USER" "$ROOT/.deploy.lock"
 sudo chmod 600 "$ROOT/.deploy.lock"

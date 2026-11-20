@@ -14,15 +14,15 @@ Write the answers here (no passwords; say where the password lives instead).
 | DNS host and where its login is kept | Moving from DNS Made Easy to Cloudflare (decision 1: (a)); steps in `docs/cloudflare-dns-move.md`; nameservers moved 2026-11-07 |
 | Current DNS records for `pellanazarene.org` and `www` (type, value, TTL), copied before anything changes | _TBD_ |
 | Linode server IP (IPv4, and IPv6 if used) | _TBD_ |
-| Cutover date and time | _TBD_ (see "When") |
-| Who runs it / who on staff decides go or no-go | Rob Hammann / _TBD_ |
+| Cutover date and time | **Friday 2026-11-20, morning** (decided 2026-11-17; see "When") |
+| Who runs it / who on staff decides go or no-go | Rob Hammann, both (Rob is the church office and its tech support) |
 | Old site kept until | Cutover date + 60 days |
 
 ## Decisions to make first
 
 1. **DNS and certificates (INF-3).** **Decided 2026-11-07: (a) Cloudflare**; the DNS move is `docs/cloudflare-dns-move.md`. The choice was: either (a) move DNS to Cloudflare and put the site behind it, or (b) stay on DNS Made Easy and use a Let's Encrypt certificate on the server, no CDN. The steps below say where the two differ. If (a), move DNS to Cloudflare **at least a week before** cutover, as its own step: copy every record across, leave the proxy **off** (grey cloud) so the old site keeps working exactly as before, then change the nameservers at the registrar.
 2. **How content reaches the live site.** Recommended: **copy the staging database** (step 4), because staging holds everything staff have reviewed: page edits, published sermons, photos, blog post, and each person's two-factor setup. The alternative, building the live site fresh with the scripts and redoing every staff edit by hand, risks losing work. Either way, staging edits stop at the content freeze.
-3. **When.** A weekday morning, Tuesday to Thursday, with someone from the office reachable. Not Saturday night or Sunday, when people look up service times.
+3. **When.** **Decided 2026-11-17: Friday 2026-11-20, morning.** Pella Nazarene is a very small church and Rob is both the office and the tech support, so the usual "Tuesday to Thursday with the office reachable" rule reduces to "a weekday morning Rob is free". Never Saturday night or Sunday, when people look up service times. Schedule: build the live site (step 2) Wednesday 11-18; test it privately and freeze and copy content (steps 3 to 5) Thursday 11-19; switch (step 6) Friday 11-20 morning, leaving the weekend to watch it before Sunday.
 
 ## 1. Go or no-go (one week before)
 
@@ -34,11 +34,11 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 - [x] Floyd Ware's bio approved as it stands (MIG-4), 2026-11-16.
 - [x] At least one real blog post is published, so `/blog/` is not empty (FEAT-7), 2026-11-16.
 - [x] Sermons reviewed and published on staging (the full "I AM" series), 2026-11-16. Staff decided not to migrate the four old-site sermons (Pentecost, God's Messenger, Vision Sunday 1 and 2): their old addresses go to the Sermons list, and `deploy/redirects/expected.csv` expects exactly that. (If they are ever imported, update those four rows to `/sermons/*`.)
-- [ ] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`).
-- [x] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`), 2026-11-19: all 51 rows, with `--pages-must-exist`.
+- [x] `scripts/check-filler.sh` is clean on staging, all three parts (database, pages, code) (`docs/filler-check.md`), 2026-11-17: 127 columns, 22 pages and the code. WordPress's starter posts ("Hello world!", "Sample Page", the "Privacy Policy" draft) were deleted first.
+- [x] `scripts/check-redirects.sh` passes on staging **without** `--allow-fallback` (`docs/redirects.md`), 2026-11-17: all 51 rows passed. Re-run 2026-11-19 with `--pages-must-exist` as well: all 51 passed.
 - [x] Real email addresses agreed for the Contact form and for prayer requests (`docs/forms.md`), 2026-11-16. They are passed to `create-forms.sh` on the server, never stored in the repo.
-- [ ] Pre-launch security scan done, every high and medium finding fixed or written down (SEC-4): `docs/security-scan.md`. The code review is done; the server check and outside scans are still to run.
-- [ ] Server: a Linode snapshot taken, then SSH locked (`scripts/bootstrap-server.sh deploy --lock-ssh`), and Linode backups switched on (INF-1).
+- [x] Pre-launch security scan done, every high and medium finding fixed or written down (SEC-4), 2026-11-17: `docs/security-scan.md`. No high or medium findings. Fluent Forms 6.2.17 installed on staging 2026-11-17 and a Contact test message recorded. SSL Labs A, security headers A; A+ for both once HSTS is on, a week after cutover ("Afterwards").
+- [x] Server: a Linode snapshot taken (2026-11-16), SSH locked (2026-11-16: `sshd -T`, read by `scripts/security-check-server.sh`, shows the effective `permitrootlogin no`, `passwordauthentication no` and `kbdinteractiveauthentication no`), and Linode backups switched on (2026-11-17) (INF-1).
 - [x] Decision 1 made (Cloudflare); DNS moved 2026-11-07 and settled by 2026-11-14.
 
 **Should**
@@ -49,20 +49,14 @@ Every **must** box ticked, or the date moves. **Should** boxes can slip past lau
 
 ## 2. Build the live site beside the old one (3 to 7 days before)
 
-The old site keeps serving visitors the whole time. Follow `docs/setup.md`; the live site differs from staging as below.
+The old site keeps serving visitors the whole time. `scripts/setup-production.sh` does the build, the same way `setup-staging.sh` built staging; three things come first because they involve a key, a certificate and a password that only you should handle. All commands run on the server as `deploy`, from the staging checkout (`cd /var/www/staging/repo`), unless they say "on your Mac".
 
-- [ ] Database and user `pellanazarene` (setup.md section 2; the password is already in `/root/pella-secrets/`).
-- [ ] WordPress in `/var/www/pellanazarene/public`, this repo in `/var/www/pellanazarene/repo`, Twenty Twenty-Five installed (setup.md section 3).
-- [ ] `wp-config.php`: unique salts; `WP_ENVIRONMENT_TYPE` set to `production` (this is what turns email and Google Analytics on); `DISABLE_WP_CRON`, `DISALLOW_FILE_EDIT`, `FORCE_SSL_ADMIN`; Redis uses the production ACL user/password and `pn_production_` prefix (not staging's ACL user); the `WPMS_*` Gmail settings (`docs/forms.md`); the YouTube constants (`docs/sermons.md`).
-- [ ] Before deploying, make production code replaceable by `deploy` while keeping uploads writable only by WordPress: `sudo chown -R deploy:www-data /var/www/pellanazarene/public` and `sudo chown -R www-data:www-data /var/www/pellanazarene/public/wp-content/uploads`. Then deploy `deploy/deploy.sh /var/www/pellanazarene /var/cache/nginx/pellanazarene <commit>` as `deploy`, with the commit currently on staging. `/var/www/pellanazarene` and its `repo` are owned by `deploy`, as on staging (deploys keep a lock file there).
-- [ ] Plugins at the pinned versions: `scripts/install-plugins.sh /var/www/pellanazarene/public` on a fresh install is fine. Check `wp plugin list`: Two Factor 0.17.0 and Fluent Forms 6.2.16 active, and The Events Calendar **not** installed.
-- [ ] Nginx vhost from `deploy/nginx.conf.example` (it includes the redirect snippet and the HTTPS `www` redirect), `scripts/apply-server-tuning.sh` run, `sudo nginx -t` passes. With Let's Encrypt (decision 1b), point `ssl_certificate` in **both** HTTPS blocks at `/etc/letsencrypt/live/pellanazarene.org/` instead of the Cloudflare paths. Do not reload Nginx with a vhost whose certificate files do not exist yet.
-- [ ] Certificate:
-  - (a) Cloudflare: create the origin certificate, install it at the paths in the vhost, write the real-IP config (`/etc/nginx/snippets/cloudflare-realip.conf`, not in the repo yet: `set_real_ip_from` for each range at cloudflare.com/ips, and `real_ip_header CF-Connecting-IP;`) and uncomment its include in the vhost. The login throttle needs real IPs, so this comes before launch.
-  - (b) Let's Encrypt: it cannot check the server until DNS points here. To avoid a few minutes of browser warnings at the switch, get a temporary certificate now with a DNS check (`sudo certbot certonly --manual --preferred-challenges dns -d pellanazarene.org -d www.pellanazarene.org`, then add the TXT record it asks for at DNS Made Easy). It will not renew itself, so it is replaced in step 6.
-- [ ] Cron: `deploy/crontab.example` installed for `pn-production-php`; `/var/backups/pellanazarene` created and owned by that user.
-- [ ] Automatic WordPress security updates, once `scripts/setup-ci-deploy.sh production` has run: `scripts/setup-core-updates.sh production` (`docs/setup.md` section 5). It ends by showing the next run time.
-- [ ] Look at it privately: add a line to your computer's hosts file (`<Linode IP> pellanazarene.org`), browse it, then remove the line.
+- [ ] **Production deploy account (SEC-5).** On your Mac, make a key used only for production deploys: `ssh-keygen -t ed25519 -N "" -C pella-ci-deploy-production -f ~/.ssh/pella_ci_deploy_production`. Show its public half with `cat ~/.ssh/pella_ci_deploy_production.pub` (one line starting `ssh-ed25519`; never share the file without `.pub`). On the server, paste that line between the quotes: `scripts/setup-ci-deploy.sh production "ssh-ed25519 AAAA... pella-ci-deploy-production"`. This creates `pn-production-deploy`, which owns the live site's code from the first minute; the GitHub side (the `production` environment and its secrets) is the "Should" item in step 1 and can follow.
+- [ ] **Cloudflare origin certificate.** Cloudflare dashboard → `pellanazarene.org` → **SSL/TLS → Origin Server → Create Certificate**: let Cloudflare generate the key (RSA 2048), hostnames `pellanazarene.org` and `*.pellanazarene.org`, 15 years → Create. On the server, paste each part into its file and save: `sudo install -d -m 755 /etc/ssl/cloudflare`, then `sudo nano /etc/ssl/cloudflare/pellanazarene.pem` (the **Origin Certificate**) and `sudo nano /etc/ssl/cloudflare/pellanazarene.key` (the **Private Key**; Cloudflare shows it only once). Then `sudo chmod 600 /etc/ssl/cloudflare/pellanazarene.key`. Do **not** change the SSL/TLS mode yet; that happens at the switch (step 6).
+- [ ] **Gmail app password** (needed before the switch, so the forms can email): create it for `pellanazarene@gmail.com` (`docs/forms.md`), then `sudo nano /root/pella-secrets/gmail-app-password`, paste the 16 characters, save, `sudo chmod 600 /root/pella-secrets/gmail-app-password`.
+- [ ] **Build:** `scripts/setup-production.sh ADMIN_USER ADMIN_EMAIL` (your own username and email). It is safe to re-run; it stops and says what's missing if a step above isn't done. It creates the `pellanazarene` database and user, WordPress with unique salts, `wp-config.php` (`WP_ENVIRONMENT_TYPE` production, which turns email and Google Analytics on; `DISABLE_WP_CRON`, `DISALLOW_FILE_EDIT`, `FORCE_SSL_ADMIN`; the production Redis user and `pn_production_` prefix; the Gmail settings; the YouTube channel), the SEC-5 file ownership, the pinned plugins and our code, the Cloudflare real-IP snippet (from cloudflare.com/ips), the Nginx vhost (tested before it is enabled), WP-Cron and the nightly database backup as `pn-production-php`, and the nightly WordPress security updates.
+- [ ] Check: `sudo -u pn-production-deploy -H wp --path=/var/www/pellanazarene/public plugin list --fields=name,status,version` shows Two Factor 0.17.0 and Fluent Forms 6.2.17 active and no The Events Calendar; `scripts/security-check-server.sh production` has no FAIL.
+- [ ] Look at it privately: add a line to your Mac's hosts file (`sudo nano /etc/hosts`, then `172.237.145.140 pellanazarene.org`), browse `https://pellanazarene.org`, then remove the line. The browser warns about the certificate (an origin certificate is only trusted through Cloudflare); that is expected for this test only. It shows WordPress's starter content until step 4 copies staging over.
 
 ## 3. Lower the DNS time-to-live (at least 48 hours before cutover)
 
@@ -152,7 +146,7 @@ curl -sI https://pellanazarene.org/ | grep -i -E 'x-cache|x-robots'   # run twic
 - [ ] Search and sharing: the five launch steps in `docs/seo.md` (submit `https://pellanazarene.org/wp-sitemap.xml`, check the source, share a link to yourself, Google Business Profile, "Discourage search engines" off).
 - [ ] Staging still asks for a password and still says `noindex`.
 - [ ] Real visitor addresses reach the site through Cloudflare: load the home page from your phone (cellular), then on the server `sudo tail -3 /var/log/nginx/access.log` shows your phone's address (the one https://ifconfig.me shows on the phone), not one from the ranges at https://www.cloudflare.com/ips/. Otherwise the login throttle and the forms' spam limit would treat every visitor as one. (SEC-4, finding 3)
-- [ ] The SSL Labs and security-headers checks from `docs/security-scan.md` section 3 on `pellanazarene.org`: SSL Labs A or better, HSTS present.
+- [ ] The SSL Labs and security-headers checks from `docs/security-scan.md` section 3 on `pellanazarene.org`: SSL Labs A or better. HSTS is not on yet (it comes a week later, under "Afterwards"), so A, not A+, is expected now.
 - [ ] Switch on deploys to the live site: in GitHub, Settings → Secrets and variables → Actions → **Variables**, add the repository variable `PRODUCTION_DEPLOYS` with the value `on`. From the next merge, each change goes to staging, then waits for an approval in the Actions tab before it reaches the live site.
 - [ ] Tell staff the new site is live and that edits now happen at `pellanazarene.org/wp-admin`.
 
@@ -179,7 +173,7 @@ If edits were made on the new site before rolling back, they are kept there; not
   ```bash
   sudo awk '$9 == 404 {print $7}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head -20
   ```
-- [ ] Turn on HSTS once HTTPS has been fine for a week (`docs/setup.md`, Nginx section).
+- [ ] Turn on HSTS once HTTPS has been fine for a week (`docs/setup.md`, Nginx section). Then re-test `pellanazarene.org` on SSL Labs and securityheaders.com: expect A+ on both, and record it in `docs/security-scan.md`.
 
 **After 60 days**
 - [ ] With staff agreement, cancel the old hosting. Keep the backup from step 6.

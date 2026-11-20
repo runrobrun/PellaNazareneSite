@@ -7,4 +7,5 @@
 
 # Nightly database backup at 2:15 AM Central (server set to America/Chicago).
 # Upload to off-server storage is configured separately; see docs/runbook.md.
-15 2 * * * cd /var/www/pellanazarene/public && wp db export - --quiet | gzip > /var/backups/pellanazarene/db-$(date +\%F).sql.gz && find /var/backups/pellanazarene -name 'db-*.sql.gz' -mtime +14 -delete
+# Under bash with pipefail, so a failed export never replaces a good file or triggers the clean-up.
+15 2 * * * /bin/bash -o pipefail -c 'cd /var/www/pellanazarene/public && f=/var/backups/pellanazarene/db-$(date +\%F).sql.gz && wp db export - --quiet | gzip > "$f.tmp" && mv "$f.tmp" "$f" && find /var/backups/pellanazarene -name "db-*.sql.gz" -mtime +14 -delete'

@@ -5,8 +5,8 @@ The record of the scan the cutover go/no-go list asks for: every high and medium
 | Part | Who | Status |
 |---|---|---|
 | 1. Review of our own code and server config | Claude, 2026-11-16 | Done: no high or medium findings; two low findings fixed |
-| 2. Server check (`scripts/security-check-server.sh`) | Rob, on the server | To do |
-| 3. Outside scans of staging (WPScan, ZAP baseline, SSL Labs, security headers) | Rob, from a Mac with Docker | To do |
+| 2. Server check (`scripts/security-check-server.sh`) | Rob, on the server | Done 2026-11-16: 0 FAIL |
+| 3. Outside scans of staging (WPScan, ZAP baseline, SSL Labs, security headers) | Rob, from a Mac with Docker | Done 2026-11-17: one low finding (Fluent Forms, fixed); everything else expected or accepted |
 
 ## 1. Code and configuration review
 
@@ -29,7 +29,7 @@ The record of the scan the cutover go/no-go list asks for: every high and medium
 | 1 | Low | Nothing stopped Nginx from serving log files, database dumps or editor leftovers (`wp-content/debug.log`, `*.sql`, `*.sql.gz`, `*.bak`, `*.old`, `*.orig`, `*.swp`) if one ever ended up in the web folder. Turning on WordPress's debug log would have made `debug.log` public. | **Fixed:** both vhosts deny these, and the Nginx tests check five examples. |
 | 2 | Low | No `Content-Security-Policy` header, which scanners report. | **Fixed (baseline):** `base-uri 'self'; object-src 'none'; frame-ancestors 'self'`, tested. Scripts are deliberately not restricted: Google Analytics, the video facade, Fluent Forms and the block editor need inline and third-party scripts, and a strict policy would have to be built and tested page by page. A scanner may still report "no script-src"; that is accepted. |
 | 3 | Info (cutover) | The forms' rate limit and Nginx's login limit count visitors by IP address. Behind Cloudflare, every visitor would look like a Cloudflare server unless Nginx is told the real address. | **Already planned:** the cutover checklist (step 2) installs `cloudflare-realip.conf`. Its check now confirms the real address shows up in the access log. |
-| 4 | Info (cutover) | No `Strict-Transport-Security` (HSTS) header yet. | **Already planned** for cutover with Cloudflare (INF-3). It is left off staging on purpose, so a mistake there can't lock browsers out. |
+| 4 | Info (cutover) | No `Strict-Transport-Security` (HSTS) header yet. Both SSL Labs and securityheaders.com need it for A+. | **Already planned:** turned on a week after cutover, once HTTPS through Cloudflare has been stable (`docs/cutover.md`, "Afterwards"; INF-3). It is left off staging on purpose, so a mistake there can't lock browsers out. |
 
 ## Before scanning: put the new Nginx config on staging
 
@@ -70,17 +70,24 @@ It changes nothing. It checks the firewall (including that incoming traffic is d
 
 ## 3. Outside scans of staging
 
-From a Mac with Docker running. Staging sits behind the gate password, so give it to each tool. Replace `GATE` with the password (user `church`).
+From a Mac with Docker running, in one Terminal window. Staging sits behind the gate password (user `church`). Read it once, without typing it into a command; this is the zsh form, which is the Mac's default shell (in bash, `read -rsp 'Staging gate password: ' G`):
+
+```zsh
+read -rs "G?Staging gate password: "; echo
+echo "password length: ${#G}"     # must be more than 0
+```
+
+Then, in the same window:
 
 1. **WPScan** (known WordPress, plugin and theme vulnerabilities). A free API token from wpscan.com adds the vulnerability database; without one it only lists versions.
    ```bash
-   docker run --rm wpscanteam/wpscan --url https://staging.pellanazarene.org \
-     --http-auth church:GATE --enumerate vp,vt,cb,dbe --random-user-agent \
+   docker run --rm wpscanteam/wpscan --update --url https://staging.pellanazarene.org \
+     --http-auth "church:$G" --enumerate vp,vt,cb,dbe --random-user-agent \
      --api-token YOUR_FREE_TOKEN
    ```
 2. **ZAP baseline** (a passive scan of the pages for common web problems; it doesn't attack anything). The single quotes around `Basic $AUTH` matter: ZAP splits this option again, and they keep the whole password header together:
    ```bash
-   AUTH=$(printf 'church:%s' 'GATE' | base64)
+   AUTH=$(printf 'church:%s' "$G" | base64)
    docker run --rm -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
      -t https://staging.pellanazarene.org -I \
      -z "-config replacer.full_list(0).description=gate -config replacer.full_list(0).enabled=true -config replacer.full_list(0).matchtype=REQ_HEADER -config replacer.full_list(0).matchstr=Authorization -config replacer.full_list(0).regex=false -config replacer.full_list(0).replacement='Basic $AUTH'"
@@ -94,8 +101,8 @@ Paste each tool's summary here, then list each high or medium finding with its f
 
 | Tool | Date | Result | High/medium findings and outcome |
 |---|---|---|---|
-| Server check | | | |
-| WPScan | | | |
-| ZAP baseline | | | |
-| SSL Labs | | | |
-| Security headers | | | |
+| Server check | 2026-11-16 | 32 ok, 4 warn, 0 FAIL. SSH already key-only; ufw default deny; core and plugin files match WordPress.org | No FAIL. Warnings: one OS security update (installs overnight) and three plugin updates (see WPScan). Also found The Events Calendar still installed on staging although MIG-7 removed it; **deleted 2026-11-16** |
+| WPScan | 2026-11-16 | WordPress 7.1.4 (latest); no config backups or DB exports reachable; one plugin vulnerability | **Fluent Forms < 6.2.17, unauthenticated missing authorization** (Patchstack rates it low, "unlikely to be exploited"). **Fixed:** pinned to 6.2.17 (`plugins.txt`); the CI forms tests pass on it; installed on staging by Rob 2026-11-17, after which a Contact test message was recorded under Fluent Forms → Entries. Info only, accepted: the WordPress version shows in the RSS feed's generator tag (public on WordPress.org anyway, and kept current nightly); `wp-cron.php` and the must-use plugin folder are reachable (normal for WordPress; cron also runs from the server's own cron); `X-Robots-Tag` appears twice on staging (harmless, staging only) |
+| ZAP baseline | 2026-11-17 | PASS 54, WARN 14, FAIL 0 | No high or medium. **Planned:** HSTS not set [10035], on a week after cutover (finding 4). **By design:** CSP without a fallback directive [10055] (finding 2); no Cross-Origin-Embedder-Policy [90004] (it would block the YouTube player and outside images); "absence of anti-CSRF tokens" [10202], two separate cases: **(a) Contact and Prayer forms: a false positive.** Fluent Forms does send a token, a WordPress nonce in the hidden field `_fluentform_<form id>_fluentformnonce`, and our own forms tests read it from the page and submit it (`deploy/tests/forms-check-inner.sh`, `ff_submit`); ZAP only recognizes tokens with names on its own list. **(b) The login and lost-password pages: by design in WordPress**, which has no token on these anonymous forms; forging a login gains an attacker nothing, and logins also need two-factor and are throttled. Admin actions use WordPress nonces; login cookies without SameSite [10054] (WordPress core; browsers default to Lax). **Cache notes, expected:** re-examine Cache-control [10015], retrieved from cache [10050], non-storable content [10049] (staging's password gate makes pages private; the live site has no gate). **False positives or information only:** user-controllable attribute on `wp-login.php` [10031] (WordPress echoes the typed username, escaped), suspicious comments [10027] (words in WordPress's own scripts; no secrets in source), timestamp disclosure [10096], modern web application [10109], session management [10112], charset mismatch on the oEmbed XML [90011] |
+| SSL Labs | 2026-11-17 | **A** (certificate 100, protocols 100, TLS 1.3 supported) | None. A+ needs HSTS, which goes on a week after cutover (`docs/cutover.md`, "Afterwards"). "No post-quantum key exchange" is information only: Ubuntu 24.04's OpenSSL lacks it, and on the live site visitors connect to Cloudflare, which offers it. Re-test `pellanazarene.org` after cutover (expect A), and again once HSTS is on (expect A+) |
+| Security headers | 2026-11-17 | **A** (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, Content-Security-Policy all present) | Only Strict-Transport-Security missing, as planned (finding 4). Re-test `pellanazarene.org` once HSTS is on, a week after cutover; expect A+ |
