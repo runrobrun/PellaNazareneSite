@@ -11,3 +11,13 @@ useDefault = true
 description = "Throwaway basic-auth login used only inside the Nginx and redirect test containers"
 targetRules = ["curl-auth-user"]
 paths = ['''deploy/tests/nginx-config-inner\.sh''', '''deploy/tests/redirects-stack\.sh''']
+
+# Narrow on purpose: one rule, one test file, two exact made-up values. The sermon blog-draft test (FEAT-9) talks to
+# a fake Claude and a fake Pexels inside its throwaway container and checks these keys never leak. They are not real
+# keys and work nowhere. condition = "AND": a finding is skipped only when the rule, the file and the value all match.
+[[allowlists]]
+description = "Made-up API keys used only by the fake Claude and Pexels in the blog-draft test"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''deploy/tests/companion-inner\.sh''']
+regexes = ['''^sk-test-CLAUDEKEY-0000$''', '''^PEXELSTESTKEY0000$''']
