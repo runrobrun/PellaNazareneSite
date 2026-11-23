@@ -25,6 +25,7 @@ class Companion {
 	const RETRY_DELAY   = 6 * HOUR_IN_SECONDS;
 	const MAX_TRIES     = 4;       // Caption tries (about a day) before asking a person.
 	const MAX_WAITS     = 12;      // Times a web request may hand the job back to cron before asking a person.
+	const PASTE_PAGE    = 'pn-paste-transcript';
 	const LEGACY_PROMPT = '82545729b71cae03249960f651992def'; // md5 of the FEAT-1 default prompt, whitespace collapsed.
 
 	public static function init(): void {
@@ -34,6 +35,8 @@ class Companion {
 
 		add_action( 'add_meta_boxes_' . Post_Types::POST_TYPE, array( __CLASS__, 'add_transcript_box' ) );
 		add_action( 'save_post_' . Post_Types::POST_TYPE, array( __CLASS__, 'save_transcript' ), 10, 2 );
+		add_action( 'admin_menu', array( __CLASS__, 'add_paste_page' ) );
+		add_action( 'admin_post_' . self::PASTE_PAGE, array( __CLASS__, 'handle_paste' ) );
 
 		add_action( 'pn_speaker_edit_form_fields', array( __CLASS__, 'speaker_user_field' ) );
 		add_action( 'edited_pn_speaker', array( __CLASS__, 'save_speaker_user' ) );
@@ -118,15 +121,21 @@ PROMPT;
 		if ( ! Settings::get( 'companion_enabled' ) || get_post_meta( $sermon_id, 'pn_companion_post', true ) ) {
 			return;
 		}
-		$lock = 'pn_companion_lock_' . $sermon_id;
-		if ( get_transient( $lock ) ) {
+		// An atomic database lock, so cron and `draft-post` can never both draft. It is per site (staging and
+		// production share the database server) and is released if the process dies.
+		global $wpdb;
+		$lock = 'pn_companion_' . substr( md5( DB_NAME . '|' . $wpdb->prefix ), 0, 12 ) . '_' . $sermon_id;
+		if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- a lock, not data; must not be cached.
 			return;
 		}
-		set_transient( $lock, 1, 15 * MINUTE_IN_SECONDS );
 		try {
-			self::draft_unlocked( $sermon_id, $sermon );
+			// Another run may have finished while we waited for the lock: read the meta fresh, not from the cache.
+			wp_cache_delete( $sermon_id, 'post_meta' );
+			if ( ! get_post_meta( $sermon_id, 'pn_companion_post', true ) ) {
+				self::draft_unlocked( $sermon_id, $sermon );
+			}
 		} finally {
-			delete_transient( $lock );
+			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- releases the lock above.
 		}
 	}
 
@@ -416,10 +425,87 @@ PROMPT;
 			__( 'To finish it, copy the transcript from YouTube (under the video: "...more", then "Show transcript"):', 'pn-sermons' ),
 			preg_match( '/^[\w-]{11}$/', $video ) ? 'https://www.youtube.com/watch?v=' . $video : '',
 			'',
-			__( 'Then paste it into the Transcript box at the bottom of the sermon in WordPress and click Save. The draft blog post will be ready a few minutes later, and you will get another email.', 'pn-sermons' ),
-			admin_url( 'post.php?post=' . $sermon_id . '&action=edit' ),
+			__( 'Then paste it on this page and click Save. The draft blog post will be ready a few minutes later, and you will get another email.', 'pn-sermons' ),
+			self::paste_url( $sermon_id ),
 		);
 		wp_mail( $to, $subject, implode( "\n", $lines ) );
+	}
+
+	/** The page where the preacher (or anyone who may edit the sermon) pastes its transcript. */
+	public static function paste_url( int $sermon_id ): string {
+		return admin_url( 'admin.php?page=' . self::PASTE_PAGE . '&sermon=' . $sermon_id );
+	}
+
+	/**
+	 * Who may paste a sermon's transcript: anyone who may edit the sermon, and its linked preacher. Pastors are
+	 * Authors, who cannot edit imported (or published) sermons, so the transcript has its own small page.
+	 */
+	public static function can_paste( int $sermon_id ): bool {
+		if ( Post_Types::POST_TYPE !== get_post_type( $sermon_id ) || 'trash' === get_post_status( $sermon_id ) ) {
+			return false;
+		}
+		$user = get_current_user_id();
+		return $user && ( current_user_can( 'edit_post', $sermon_id ) || self::speaker_user( $sermon_id ) === $user );
+	}
+
+	public static function add_paste_page(): void {
+		// Not in the menu: reached from the email link or the Transcript box.
+		add_submenu_page( '', __( 'Paste transcript', 'pn-sermons' ), __( 'Paste transcript', 'pn-sermons' ), 'edit_posts', self::PASTE_PAGE, array( __CLASS__, 'render_paste_page' ) );
+	}
+
+	public static function render_paste_page(): void {
+		$id = absint( $_GET['sermon'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only; access is checked below and saving is nonce-checked.
+		if ( ! self::can_paste( $id ) ) {
+			wp_die( esc_html__( 'You can\'t paste a transcript for this sermon.', 'pn-sermons' ), 403 );
+		}
+		$video = (string) get_post_meta( $id, 'pn_youtube_id', true );
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'Paste the sermon transcript', 'pn-sermons' ); ?></h1>
+			<?php if ( isset( $_GET['saved'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only notice. ?>
+				<div class="notice notice-success"><p><?php esc_html_e( 'Saved. The blog post draft will be ready in a few minutes, and you will get an email.', 'pn-sermons' ); ?></p></div>
+			<?php endif; ?>
+			<p><strong><?php echo esc_html( get_the_title( $id ) ); ?></strong></p>
+			<?php if ( preg_match( '/^[\w-]{11}$/', $video ) ) : ?>
+				<p><?php esc_html_e( 'On YouTube, under the video, click "...more", then "Show transcript", and copy it:', 'pn-sermons' ); ?> <a href="<?php echo esc_url( 'https://www.youtube.com/watch?v=' . $video ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'open the video', 'pn-sermons' ); ?></a></p>
+			<?php endif; ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::PASTE_PAGE ); ?>">
+				<input type="hidden" name="sermon" value="<?php echo esc_attr( (string) $id ); ?>">
+				<?php wp_nonce_field( self::PASTE_PAGE . '_' . $id ); ?>
+				<textarea name="pn_transcript" class="large-text" rows="16" aria-label="<?php esc_attr_e( 'Transcript', 'pn-sermons' ); ?>"><?php echo esc_textarea( (string) get_post_meta( $id, 'pn_transcript', true ) ); ?></textarea>
+				<?php submit_button( __( 'Save', 'pn-sermons' ) ); ?>
+			</form>
+		</div>
+		<?php
+	}
+
+	public static function handle_paste(): void {
+		$id = absint( $_POST['sermon'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified on the next line.
+		check_admin_referer( self::PASTE_PAGE . '_' . $id );
+		if ( ! self::can_paste( $id ) ) {
+			wp_die( esc_html__( 'You can\'t paste a transcript for this sermon.', 'pn-sermons' ), 403 );
+		}
+		self::accept_transcript( $id, wp_unslash( (string) ( $_POST['pn_transcript'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized in accept_transcript().
+		wp_safe_redirect( add_query_arg( 'saved', 1, self::paste_url( $id ) ) );
+		exit;
+	}
+
+	/**
+	 * Store a transcript a person pasted. When it is long enough, start the draft now: any caption retry still
+	 * queued (up to six hours out) is cancelled first, so the draft doesn't wait for it.
+	 */
+	public static function accept_transcript( int $sermon_id, string $raw ): void {
+		$text = mb_substr( sanitize_textarea_field( $raw ), 0, Transcript::MAX_CHARS );
+		if ( (string) get_post_meta( $sermon_id, 'pn_transcript', true ) === $text ) {
+			return;
+		}
+		update_post_meta( $sermon_id, 'pn_transcript', wp_slash( $text ) );
+		if ( strlen( $text ) >= 500 && Settings::get( 'companion_enabled' ) && 'trash' !== get_post_status( $sermon_id ) && ! get_post_meta( $sermon_id, 'pn_companion_post', true ) ) {
+			delete_post_meta( $sermon_id, 'pn_companion_tries' );
+			wp_clear_scheduled_hook( self::HOOK, array( $sermon_id ) );
+			self::schedule( $sermon_id, 30 );
+		}
 	}
 
 	public static function add_transcript_box(): void {
@@ -438,18 +524,10 @@ PROMPT;
 		if ( ! isset( $_POST['pn_transcript_nonce'], $_POST['pn_transcript'] ) || ! wp_verify_nonce( sanitize_key( $_POST['pn_transcript_nonce'] ), 'pn_transcript' ) ) {
 			return;
 		}
-		if ( ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || wp_is_post_revision( $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
+		if ( ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || wp_is_post_revision( $post_id ) || 'trash' === $post->post_status || ! current_user_can( 'edit_post', $post_id ) ) {
 			return;
 		}
-		$text = mb_substr( sanitize_textarea_field( wp_unslash( $_POST['pn_transcript'] ) ), 0, Transcript::MAX_CHARS );
-		if ( (string) get_post_meta( $post_id, 'pn_transcript', true ) === $text ) {
-			return;
-		}
-		update_post_meta( $post_id, 'pn_transcript', wp_slash( $text ) );
-		if ( strlen( $text ) >= 500 && Settings::get( 'companion_enabled' ) && 'trash' !== $post->post_status ) {
-			delete_post_meta( $post_id, 'pn_companion_tries' );
-			self::schedule( $post_id, 30 );
-		}
+		self::accept_transcript( $post_id, wp_unslash( (string) $_POST['pn_transcript'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized in accept_transcript().
 	}
 
 	public static function speaker_user_field( \WP_Term $term ): void {

@@ -49,6 +49,9 @@ case "${BREAK:-}" in
 	no-kses)     break_it $I/class-companion.php "\$html = wp_kses(" "\$html = (fn( \$h, \$a ) => \$h)(" ;;
 	any-host)    break_it $I/class-pexels.php "&& self::IMAGE_HOST === strtolower( (string) ( \$parts['host'] ?? '' ) )" "" ;;
 	ask-twice)   break_it $I/class-companion.php "if ( get_post_meta( \$sermon_id, 'pn_transcript_asked', true ) ) {" "if ( false ) {" ;;
+	no-lock)     break_it $I/class-companion.php "if ( 1 !== (int) \$wpdb->get_var(" "if ( 0 && 1 !== (int) \$wpdb->get_var(" ;;
+	keep-retry)  break_it $I/class-companion.php "			wp_clear_scheduled_hook( self::HOOK, array( \$sermon_id ) );" "" ;;
+	paste-any)   break_it $I/class-companion.php "return \$user && ( current_user_can( 'edit_post', \$sermon_id ) || self::speaker_user( \$sermon_id ) === \$user );" "return (bool) \$user;" ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
 cp /repo/wp-content/mu-plugins/pn-site.php wp-content/mu-plugins/
@@ -163,7 +166,7 @@ n="$(mails)"; run_job "$S2"
 expect_eq "no draft" "$(draft_of "$S2")" ""
 expect_eq "one email" "$(mails)" "$((n+1))"
 expect_contains "asking for the transcript" "$(last_mail)" "Transcript needed for this week"
-expect_contains "with the sermon's edit link" "$(last_mail)" "post.php?post=$S2&action=edit"
+expect_contains "with a link to paste it" "$(last_mail)" "page=pn-paste-transcript&sermon=$S2"
 expect_contains "and the YouTube link" "$(last_mail)" "watch?v=BBBBBBBBBB1"
 run_job "$S2"
 expect_eq "running again does not email again" "$(mails)" "$((n+1))"
@@ -255,7 +258,60 @@ expect_contains "status reports yt-dlp" "$out" "yt-dlp:            /tmp/fakebin/
 out="$(wp pn-sermons draft-post "$S1" 2>&1)"
 expect_contains "draft-post refuses a sermon that already has a draft" "$out" "already has a blog draft"
 
-echo "== 13. Keys stay private"
+echo "== 13. Only one draft at a time, and pasting the transcript"
+mode ytdlp ok
+S7="$(mk 'Locked' 'GGGGGGGGGG1' 1 cindy-olson rss)"
+wp eval-file - "$S7" <<'PHPEND'
+<?php
+// Hold the draft lock from a second database connection, as an overlapping run would, then try to draft.
+global $wpdb;
+$id   = (int) $args[0];
+$name = 'pn_companion_' . substr( md5( DB_NAME . '|' . $wpdb->prefix ), 0, 12 ) . '_' . $id;
+$other = mysqli_connect( DB_HOST, DB_USER, DB_PASSWORD, DB_NAME );
+mysqli_query( $other, "SELECT GET_LOCK('" . $name . "', 5)" );
+PN_Sermons\Companion::draft( $id );
+mysqli_close( $other );
+PHPEND
+expect_eq "while another run holds the lock, nothing is drafted" "$(draft_of "$S7")" ""
+run_job "$S7"
+[[ -n "$(draft_of "$S7")" ]] && ok "once it is free, the draft is made" || bad "no draft after the lock was released"
+
+wp user create other other@example.test --role=author --quiet
+mode ytdlp none
+S8="$(mk 'Paste me' 'HHHHHHHHHH1' 1 cindy-olson rss)"
+wp eval "wp_clear_scheduled_hook( '$HOOK', array( $S8 ) );"   # as when cron runs the import's event
+run_job "$S8"
+later="$(wp eval "echo wp_next_scheduled( '$HOOK', array( $S8 ) ) - time();")"
+[[ "$later" -gt 3600 ]] && ok "a caption retry is queued hours out (${later}s)" || bad "no distant retry queued (${later}s)"
+paste() {  # user, sermon, nonce ('good' or anything else), text
+	wp eval-file - "$2" "$3" "$4" --user="$1" <<'PHPEND' 2>&1
+<?php
+[ $id, $nonce, $text ] = array( (int) $args[0], $args[1], $args[2] );
+$_POST['sermon'] = $_REQUEST['sermon'] = (string) $id;
+$_POST['pn_transcript'] = wp_slash( $text );
+$_REQUEST['_wpnonce'] = 'good' === $nonce ? wp_create_nonce( PN_Sermons\Companion::PASTE_PAGE . '_' . $id ) : 'nope';
+add_filter( 'wp_redirect', function () { echo 'REDIRECTED'; return false; } );
+PN_Sermons\Companion::handle_paste();
+PHPEND
+}
+LONG="$(printf 'We have this hope as an anchor for the soul. %.0s' $(seq 1 20))"
+out="$(paste other "$S8" good "$LONG")"
+expect_contains "an Author who did not preach it may not paste" "$out" "paste a transcript for this sermon"
+expect_eq "...and nothing is saved" "$(wp post meta get "$S8" pn_transcript 2>/dev/null)" ""
+out="$(paste cindy "$S8" bad "$LONG")"
+expect_lacks "a wrong nonce is refused" "$out" "REDIRECTED"
+expect_eq "...and nothing is saved" "$(wp post meta get "$S8" pn_transcript 2>/dev/null)" ""
+expect_eq "the preacher cannot edit the imported sermon itself (Author)" "$(wp eval "echo user_can( $CINDY, 'edit_post', $S8 ) ? 'y' : 'n';")" "n"
+out="$(paste cindy "$S8" good "$LONG")"
+expect_contains "but the linked preacher may paste its transcript" "$out" "REDIRECTED"
+expect_contains "...and it is saved" "$(wp post meta get "$S8" pn_transcript)" "anchor for the soul"
+soon="$(wp eval "echo wp_next_scheduled( '$HOOK', array( $S8 ) ) - time();")"
+[[ "$soon" -le 120 ]] && ok "the queued retry is replaced by a draft in a minute (${soon}s)" || bad "the draft still waits for the retry (${soon}s)"
+expect_eq "only one job is queued" "$(wp eval "\$n = 0; foreach ( _get_cron_array() as \$hooks ) { foreach ( \$hooks['$HOOK'] ?? array() as \$e ) { \$n += ( array( $S8 ) === \$e['args'] ) ? 1 : 0; } } echo \$n;")" "1"
+expect_contains "the transcript-needed email links to the paste page" "$(grep 'Transcript needed' /tmp/mail.log | tail -1)" "page=pn-paste-transcript"
+mode ytdlp ok
+
+echo "== 14. Keys stay private"
 [[ -s /tmp/debug.log ]] && ok "the plugin's log was written (so the next checks mean something)" || bad "no log at /tmp/debug.log"
 all="$(cat /tmp/debug.log /tmp/mail.log /tmp/ytdlp-env.log /tmp/ytdlp-args.log 2>/dev/null)"
 expect_lacks "no Claude key in logs, emails or yt-dlp's environment" "$all" "$CLAUDE_KEY"
