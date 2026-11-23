@@ -103,6 +103,11 @@ jobs:
       - name: Sermon import tests
         run: deploy/tests/sermon-import-check.sh
 
+      # The weekly blog draft (FEAT-9) with fake yt-dlp, Claude and Pexels: queuing, drafting, the photo, the
+      # review and "transcript needed" emails, retries, a hanging yt-dlp, bad input, and that keys never leak.
+      - name: Sermon blog draft tests
+        run: deploy/tests/companion-check.sh
+
   theme:
     name: Brand theme tests
     runs-on: ubuntu-24.04

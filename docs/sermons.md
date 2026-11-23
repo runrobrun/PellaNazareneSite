@@ -73,6 +73,44 @@ On the Sermons page each card shows the speaker's photo as a small round badge o
 
 The photo field and its fallback are in the plugin (`includes/class-speakers.php`); the badge itself is the theme's (`inc/sermons.php`, styles in `style.css`). Changes show for visitors once the page cache expires.
 
+## Weekly blog post drafts
+
+Each week the site turns Sunday's sermon into a **draft** blog post for the pastor who preached it (FEAT-9). It is a standalone post on the sermon's theme, not a report of the sermon, and it ends with a link to watch the full message. Nothing is ever published automatically.
+
+1. The daily import finds Sunday's video. If it recognizes the speaker, the draft is started straight away; otherwise it starts when staff set the speaker and publish the sermon. Only sermons from the last 14 days get a post, so the backfill command never drafts any, and a sermon only ever gets one.
+2. The site reads the video's captions with **yt-dlp** and keeps them in the sermon's **Transcript** box (bottom of the sermon's edit screen; never shown on the website).
+3. **Claude** writes the post from the transcript, following the writing instructions under **Settings → Sermons**.
+4. **Pexels** supplies a free stock photo as the featured image, chosen from search words Claude suggests. The photographer is credited in the image caption. Without a Pexels key, or with no good match, the sermon's own picture is used.
+5. The draft is saved under the preacher's account in the **Sermon Companion** category, and the preacher and the "Also notify" addresses get an email with a link to it and a list of names and verses to double-check (captions mishear them).
+
+**When the captions can't be read**: YouTube sometimes blocks servers in data centers ("confirm you're not a bot"), and captions can take hours to appear after a live stream. The site tries again every 6 hours for about a day (a block is not retried). After that, the same people get one email asking them to copy the transcript from YouTube (under the video: **...more → Show transcript**), paste it into the sermon's Transcript box, and click Save. The draft follows a few minutes later.
+
+### Setting it up
+
+1. **yt-dlp**: on the server, as `deploy`, from a repo checkout: `scripts/install-yt-dlp.sh`. It installs pinned versions of yt-dlp and Deno (the JavaScript runtime yt-dlp needs for YouTube) and checks their checksums. yt-dlp runs only from cron through WP-CLI; the website itself (PHP-FPM) is not allowed to start programs.
+2. **Claude key**: at [console.anthropic.com](https://console.anthropic.com/), create an account for the church, set a monthly spending limit (a post costs a few cents), and create an API key. Put it in `wp-config.php` as `PN_ANTHROPIC_API_KEY`.
+3. **Pexels key** (free): at [pexels.com/api](https://www.pexels.com/api/), sign in and request a key. Put it in `wp-config.php` as `PN_PEXELS_API_KEY`.
+4. **Link each preacher to their account**: **Sermons → Speakers**, edit the speaker, choose their **WordPress user**. Drafts are saved under that account and the email goes to that address. A speaker who isn't linked (a guest) gets nothing; the "Also notify" addresses still do.
+5. **Switch it on**: **Settings → Sermons → Weekly blog post drafts**, tick **Draft blog posts**, and put the office address in **Also notify**.
+6. **Check**: `sudo -u pn-production-php wp --path=/var/www/pellanazarene/public pn-sermons status` shows the keys (never their values) and whether yt-dlp was found. To try one sermon now: `... pn-sermons draft-post <sermon ID> --transcript-only` reads the captions and changes nothing; without `--transcript-only` it makes the draft and sends the email.
+
+As for every key: in `wp-config.php` only, edited in an editor on the server (not typed into a command), never in the repo, chat or email. **Staging** gets its own keys or none, never production's, and its email is blocked anyway.
+
+### Changing what it writes
+
+The writing instructions are in **Settings → Sermons**. Edit them there; the format the site needs back is added separately, so editing them can't break it. A site still on the original instructions gets the current ones automatically, and once someone edits them, their version is kept.
+
+### Troubleshooting
+
+| What happened | What to do |
+|---|---|
+| No draft and no email | `pn-sermons status`: is it switched on, is the Claude key set? Was the sermon from the last 14 days, with a speaker? With `WP_DEBUG_LOG` on, the log says why (lines start `[pn-sermons]`). |
+| Every week asks for a pasted transcript, "blocked" in the log | YouTube is blocking the server. Pasting works; or update yt-dlp (below), which often helps. |
+| "yt-dlp NOT FOUND" | Run `scripts/install-yt-dlp.sh`. |
+| yt-dlp stopped working | YouTube changes often break old versions. Pick a yt-dlp release at least two weeks old, update its version and checksum in `scripts/install-yt-dlp.sh` in a pull request, merge, and run the script again on the server. |
+| The picture doesn't fit | Change it under **Featured image** in the post. Pexels photos are never reused, and every photo's Pexels page is stored on the image (`pn_pexels_url`). |
+| Draft went to the wrong person | Fix the speaker's **WordPress user** under Sermons → Speakers, then change the post's author. |
+
 ## How the importer reads a video
 
 The descriptions are typed by hand, so the parser is forgiving and conservative. It looks at the first lines of the description for pieces separated by ` - `, `–`, `|` or `:`, and recognises:
@@ -107,4 +145,4 @@ The key is removed from every message the importer prints or logs. If it ever le
 
 ## Testing
 
-`deploy/tests/sermon-parser-test.php` tests the parser on real descriptions. `deploy/tests/sermon-import-check.sh` runs the whole backfill against real WordPress and a fake YouTube (pagination, Shorts, live and private videos, duplicates, errors, idempotence, redirects, and that the key never appears in output or the database). Both run in CI.
+`deploy/tests/sermon-parser-test.php` tests the parser on real descriptions. `deploy/tests/sermon-import-check.sh` runs the whole backfill against real WordPress and a fake YouTube (pagination, Shorts, live and private videos, duplicates, errors, idempotence, redirects, and that the key never appears in output or the database). `deploy/tests/companion-check.sh` tests the weekly blog draft against real WordPress with a fake yt-dlp, Claude and Pexels (queuing, retries, a hanging yt-dlp, the "transcript needed" email, the photo rules, that drafts are never published, and that keys never appear). All three run in CI.

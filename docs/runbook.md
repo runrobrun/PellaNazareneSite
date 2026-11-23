@@ -42,6 +42,7 @@ wp --path=/var/www/pellanazarene/public two-factor disable <username> --yes
 - WordPress security releases install themselves overnight (staging and production). To check: `journalctl -u pn-core-update@production -n 20` on the server; details and how to pause it: `docs/setup.md` section 5
 - Once a year, and after big changes: re-run the security check (`scripts/security-check-server.sh production` on the server) and the outside scans in `docs/security-scan.md`, and add the results there
 - Review new sermon drafts each week (Sermons in the admin) and publish them; how the import works and how to import the history: `docs/sermons.md`
+- Weekly blog post: once switched on, the preacher gets an email each week with a draft blog post made from their sermon; they edit it and publish (or Submit for Review). If YouTube's captions can't be read, the email asks them to paste the transcript into the sermon instead. Setup and troubleshooting: `docs/sermons.md`, "Weekly blog post drafts". After a YouTube change breaks it, update yt-dlp (`scripts/install-yt-dlp.sh`)
 
 ## If something breaks
 - Site is down

@@ -56,7 +56,8 @@ define( 'WP_REDIS_PREFIX', 'pn_production_' );
 define( 'WP_REDIS_SELECTIVE_FLUSH', true ); // its Redis user may not run FLUSHDB; needs Redis Object Cache 3.0.0 or newer for the username
 define( 'PN_YOUTUBE_CHANNEL_ID', 'UC…' );
 define( 'PN_YOUTUBE_API_KEY', '…' );      // only for the one-time sermon backfill; see docs/sermons.md
-define( 'PN_ANTHROPIC_API_KEY', '…' );   // only when companion posts are turned on
+define( 'PN_ANTHROPIC_API_KEY', '…' );   // weekly blog drafts from sermons; see docs/sermons.md
+define( 'PN_PEXELS_API_KEY', '…' );      // the stock photo on those drafts
 ```
 
 ## 4. Nginx, cron, Cloudflare
@@ -64,6 +65,7 @@ define( 'PN_ANTHROPIC_API_KEY', '…' );   // only when companion posts are turn
 - Before enabling the production vhost, provision the `deploy` user with `scripts/bootstrap-server.sh deploy` (run as root), then verify `ssh deploy@SERVER` works and `sudo -n true` succeeds. From a repository checkout, run `scripts/apply-server-tuning.sh` as `deploy`; it creates the isolated PHP-FPM users and installs the snippets included by the vhost.
 - Create a Cloudflare origin certificate; set SSL mode to **Full (strict)**.
 - Install `deploy/crontab.example` for `pn-production-php`.
+- Run `scripts/install-yt-dlp.sh` as `deploy` (pinned yt-dlp and Deno, checksums verified) so the weekly blog draft can read sermon captions; see `docs/sermons.md`.
 - `mkdir -p /var/backups/pellanazarene && chown pn-production-php /var/backups/pellanazarene`
 - PHP-FPM uses separate `pn-staging-php` and `pn-production-php` users. After tuning creates them, grant production's pool access to its config and uploads:
   ```bash

@@ -4,7 +4,7 @@ namespace PN_Sermons;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Sermon commands for the server: `wp pn-sermons backfill` and `wp pn-sermons status`.
+ * Sermon commands for the server: `wp pn-sermons backfill`, `status` and `draft-post`.
  * Full instructions: docs/sermons.md.
  */
 class CLI {
@@ -21,8 +21,63 @@ class CLI {
 		\WP_CLI::log( 'YouTube API key:   ' . ( YouTube_API::configured() ? 'set in wp-config.php (not shown)' : 'NOT SET: add PN_YOUTUBE_API_KEY to wp-config.php' ) );
 		\WP_CLI::log( 'Channel ID:        ' . ( '' !== $channel ? $channel : 'NOT SET: add PN_YOUTUBE_CHANNEL_ID to wp-config.php or set it under Settings > Sermons' ) );
 		\WP_CLI::log( 'Uploads playlist:  ' . ( '' !== $channel ? YouTube_API::uploads_playlist( $channel ) : '-' ) );
+		\WP_CLI::log( 'Blog drafts:       ' . ( Settings::get( 'companion_enabled' ) ? 'on' : 'off (Settings > Sermons)' ) );
+		\WP_CLI::log( 'Claude API key:    ' . ( defined( 'PN_ANTHROPIC_API_KEY' ) && PN_ANTHROPIC_API_KEY ? 'set in wp-config.php (not shown)' : 'NOT SET: add PN_ANTHROPIC_API_KEY to wp-config.php' ) );
+		\WP_CLI::log( 'Pexels API key:    ' . ( Pexels::configured() ? 'set in wp-config.php (not shown)' : 'NOT SET: posts use the sermon picture; add PN_PEXELS_API_KEY' ) );
+		\WP_CLI::log( 'yt-dlp:            ' . ( Transcript::installed() ? Transcript::binary() : 'NOT FOUND at ' . Transcript::binary() . ' (scripts/install-yt-dlp.sh)' ) . ( Transcript::can_run() ? '' : ' (this PHP may not run it)' ) );
 		$counts = wp_count_posts( Post_Types::POST_TYPE );
 		\WP_CLI::log( sprintf( 'Sermons on site:   %d published, %d drafts, %d in the trash', $counts->publish ?? 0, $counts->draft ?? 0, $counts->trash ?? 0 ) );
+	}
+
+	/**
+	 * Draft the blog post for one sermon now, instead of waiting for the background job.
+	 *
+	 * Reads the captions with yt-dlp unless a transcript is already saved, asks Claude for the post, adds a
+	 * Pexels photo, saves it as a draft under the preacher's account and emails them. Blog drafts must be
+	 * switched on under Settings > Sermons. A sermon only ever gets one draft.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <sermon-id>
+	 * : The sermon's post ID.
+	 *
+	 * [--transcript-only]
+	 * : Only fetch and show the start of the transcript; draft nothing and email nobody.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp pn-sermons draft-post 123
+	 *     wp pn-sermons draft-post 123 --transcript-only
+	 *
+	 * @subcommand draft-post
+	 */
+	public function draft_post( $args, $assoc_args ): void {
+		$id = absint( $args[0] ?? 0 );
+		if ( ! $id || Post_Types::POST_TYPE !== get_post_type( $id ) ) {
+			\WP_CLI::error( 'That is not a sermon ID.' );
+		}
+		if ( ! empty( $assoc_args['transcript-only'] ) ) {
+			$result = Transcript::fetch( (string) get_post_meta( $id, 'pn_youtube_id', true ) );
+			\WP_CLI::log( 'Result: ' . $result['status'] . ( '' !== $result['detail'] ? ' (' . $result['detail'] . ')' : '' ) );
+			if ( 'ok' === $result['status'] ) {
+				\WP_CLI::log( strlen( $result['text'] ) . ' characters. Starts: ' . mb_substr( $result['text'], 0, 300 ) . '...' );
+			}
+			return;
+		}
+		if ( ! Settings::get( 'companion_enabled' ) ) {
+			\WP_CLI::error( 'Blog drafts are switched off (Settings > Sermons).' );
+		}
+		$existing = (int) get_post_meta( $id, 'pn_companion_post', true );
+		if ( $existing ) {
+			\WP_CLI::error( "This sermon already has a blog draft (post {$existing})." );
+		}
+		Companion::draft( $id );
+		$post = (int) get_post_meta( $id, 'pn_companion_post', true );
+		if ( $post ) {
+			\WP_CLI::success( "Drafted post {$post}: " . get_the_title( $post ) );
+		} else {
+			\WP_CLI::warning( 'No draft yet. With WP_DEBUG_LOG on, the log says why; a retry or a "transcript needed" email may have been scheduled.' );
+		}
 	}
 
 	/**
