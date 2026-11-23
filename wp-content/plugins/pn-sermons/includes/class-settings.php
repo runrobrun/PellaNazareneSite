@@ -105,21 +105,21 @@ class Settings {
 					</tr>
 				</table>
 
-				<h2><?php esc_html_e( 'Companion blog posts', 'pn-sermons' ); ?></h2>
+				<h2><?php esc_html_e( 'Weekly blog post drafts', 'pn-sermons' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<tr>
-						<th scope="row"><?php esc_html_e( 'Draft companion posts', 'pn-sermons' ); ?></th>
-						<td><label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[companion_enabled]" value="1" <?php checked( $o['companion_enabled'] ); ?>> <?php esc_html_e( 'Draft a companion post for each new sermon (requires PN_ANTHROPIC_API_KEY in wp-config.php)', 'pn-sermons' ); ?></label></td>
+						<th scope="row"><?php esc_html_e( 'Draft blog posts', 'pn-sermons' ); ?></th>
+						<td><label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[companion_enabled]" value="1" <?php checked( $o['companion_enabled'] ); ?>> <?php esc_html_e( 'Draft a blog post from each new sermon for the preacher to review (needs PN_ANTHROPIC_API_KEY, and PN_PEXELS_API_KEY for the picture, in wp-config.php; see docs/sermons.md)', 'pn-sermons' ); ?></label></td>
 					</tr>
 					<tr>
 						<th scope="row"><label for="pn-prompt"><?php esc_html_e( 'Writing instructions', 'pn-sermons' ); ?></label></th>
-						<td><textarea id="pn-prompt" class="large-text" rows="12" name="<?php echo esc_attr( $name ); ?>[companion_prompt]"><?php echo esc_textarea( $o['companion_prompt'] ); ?></textarea></td>
+						<td><textarea id="pn-prompt" class="large-text" rows="12" name="<?php echo esc_attr( $name ); ?>[companion_prompt]"><?php echo esc_textarea( Companion::prompt() ); ?></textarea></td>
 					</tr>
 					<tr>
 						<th scope="row"><label for="pn-notify"><?php esc_html_e( 'Also notify', 'pn-sermons' ); ?></label></th>
 						<td>
 							<input id="pn-notify" class="regular-text" name="<?php echo esc_attr( $name ); ?>[notify_emails]" value="<?php echo esc_attr( $o['notify_emails'] ); ?>">
-							<p class="description"><?php esc_html_e( 'Comma-separated. The preaching pastor is always notified when their speaker term is linked to a user.', 'pn-sermons' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Comma-separated. The preacher is always emailed when their speaker is linked to a WordPress user (Sermons > Speakers).', 'pn-sermons' ); ?></p>
 						</td>
 					</tr>
 				</table>

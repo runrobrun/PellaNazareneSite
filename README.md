@@ -8,7 +8,7 @@ This repository holds only what we wrote or configured. WordPress core, third-pa
 
 ```
 wp-content/
-  plugins/pn-sermons/        Sermons, series, speakers, scripture; YouTube import and backfill (`docs/sermons.md`); companion-post drafts
+  plugins/pn-sermons/        Sermons, series, speakers, scripture; YouTube import and backfill, and the weekly blog draft from each sermon (`docs/sermons.md`)
   mu-plugins/pn-site.php     Site-wide behavior: admin cleanup, roles, hardening
   mu-plugins/pn-security.php Two-factor enforcement and username-leak protection
   themes/pella-nazarene/     Child theme of Twenty Twenty-Five: theme.json, patterns, templates
@@ -45,7 +45,7 @@ npx @wordpress/env stop
 
 ## Checks
 
-CI (`.github/workflows/ci.yml`) runs on every push and pull request: PHP syntax, WordPress coding standards (PHPCS, config in `phpcs.xml.dist`), ShellCheck on `scripts/` and `deploy/`, tests of the CI deploy wrapper (stubbed, no server), a real-WordPress test of the security plugin, a brand-theme test, an accessibility test (axe), a redirect test of every old URL, a page test (links, headings, brand colors, photos, no filler), a photo-file test, sermon-import tests (parser and backfill against a fake YouTube), an Nginx config test, and a gitleaks secret scan. Run the same checks locally with Docker (nothing to install):
+CI (`.github/workflows/ci.yml`) runs on every push and pull request: PHP syntax, WordPress coding standards (PHPCS, config in `phpcs.xml.dist`), ShellCheck on `scripts/` and `deploy/`, tests of the CI deploy wrapper (stubbed, no server), a real-WordPress test of the security plugin, a brand-theme test, an accessibility test (axe), a redirect test of every old URL, a page test (links, headings, brand colors, photos, no filler), a photo-file test, sermon-import tests (parser and backfill against a fake YouTube), sermon blog-draft tests (fake yt-dlp, Claude and Pexels), an Nginx config test, and a gitleaks secret scan. Run the same checks locally with Docker (nothing to install):
 
 ```bash
 docker run --rm -v "$PWD":/app -w /app composer:2 install            # once; tooling comes from composer.lock
@@ -60,6 +60,7 @@ deploy/tests/theme-check.sh       # real WordPress + parent theme + ours: brand 
 deploy/tests/redirects-check.sh      # every old URL redirects as docs/redirects.md says (Nginx + PHP-FPM + WordPress stack)
 deploy/tests/a11y-check.sh          # axe-core in a real browser: WCAG 2.2 AA, desktop/phone/mobile menu open/404/search
 deploy/tests/brand-assets-check.sh # logos and icons: exact colors, safe SVGs, match the designer's masters, favicon set
+deploy/tests/companion-check.sh   # weekly sermon blog draft: fake yt-dlp, Claude and Pexels; emails captured
 ```
 
 Third-party GitHub Actions are pinned to full commit SHAs; update them deliberately.
@@ -78,5 +79,6 @@ Kept in `wp-config.php` on the server only (never committed):
 |---|---|
 | `PN_YOUTUBE_CHANNEL_ID` | Sermon import (optional; can also be set in Settings → Sermons) |
 | `PN_YOUTUBE_API_KEY` | Sermon backfill (`wp pn-sermons backfill`); restricted to the YouTube Data API and the server's IP. See `docs/sermons.md` |
-| `PN_ANTHROPIC_API_KEY` | Companion-post drafts |
+| `PN_ANTHROPIC_API_KEY` | Weekly blog drafts from sermons (Claude). See `docs/sermons.md` |
+| `PN_PEXELS_API_KEY` | The stock photo on those drafts (Pexels). See `docs/sermons.md` |
 | `WPMS_*` | WP Mail SMTP (live site only; the Gmail app password, see `docs/forms.md`) |
