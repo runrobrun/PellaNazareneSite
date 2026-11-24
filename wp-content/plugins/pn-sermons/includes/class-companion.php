@@ -220,7 +220,7 @@ PROMPT;
 				return '';
 			}
 		}
-		self::ask_for_transcript( $sermon_id, $result['status'] );
+		self::ask_for_transcript( $sermon_id, $result['status'], isset( $result['api'] ) && 'auth' === $result['api'] );
 		return '';
 	}
 
@@ -235,7 +235,7 @@ PROMPT;
 		);
 
 		$response = wp_remote_post(
-			defined( 'PN_ANTHROPIC_API_URL' ) ? (string) PN_ANTHROPIC_API_URL : self::API_URL,
+			defined( 'PN_ANTHROPIC_API_URL' ) && 'production' !== wp_get_environment_type() ? (string) PN_ANTHROPIC_API_URL : self::API_URL, // Tests only; never on production.
 			array(
 				'timeout' => 180,
 				'headers' => array(
@@ -404,7 +404,7 @@ PROMPT;
 	}
 
 	/** Captions could not be read: ask a person to paste the transcript. Sent once per sermon. */
-	private static function ask_for_transcript( int $sermon_id, string $why ): void {
+	private static function ask_for_transcript( int $sermon_id, string $why, bool $renew = false ): void {
 		if ( get_post_meta( $sermon_id, 'pn_transcript_asked', true ) ) {
 			return;
 		}
@@ -428,6 +428,10 @@ PROMPT;
 			__( 'Then paste it on this page and click Save. The draft blog post will be ready a few minutes later, and you will get another email.', 'pn-sermons' ),
 			self::paste_url( $sermon_id ),
 		);
+		if ( $renew ) {
+			$lines[] = '';
+			$lines[] = __( 'For the website administrator: Google refused the site\'s YouTube sign-in, so captions could not be read the usual way. Renew it (docs/sermons.md, "Captions from YouTube") and this will be automatic again.', 'pn-sermons' );
+		}
 		wp_mail( $to, $subject, implode( "\n", $lines ) );
 	}
 

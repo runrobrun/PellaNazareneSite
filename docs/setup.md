@@ -58,6 +58,9 @@ define( 'PN_YOUTUBE_CHANNEL_ID', 'UC…' );
 define( 'PN_YOUTUBE_API_KEY', '…' );      // only for the one-time sermon backfill; see docs/sermons.md
 define( 'PN_ANTHROPIC_API_KEY', '…' );   // weekly blog drafts from sermons; see docs/sermons.md
 define( 'PN_PEXELS_API_KEY', '…' );      // the stock photo on those drafts
+define( 'PN_YOUTUBE_OAUTH_CLIENT_ID', '…' );     // sermon captions via the YouTube API, signed in as the channel;
+define( 'PN_YOUTUBE_OAUTH_CLIENT_SECRET', '…' ); // one OAuth client per site; the refresh token is as sensitive as a password.
+define( 'PN_YOUTUBE_OAUTH_REFRESH_TOKEN', '…' ); // docs/sermons.md, "Captions from YouTube"
 ```
 
 ## 4. Nginx, cron, Cloudflare

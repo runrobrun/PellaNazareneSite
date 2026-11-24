@@ -35,6 +35,8 @@ define( 'PN_PEXELS_API_KEY', '$PEXELS_KEY' );
 define( 'PN_PEXELS_API_BASE', 'http://127.0.0.1:8098/v1' );
 define( 'PN_YTDLP_PATH', '/tmp/fakebin/yt-dlp' );
 define( 'PN_YTDLP_TIMEOUT', 3 );
+define( 'PN_YOUTUBE_API_BASE', 'http://127.0.0.1:8098/youtube/v3' );
+define( 'PN_GOOGLE_TOKEN_URL', 'http://127.0.0.1:8098/token' );
 PHPEND
 mkdir -p wp-content/plugins wp-content/mu-plugins
 cp -r /repo/wp-content/plugins/pn-sermons wp-content/plugins/
@@ -51,11 +53,13 @@ case "${BREAK:-}" in
 	ask-twice)   break_it $I/class-companion.php "if ( get_post_meta( \$sermon_id, 'pn_transcript_asked', true ) ) {" "if ( false ) {" ;;
 	no-lock)     break_it $I/class-companion.php "if ( 1 !== (int) \$wpdb->get_var(" "if ( 0 && 1 !== (int) \$wpdb->get_var(" ;;
 	keep-retry)  break_it $I/class-companion.php "			wp_clear_scheduled_hook( self::HOOK, array( \$sermon_id ) );" "" ;;
+	no-api)      break_it $I/class-transcript.php "if ( YouTube_Captions::configured() ) {" "if ( false ) {" ;;
+	leak-token)  break_it $I/class-youtube-captions.php "renew it (docs/sermons.md).\" );" "renew it (docs/sermons.md). \" . self::refresh_token() );" ;;
 	paste-any)   break_it $I/class-companion.php "return \$user && ( current_user_can( 'edit_post', \$sermon_id ) || self::speaker_user( \$sermon_id ) === \$user );" "return (bool) \$user;" ;;
 	*) setup_fail "unknown BREAK" ;;
 esac
 cp /repo/wp-content/mu-plugins/pn-site.php wp-content/mu-plugins/
-cp /repo/deploy/tests/fixtures/pn-test-mail-capture.php /repo/deploy/tests/fixtures/pn-test-pexels-images.php wp-content/mu-plugins/
+cp /repo/deploy/tests/fixtures/pn-test-mail-capture.php /repo/deploy/tests/fixtures/pn-test-pexels-images.php /repo/deploy/tests/fixtures/pn-test-google.php wp-content/mu-plugins/
 wp rewrite structure '/%postname%/' --hard --quiet
 wp plugin activate pn-sermons --quiet || setup_fail "activate pn-sermons"
 ( php -S 127.0.0.1:8098 /repo/deploy/tests/fixtures/companion-mock.php >/tmp/mock.log 2>&1 & )
@@ -311,12 +315,57 @@ expect_eq "only one job is queued" "$(wp eval "\$n = 0; foreach ( _get_cron_arra
 expect_contains "the transcript-needed email links to the paste page" "$(grep 'Transcript needed' /tmp/mail.log | tail -1)" "page=pn-paste-transcript"
 mode ytdlp ok
 
-echo "== 14. Keys stay private"
+echo "== 14. Captions from the YouTube API, signed in as the channel (FEAT-10)"
+touch /tmp/gapi-on; mode gapi ok; mode ytdlp blocked
+new_sermon() { local id; id="$(mk "$1" "$2" 1 cindy-olson rss)"; wp eval "wp_clear_scheduled_hook( '$HOOK', array( $id ) );"; rm -f /tmp/ytdlp-args.log; echo "$id"; }
+S9="$(new_sermon 'Via the API' 'IIIIIIIIII1')"
+run_job "$S9"
+[[ -n "$(draft_of "$S9")" ]] && ok "a draft is made although yt-dlp is blocked" || bad "no draft from the API captions"
+t="$(wp post meta get "$S9" pn_transcript)"
+expect_contains "the transcript came from the API" "$t" "from the official API"
+expect_contains "tags and entities are cleaned" "$t" "this hope as an anchor & it holds"
+expect_lacks "sound tags are dropped" "$t" "[Music]"
+expect_lacks "cue timings are dropped" "$t" "-->"
+[[ ! -e /tmp/ytdlp-args.log ]] && ok "yt-dlp was not needed" || bad "yt-dlp ran although the API worked"
+req="$(cat /tmp/companion-requests.log)"
+expect_contains "the captions of the right video were listed" "$req" "videoId=IIIIIIIIII1"
+expect_contains "the English track was downloaded as WebVTT" "$req" '"path":"/youtube/v3/captions/trk-asr","query":"tfmt=vtt"'
+expect_lacks "not the Spanish track" "$req" "captions/trk-es"
+expect_lacks "not the failed track" "$req" "captions/trk-failed"
+expect_contains "status says it is signed in" "$(wp pn-sermons status 2>&1)" "YouTube captions:  signed in as the channel"
+expect_contains "--transcript-only says where the captions came from" "$(wp pn-sermons draft-post "$S9" --transcript-only 2>&1)" "from the YouTube API, signed in as the channel"
+expect_eq "a person-written English track beats the automatic one" "$(wp eval 'echo PN_Sermons\YouTube_Captions::choose( array( array( "id" => "a", "snippet" => array( "language" => "en", "trackKind" => "asr", "status" => "serving" ) ), array( "id" => "b", "snippet" => array( "language" => "en-US", "trackKind" => "standard", "status" => "serving" ) ) ) );')" "b"
+
+mode gapi none
+S10="$(new_sermon 'API has none yet' 'JJJJJJJJJJ1')"
+run_job "$S10"
+expect_eq "no captions on YouTube yet: no draft" "$(draft_of "$S10")" ""
+expect_eq "...a retry is queued" "$(scheduled "$S10")" "yes"
+[[ ! -e /tmp/ytdlp-args.log ]] && ok "...and yt-dlp is not tried (it would find none either)" || bad "yt-dlp ran"
+
+mode gapi revoked; mode ytdlp ok
+S11="$(new_sermon 'Sign-in revoked' 'KKKKKKKKKK1')"
+run_job "$S11"
+[[ -n "$(draft_of "$S11")" ]] && ok "a revoked sign-in falls back to yt-dlp" || bad "no fallback to yt-dlp"
+expect_contains "and the log says to renew it" "$(cat /tmp/debug.log)" "refused the site's YouTube sign-in"
+mode ytdlp blocked
+S12="$(new_sermon 'Revoked and blocked' 'LLLLLLLLLL1')"
+run_job "$S12"
+expect_contains "with yt-dlp blocked too, the email asks for the transcript" "$(last_mail)" "Transcript needed"
+expect_contains "and tells the administrator to renew the sign-in" "$(last_mail)" "Google refused the site's YouTube sign-in"
+mode gapi forbidden; mode ytdlp ok
+S13="$(new_sermon 'Not the owner' 'MMMMMMMMMM1')"
+run_job "$S13"
+[[ -n "$(draft_of "$S13")" ]] && ok "an account that may not download captions also falls back" || bad "no fallback after 403"
+rm -f /tmp/gapi-on; mode gapi ok; mode ytdlp ok
+
+echo "== 15. Keys stay private"
 [[ -s /tmp/debug.log ]] && ok "the plugin's log was written (so the next checks mean something)" || bad "no log at /tmp/debug.log"
 all="$(cat /tmp/debug.log /tmp/mail.log /tmp/ytdlp-env.log /tmp/ytdlp-args.log 2>/dev/null)"
 expect_lacks "no Claude key in logs, emails or yt-dlp's environment" "$all" "$CLAUDE_KEY"
 expect_lacks "no Pexels key in them either" "$all" "$PEXELS_KEY"
-expect_eq "no key in the database" "$(mysql -h pn-companion-db -uroot -proot wp -N -e "select (select count(*) from wp_options where option_value like '%CLAUDEKEY%' or option_value like '%$PEXELS_KEY%') + (select count(*) from wp_postmeta where meta_value like '%CLAUDEKEY%' or meta_value like '%$PEXELS_KEY%')")" "0"
+for secret in test-client-secret test-refresh-token test-access-token; do expect_lacks "no Google $secret in them" "$all" "$secret"; done
+expect_eq "no key in the database" "$(mysql -h pn-companion-db -uroot -proot wp -N -e "select (select count(*) from wp_options where option_value like '%CLAUDEKEY%' or option_value like '%$PEXELS_KEY%' or option_value like '%test-refresh-token%' or option_value like '%test-access-token%') + (select count(*) from wp_postmeta where meta_value like '%CLAUDEKEY%' or meta_value like '%$PEXELS_KEY%')")" "0"
 wp post meta update "$OLD" pn_transcript "SECRET-TRANSCRIPT-TEXT" --quiet
 expect_eq "a published sermon's transcript is not in the REST API" "$(wp eval 'echo strpos( wp_json_encode( rest_do_request( new WP_REST_Request( "GET", "/wp/v2/pn_sermon" ) )->get_data() ), "SECRET-TRANSCRIPT" ) === false ? "hidden" : "exposed";')" "hidden"
 expect_eq "no drafted post was ever published" "$(wp post list --post_type=post --post_status=publish --meta_key=pn_sermon_id --format=count)" "0"

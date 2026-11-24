@@ -4,7 +4,8 @@ namespace PN_Sermons;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Reads a sermon video's captions with yt-dlp (FEAT-9) and turns them into plain text.
+ * Reads a sermon video's captions and turns them into plain text: first through the YouTube API signed in as
+ * the channel (class-youtube-captions.php, FEAT-10) when that is set up, otherwise with yt-dlp (FEAT-9).
  *
  * The yt-dlp program only runs where PHP may start programs: WP-CLI cron on the server.
  * PHP-FPM forbids it (deploy/php/pn-pool.conf), and then fetch() says "no-runner" so the job waits for cron.
@@ -38,7 +39,36 @@ class Transcript {
 	}
 
 	/**
-	 * Fetch the captions of a YouTube video.
+	 * Fetch the captions of a YouTube video: the YouTube API first when it is set up, then yt-dlp.
+	 *
+	 * @return array{status:string,text:string,detail:string,api:string} api is the API's own status ('' when it
+	 *   is not set up; "auth" means its sign-in needs renewing). status is one of:
+	 *   ok          text holds the transcript;
+	 *   no-captions YouTube has no English captions (yet: they can take hours after a live stream);
+	 *   otherwise   the yt-dlp result below.
+	 */
+	public static function fetch( string $video_id ): array {
+		if ( ! preg_match( '/^[\w-]{11}$/', $video_id ) ) {
+			return self::result( 'failed', '', 'Not a YouTube video ID.' ) + array( 'api' => '' );
+		}
+		$api = null;
+		if ( YouTube_Captions::configured() ) {
+			$api = YouTube_Captions::fetch( $video_id );
+			if ( in_array( $api['status'], array( 'ok', 'no-captions' ), true ) ) {
+				return $api + array( 'api' => $api['status'] );
+			}
+			YouTube_Import::log( "YouTube API captions failed ({$api['status']}): {$api['detail']} Trying yt-dlp." );
+		}
+		$result        = self::fetch_ytdlp( $video_id );
+		$result['api'] = $api ? $api['status'] : '';
+		if ( $api && 'ok' !== $result['status'] ) {
+			$result['detail'] = 'YouTube API: ' . $api['detail'] . ' yt-dlp: ' . $result['detail'];
+		}
+		return $result;
+	}
+
+	/**
+	 * Fetch the captions of a YouTube video with yt-dlp.
 	 *
 	 * @return array{status:string,text:string,detail:string} status is one of:
 	 *   ok          text holds the transcript;
@@ -48,10 +78,7 @@ class Transcript {
 	 *   blocked     YouTube refused the server ("confirm you're not a bot"), so asking a person is quicker;
 	 *   failed      anything else (network, timeout); worth another try.
 	 */
-	public static function fetch( string $video_id ): array {
-		if ( ! preg_match( '/^[\w-]{11}$/', $video_id ) ) {
-			return self::result( 'failed', '', 'Not a YouTube video ID.' );
-		}
+	private static function fetch_ytdlp( string $video_id ): array {
 		if ( ! self::can_run() ) {
 			return self::result( 'no-runner', '', 'PHP here may not start programs; cron will try.' );
 		}
@@ -106,7 +133,7 @@ class Transcript {
 			if ( '' !== $file ) {
 				$text = self::from_json3( (string) file_get_contents( $file ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local temp file.
 				if ( strlen( $text ) >= 500 ) {
-					return self::result( 'ok', $text, '' );
+					return self::result( 'ok', $text, 'with yt-dlp' );
 				}
 				return self::result( 'no-captions', '', 'The captions are almost empty.' );
 			}
@@ -130,10 +157,14 @@ class Transcript {
 				}
 			}
 		}
-		$text = implode( '', $parts );
+		return self::clean( implode( '', $parts ) );
+	}
+
+	/** Caption text tidied: sound tags like [Music] dropped, tags stripped, spaces collapsed, length capped. */
+	public static function clean( string $text ): string {
 		$text = preg_replace( '/\[(?:music|applause|laughter|singing|snorts|__)[^\]]*\]/i', ' ', $text );
-		$text = trim( (string) preg_replace( '/\s+/u', ' ', (string) $text ) );
-		return mb_substr( wp_strip_all_tags( $text ), 0, self::MAX_CHARS );
+		$text = trim( (string) preg_replace( '/\s+/u', ' ', wp_strip_all_tags( (string) $text ) ) );
+		return mb_substr( $text, 0, self::MAX_CHARS );
 	}
 
 	/** Which outcome yt-dlp's messages describe. */
