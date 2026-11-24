@@ -357,6 +357,17 @@ mode gapi forbidden; mode ytdlp ok
 S13="$(new_sermon 'Not the owner' 'MMMMMMMMMM1')"
 run_job "$S13"
 [[ -n "$(draft_of "$S13")" ]] && ok "an account that may not download captions also falls back" || bad "no fallback after 403"
+mode gapi malformed; mode ytdlp ok
+S14="$(new_sermon 'Garbled list' 'NNNNNNNNNN1')"
+run_job "$S14"
+[[ -n "$(draft_of "$S14")" ]] && ok "an unreadable captions list falls back to yt-dlp (not \"no captions yet\")" || bad "no fallback after a garbled list"
+mode gapi quota; mode ytdlp blocked
+S15="$(new_sermon 'Out of quota' 'OOOOOOOOOO1')"
+run_job "$S15"
+expect_contains "out of quota with yt-dlp blocked: the email asks for the transcript" "$(last_mail)" "Out of quota"
+expect_lacks "...without telling anyone to renew a sign-in that still works" "$(last_mail)" "refused the site's YouTube sign-in"
+vtt=$'WEBVTT\nKind: captions\nLanguage: en\n\nNOTE a note to skip\n\nSTYLE\n::cue { color: red }\n\nopening\n00:00:01.000 --> 00:00:02.000\n2026\n\n2\n00:00:02.000 --> 00:00:03.000\nwas a <c>good</c> year\nwas a <c>good</c> year\n'
+expect_eq "WebVTT: spoken numbers kept; cue names, notes and styles dropped" "$(VTT="$vtt" wp eval 'echo PN_Sermons\YouTube_Captions::from_vtt( getenv( "VTT" ) );')" "2026 was a good year"
 rm -f /tmp/gapi-on; mode gapi ok; mode ytdlp ok
 
 echo "== 15. Keys stay private"

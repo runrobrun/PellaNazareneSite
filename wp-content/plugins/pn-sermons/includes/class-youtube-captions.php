@@ -48,7 +48,11 @@ class YouTube_Captions {
 		if ( is_wp_error( $list ) ) {
 			return self::result( self::status_for( $list ), '', 'Listing captions: ' . $list->get_error_message() );
 		}
-		$track = self::choose( (array) ( json_decode( $list, true )['items'] ?? array() ) );
+		$data = json_decode( $list, true );
+		if ( ! is_array( $data ) || ! isset( $data['items'] ) || ! is_array( $data['items'] ) ) {
+			return self::result( 'failed', '', 'Listing captions: YouTube sent an answer we could not read.' );
+		}
+		$track = self::choose( $data['items'] );
 		if ( '' === $track ) {
 			return self::result( 'no-captions', '', 'YouTube has no English captions for this video yet.' );
 		}
@@ -97,19 +101,32 @@ class YouTube_Captions {
 		return $best;
 	}
 
-	/** Plain text from WebVTT: cue numbers, times, settings and tags dropped; repeated lines once. */
+	/**
+	 * Plain text from WebVTT: only the text lines of each cue (those after its timing line), so cue names,
+	 * the header and NOTE/STYLE/REGION blocks are dropped while a spoken "2026" is kept; tags dropped;
+	 * a line repeated by the next cue (YouTube's rolling captions) kept once.
+	 */
 	public static function from_vtt( string $vtt ): string {
 		$out  = array();
 		$last = '';
-		foreach ( preg_split( '/\R/u', $vtt ) as $line ) {
-			$line = trim( $line );
-			if ( '' === $line || str_contains( $line, '-->' ) || ctype_digit( $line ) || preg_match( '/^(WEBVTT|NOTE|Kind:|Language:|STYLE|REGION)\b/', $line ) ) {
+		foreach ( preg_split( '/(?:\r\n|\r|\n)[ \t]*(?:\r\n|\r|\n)/u', $vtt ) as $block ) {
+			$lines  = preg_split( '/\R/u', trim( $block ) );
+			$timing = null;
+			foreach ( $lines as $i => $line ) {
+				if ( str_contains( $line, '-->' ) ) {
+					$timing = $i;
+					break;
+				}
+			}
+			if ( null === $timing || preg_match( '/^(WEBVTT|NOTE|STYLE|REGION)\b/', $lines[0] ) ) {
 				continue;
 			}
-			$line = trim( html_entity_decode( wp_strip_all_tags( $line ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
-			if ( '' !== $line && $line !== $last ) {
-				$out[] = $line;
-				$last  = $line;
+			foreach ( array_slice( $lines, $timing + 1 ) as $line ) {
+				$line = trim( html_entity_decode( wp_strip_all_tags( $line ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+				if ( '' !== $line && $line !== $last ) {
+					$out[] = $line;
+					$last  = $line;
+				}
 			}
 		}
 		return implode( ' ', $out );
@@ -145,7 +162,7 @@ class YouTube_Captions {
 		return new \WP_Error( 'token', "Google token request failed (HTTP {$code}" . ( $error ? ", {$error}" : '' ) . ').' );
 	}
 
-	/** GET from the YouTube API. Returns the body, or WP_Error with the HTTP status as its data. */
+	/** GET from the YouTube API. Returns the body, or WP_Error with the HTTP status and YouTube's reason as its data. */
 	private static function get( string $path, array $args, string $token ) {
 		$response = wp_remote_get(
 			add_query_arg( array_map( 'rawurlencode', $args ), YouTube_API::base() . $path ),
@@ -160,15 +177,32 @@ class YouTube_Captions {
 		}
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		if ( 200 !== $code ) {
-			$reason = json_decode( wp_remote_retrieve_body( $response ), true )['error']['errors'][0]['reason'] ?? '';
-			return new \WP_Error( 'http', "HTTP {$code}" . ( $reason ? ' (' . sanitize_key( (string) $reason ) . ')' : '' ), $code );
+			$body   = json_decode( wp_remote_retrieve_body( $response ), true );
+			$reason = is_array( $body ) ? sanitize_key( (string) ( $body['error']['errors'][0]['reason'] ?? '' ) ) : '';
+			return new \WP_Error(
+				'http',
+				"HTTP {$code}" . ( $reason ? " ({$reason})" : '' ),
+				array(
+					'status' => $code,
+					'reason' => $reason,
+				)
+			);
 		}
 		return (string) wp_remote_retrieve_body( $response );
 	}
 
-	/** 401/403 mean the signed-in account can't read this channel's captions: a setup problem, not "try later". */
-	private static function status_for( \WP_Error $error ): string {
-		return in_array( (int) $error->get_error_data(), array( 401, 403 ), true ) ? 'auth' : 'failed';
+	/**
+	 * 401/403 mean the signed-in account can't read this channel's captions: a setup problem, not "try later".
+	 * YouTube also answers 403 when the daily quota or a rate limit is used up; that is "try later", since
+	 * renewing a still-valid sign-in wouldn't help.
+	 */
+	public static function status_for( \WP_Error $error ): string {
+		$data   = (array) $error->get_error_data();
+		$reason = strtolower( (string) ( $data['reason'] ?? '' ) );
+		if ( in_array( $reason, array( 'quotaexceeded', 'dailylimitexceeded', 'ratelimitexceeded', 'userratelimitexceeded' ), true ) ) {
+			return 'failed';
+		}
+		return in_array( (int) ( $data['status'] ?? 0 ), array( 401, 403 ), true ) ? 'auth' : 'failed';
 	}
 
 	/** The token address. Tests point it at a fake server; ignored on production, like PN_YOUTUBE_API_BASE. */

@@ -85,7 +85,7 @@ if ( '/v1/search' === $path ) {
 	exit;
 }
 
-// A fake Google: the OAuth token endpoint and YouTube's captions API (FEAT-10). /tmp/gapi-mode: ok, revoked, none, forbidden.
+// A fake Google: the OAuth token endpoint and YouTube's captions API (FEAT-10). /tmp/gapi-mode: ok, revoked, none, forbidden, quota, malformed.
 if ( '/token' === $path ) {
 	parse_str( $body, $f );
 	$good = 'refresh_token' === ( $f['grant_type'] ?? '' ) && 'test-client-id' === ( $f['client_id'] ?? '' )
@@ -109,6 +109,10 @@ if ( str_starts_with( $path, '/youtube/v3/captions' ) ) {
 			echo '{"items":[]}';
 			exit;
 		}
+		if ( 'malformed' === $mode( '/tmp/gapi-mode' ) ) {
+			echo '<html>Something went wrong</html>';
+			exit;
+		}
 		$track = static fn( string $id, string $lang, string $kind, string $status ) => array(
 			'id'      => $id,
 			'snippet' => array( 'language' => $lang, 'trackKind' => $kind, 'status' => $status ),
@@ -120,6 +124,11 @@ if ( str_starts_with( $path, '/youtube/v3/captions' ) ) {
 		if ( 'forbidden' === $mode( '/tmp/gapi-mode' ) ) {
 			http_response_code( 403 );
 			echo '{"error":{"errors":[{"reason":"forbidden"}]}}';
+			exit;
+		}
+		if ( 'quota' === $mode( '/tmp/gapi-mode' ) ) {
+			http_response_code( 403 );
+			echo '{"error":{"errors":[{"reason":"quotaExceeded"}]}}';
 			exit;
 		}
 		header( 'Content-Type: text/vtt' );
