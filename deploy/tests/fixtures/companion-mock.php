@@ -1,6 +1,6 @@
 <?php
 // Router for `php -S`: a fake Claude Messages API and a fake Pexels search API for deploy/tests/companion-check.sh.
-// /tmp/claude-mode: ok (default), garbage, error. /tmp/pexels-mode: ok (default), none.
+// /tmp/claude-mode: ok (default), garbage, error. /tmp/pexels-mode: ok (default), none. Google: see the end.
 // Every request is logged (one JSON line) to /tmp/companion-requests.log so the test can check what was sent.
 $path = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
 $body = (string) file_get_contents( 'php://input' );
@@ -83,6 +83,62 @@ if ( '/v1/search' === $path ) {
 		)
 	);
 	exit;
+}
+
+// A fake Google: the OAuth token endpoint and YouTube's captions API (FEAT-10). /tmp/gapi-mode: ok, revoked, none, forbidden, quota, malformed.
+if ( '/token' === $path ) {
+	parse_str( $body, $f );
+	$good = 'refresh_token' === ( $f['grant_type'] ?? '' ) && 'test-client-id' === ( $f['client_id'] ?? '' )
+		&& 'test-client-secret' === ( $f['client_secret'] ?? '' ) && 'test-refresh-token' === ( $f['refresh_token'] ?? '' );
+	if ( ! $good || 'revoked' === $mode( '/tmp/gapi-mode' ) ) {
+		http_response_code( 400 );
+		echo '{"error":"invalid_grant","error_description":"Token has been expired or revoked."}';
+		exit;
+	}
+	echo '{"access_token":"test-access-token","expires_in":3599,"token_type":"Bearer"}';
+	exit;
+}
+if ( str_starts_with( $path, '/youtube/v3/captions' ) ) {
+	if ( ( $_SERVER['HTTP_AUTHORIZATION'] ?? '' ) !== 'Bearer test-access-token' ) {
+		http_response_code( 401 );
+		echo '{"error":{"errors":[{"reason":"authError"}]}}';
+		exit;
+	}
+	if ( '/youtube/v3/captions' === $path ) {
+		if ( 'none' === $mode( '/tmp/gapi-mode' ) ) {
+			echo '{"items":[]}';
+			exit;
+		}
+		if ( 'malformed' === $mode( '/tmp/gapi-mode' ) ) {
+			echo '<html>Something went wrong</html>';
+			exit;
+		}
+		$track = static fn( string $id, string $lang, string $kind, string $status ) => array(
+			'id'      => $id,
+			'snippet' => array( 'language' => $lang, 'trackKind' => $kind, 'status' => $status ),
+		);
+		echo json_encode( array( 'items' => array( $track( 'trk-es', 'es', 'standard', 'serving' ), $track( 'trk-failed', 'en', 'standard', 'failed' ), $track( 'trk-asr', 'en', 'ASR', 'serving' ) ) ) );
+		exit;
+	}
+	if ( '/youtube/v3/captions/trk-asr' === $path ) {
+		if ( 'forbidden' === $mode( '/tmp/gapi-mode' ) ) {
+			http_response_code( 403 );
+			echo '{"error":{"errors":[{"reason":"forbidden"}]}}';
+			exit;
+		}
+		if ( 'quota' === $mode( '/tmp/gapi-mode' ) ) {
+			http_response_code( 403 );
+			echo '{"error":{"errors":[{"reason":"quotaExceeded"}]}}';
+			exit;
+		}
+		header( 'Content-Type: text/vtt' );
+		$vtt = "WEBVTT\nKind: captions\nLanguage: en\n\n";
+		for ( $i = 0; $i < 30; $i++ ) {
+			$vtt .= sprintf( "%d\n00:00:%02d.000 --> 00:00:%02d.500 align:start position:0%%\n[Music]\nWe have this <c>hope</c> as an anchor &amp; it holds, from the official API %d.\n\n", $i + 1, $i, $i, $i );
+		}
+		echo $vtt;
+		exit;
+	}
 }
 
 http_response_code( 404 );

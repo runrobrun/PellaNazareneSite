@@ -78,7 +78,7 @@ The photo field and its fallback are in the plugin (`includes/class-speakers.php
 Each week the site turns Sunday's sermon into a **draft** blog post for the pastor who preached it (FEAT-9). It is a standalone post on the sermon's theme, not a report of the sermon, and it ends with a link to watch the full message. Nothing is ever published automatically.
 
 1. The daily import finds Sunday's video. If it recognizes the speaker, the draft is started straight away; otherwise it starts when staff set the speaker and publish the sermon. Only sermons from the last 14 days get a post, so the backfill command never drafts any, and a sermon only ever gets one.
-2. The site reads the video's captions with **yt-dlp** and keeps them in the sermon's **Transcript** box (bottom of the sermon's edit screen; never shown on the website).
+2. The site reads the video's captions, through the YouTube API signed in as the channel when that is set up (below), otherwise with **yt-dlp**, and keeps them in the sermon's **Transcript** box (bottom of the sermon's edit screen; never shown on the website).
 3. **Claude** writes the post from the transcript, following the writing instructions under **Settings → Sermons**.
 4. **Pexels** supplies a free stock photo as the featured image, chosen from search words Claude suggests. The photographer is credited in the image caption. Without a Pexels key, or with no good match, the sermon's own picture is used.
 5. The draft is saved under the preacher's account in the **Sermon Companion** category, and the preacher and the "Also notify" addresses get an email with a link to it and a list of names and verses to double-check (captions mishear them).
@@ -96,6 +96,34 @@ Each week the site turns Sunday's sermon into a **draft** blog post for the past
 
 As for every key: in `wp-config.php` only, edited in an editor on the server (not typed into a command), never in the repo, chat or email. **Staging** gets its own keys or none, never production's, and its email is blocked anyway.
 
+### Captions from YouTube (signed in as the channel)
+
+YouTube shows servers in data centers a "confirm you're not a bot" page, and it does so for the Linode, so yt-dlp alone can't read the captions there. Signed in as the church's channel, the official YouTube Data API can (FEAT-10): it lets anyone who may edit a video download its captions. The site tries the API first, then yt-dlp, then asks a person to paste. Set this up once for each site, on staging first. Use a separate OAuth client for staging and for production, so neither ever holds the other's sign-in.
+
+1. **Google Cloud Console**, in the project that already has the YouTube API key: **APIs & Services → Library → YouTube Data API v3** must be enabled (it is, for the backfill).
+2. **Google Auth Platform** (the "OAuth consent screen"):
+   - **Branding**: app name "Pella Nazarene website", the church email as support and developer contact.
+   - **Audience**: user type **External**. Then **Publish app** so its status is **In production**. This matters: while an app is in "Testing", Google ends its sign-ins after **7 days**. It will say the app is unverified. That's fine for an app only the church uses; you don't need to submit it for verification.
+   - **Data access**: add the scope `https://www.googleapis.com/auth/youtube.force-ssl`.
+3. **Clients → Create client**: type **Web application**, name "Pella website captions (staging)" (or production), and under **Authorized redirect URIs** add `https://developers.google.com/oauthplayground`. Keep the client ID and client secret for step 5.
+4. **Sign in as the channel** with Google's OAuth 2.0 Playground, [developers.google.com/oauthplayground](https://developers.google.com/oauthplayground):
+   - Gear icon (top right) → tick **Use your own OAuth credentials** → paste the client ID and secret.
+   - Step 1: in **Input your own scopes**, type `https://www.googleapis.com/auth/youtube.force-ssl` → **Authorize APIs**. Sign in with a Google account that manages the church's YouTube channel; if Google asks which channel or brand account, choose **Pella Nazarene's**. On the "unverified app" warning, choose **Advanced → Go to Pella Nazarene website**, then **Allow**.
+   - Step 2: **Exchange authorization code for tokens**, and copy the **Refresh token**.
+5. Put the three values in that site's `wp-config.php` (edit it on the server; never in the repo, chat or email):
+
+   ```php
+   define( 'PN_YOUTUBE_OAUTH_CLIENT_ID', '…apps.googleusercontent.com' );
+   define( 'PN_YOUTUBE_OAUTH_CLIENT_SECRET', '…' );
+   define( 'PN_YOUTUBE_OAUTH_REFRESH_TOKEN', '…' );
+   ```
+
+6. **Check**: `pn-sermons status` shows `YouTube captions: signed in as the channel`, and `pn-sermons draft-post <recent sermon ID> --transcript-only` shows `Result: ok (from the YouTube API, signed in as the channel)`. If it says `no-captions` for a video that does have a transcript on YouTube, the API isn't offering that video's automatic captions; pasting still works, and say so in the backlog (FEAT-10).
+
+**Keep the refresh token as secret as a password.** With this scope it can manage the channel's videos, not only read captions. The site only ever lists and downloads captions with it, and never stores, logs or prints it; the short-lived access token it gets each week isn't saved either. If it may have leaked, remove the app's access at [myaccount.google.com/permissions](https://myaccount.google.com/permissions) (signed in as the channel's account) and repeat step 4.
+
+**Renewing the sign-in**: if the "transcript needed" email says Google refused the site's YouTube sign-in, repeat step 4 and replace `PN_YOUTUBE_OAUTH_REFRESH_TOKEN`. That happens if someone removes the app's access, if the app is put back into "Testing", if the sign-in goes unused for six months, or if the same client is authorized more than 100 times. Quota: each sermon uses 250 of the 10,000 free units a day.
+
 ### Changing what it writes
 
 The writing instructions are in **Settings → Sermons**. Edit them there; the format the site needs back is added separately, so editing them can't break it. A site still on the original instructions gets the current ones automatically, and once someone edits them, their version is kept.
@@ -105,7 +133,8 @@ The writing instructions are in **Settings → Sermons**. Edit them there; the f
 | What happened | What to do |
 |---|---|
 | No draft and no email | `pn-sermons status`: is it switched on, is the Claude key set? Was the sermon from the last 14 days, with a speaker? With `WP_DEBUG_LOG` on, the log says why (lines start `[pn-sermons]`). |
-| Every week asks for a pasted transcript, "blocked" in the log | YouTube is blocking the server. Pasting works; or update yt-dlp (below), which often helps. |
+| Every week asks for a pasted transcript, "blocked" in the log | YouTube is blocking the server for yt-dlp. Set up "Captions from YouTube (signed in as the channel)" above; until then, pasting works. |
+| "Google refused the site's YouTube sign-in" (email or log) | Renew the sign-in: step 4 of "Captions from YouTube", then replace `PN_YOUTUBE_OAUTH_REFRESH_TOKEN`. Check the app is still **In production**. |
 | "yt-dlp NOT FOUND" | Run `scripts/install-yt-dlp.sh`. |
 | yt-dlp stopped working | YouTube changes often break old versions. Pick a yt-dlp release at least two weeks old, update its version and checksum in `scripts/install-yt-dlp.sh` in a pull request, merge, and run the script again on the server. |
 | The picture doesn't fit | Change it under **Featured image** in the post. Pexels photos are never reused, and every photo's Pexels page is stored on the image (`pn_pexels_url`). |
@@ -145,4 +174,4 @@ The key is removed from every message the importer prints or logs. If it ever le
 
 ## Testing
 
-`deploy/tests/sermon-parser-test.php` tests the parser on real descriptions. `deploy/tests/sermon-import-check.sh` runs the whole backfill against real WordPress and a fake YouTube (pagination, Shorts, live and private videos, duplicates, errors, idempotence, redirects, and that the key never appears in output or the database). `deploy/tests/companion-check.sh` tests the weekly blog draft against real WordPress with a fake yt-dlp, Claude and Pexels (queuing, retries, a hanging yt-dlp, the "transcript needed" email, the photo rules, that drafts are never published, and that keys never appear). All three run in CI.
+`deploy/tests/sermon-parser-test.php` tests the parser on real descriptions. `deploy/tests/sermon-import-check.sh` runs the whole backfill against real WordPress and a fake YouTube (pagination, Shorts, live and private videos, duplicates, errors, idempotence, redirects, and that the key never appears in output or the database). `deploy/tests/companion-check.sh` tests the weekly blog draft against real WordPress with a fake yt-dlp, Claude, Pexels and Google (captions from the YouTube API and every fallback, queuing, retries, a hanging yt-dlp, the "transcript needed" email, the photo rules, that drafts are never published, and that keys never appear). All three run in CI.

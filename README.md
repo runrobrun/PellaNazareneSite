@@ -81,4 +81,5 @@ Kept in `wp-config.php` on the server only (never committed):
 | `PN_YOUTUBE_API_KEY` | Sermon backfill (`wp pn-sermons backfill`); restricted to the YouTube Data API and the server's IP. See `docs/sermons.md` |
 | `PN_ANTHROPIC_API_KEY` | Weekly blog drafts from sermons (Claude). See `docs/sermons.md` |
 | `PN_PEXELS_API_KEY` | The stock photo on those drafts (Pexels). See `docs/sermons.md` |
+| `PN_YOUTUBE_OAUTH_CLIENT_ID`, `PN_YOUTUBE_OAUTH_CLIENT_SECRET`, `PN_YOUTUBE_OAUTH_REFRESH_TOKEN` | Sermon captions through the YouTube API, signed in as the channel (one OAuth client per site). The refresh token can manage the channel: treat it like a password. See `docs/sermons.md` |
 | `WPMS_*` | WP Mail SMTP (live site only; the Gmail app password, see `docs/forms.md`) |

@@ -24,6 +24,7 @@ class CLI {
 		\WP_CLI::log( 'Blog drafts:       ' . ( Settings::get( 'companion_enabled' ) ? 'on' : 'off (Settings > Sermons)' ) );
 		\WP_CLI::log( 'Claude API key:    ' . ( defined( 'PN_ANTHROPIC_API_KEY' ) && PN_ANTHROPIC_API_KEY ? 'set in wp-config.php (not shown)' : 'NOT SET: add PN_ANTHROPIC_API_KEY to wp-config.php' ) );
 		\WP_CLI::log( 'Pexels API key:    ' . ( Pexels::configured() ? 'set in wp-config.php (not shown)' : 'NOT SET: posts use the sermon picture; add PN_PEXELS_API_KEY' ) );
+		\WP_CLI::log( 'YouTube captions:  ' . ( YouTube_Captions::configured() ? 'signed in as the channel (set in wp-config.php, not shown)' : 'NOT SET: falls back to yt-dlp, then to pasting (docs/sermons.md)' ) );
 		\WP_CLI::log( 'yt-dlp:            ' . ( Transcript::installed() ? Transcript::binary() : 'NOT FOUND at ' . Transcript::binary() . ' (scripts/install-yt-dlp.sh)' ) . ( Transcript::can_run() ? '' : ' (this PHP may not run it)' ) );
 		$counts = wp_count_posts( Post_Types::POST_TYPE );
 		\WP_CLI::log( sprintf( 'Sermons on site:   %d published, %d drafts, %d in the trash', $counts->publish ?? 0, $counts->draft ?? 0, $counts->trash ?? 0 ) );

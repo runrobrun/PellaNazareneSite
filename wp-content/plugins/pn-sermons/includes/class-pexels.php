@@ -39,7 +39,7 @@ class Pexels {
 
 	/** Photos from the Pexels search API, or an empty list on any problem. */
 	public static function search( string $query ): array {
-		$base     = defined( 'PN_PEXELS_API_BASE' ) ? untrailingslashit( (string) PN_PEXELS_API_BASE ) : self::API_BASE;
+		$base     = defined( 'PN_PEXELS_API_BASE' ) && 'production' !== wp_get_environment_type() ? untrailingslashit( (string) PN_PEXELS_API_BASE ) : self::API_BASE; // Tests only.
 		$url      = add_query_arg(
 			array(
 				'query'       => rawurlencode( $query ),
